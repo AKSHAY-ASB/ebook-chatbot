@@ -7,6 +7,7 @@ let chatbotState = "normal";
 let profileSearchType = "";
 let profileSearchDistrict = "";
 let profileSearchPage = 1;
+let profileSearchEducation = "";
 
 window.onload = function () {
 
@@ -683,6 +684,8 @@ function startProfileSearch(type) {
 
   chatbotState = "profile_search";
 
+  profileSearchEducation = "";
+
 
   let title = "";
 
@@ -773,6 +776,148 @@ function showDistrictOptions() {
 
 }
 
+function showEducationOptions() {
+
+  const chat =
+    document.getElementById("chat");
+
+
+  chat.innerHTML += `
+
+    <div class="menu education-filter-menu">
+
+      <button
+        onclick="selectProfileEducation('Engineering')">
+
+        🎓 Engineering & Technology
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Medical')">
+
+        🩺 Medical & Healthcare
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Commerce')">
+
+        📊 Commerce & Management
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Arts')">
+
+        📚 Arts & Humanities
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Science')">
+
+        🔬 Science & Agriculture
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Diploma')">
+
+        🛠 Diploma / ITI / Technical
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Law')">
+
+        ⚖️ Law / Architecture / Design
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('General')">
+
+        📖 General Education
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('all')">
+
+        🌐 कोणतेही शिक्षण
+
+      </button>
+
+    </div>
+
+  `;
+
+  scrollChat();
+
+}
+
+
+function selectProfileEducation(education) {
+
+  profileSearchEducation =
+    education;
+
+  profileSearchPage = 1;
+
+
+  const educationLabels = {
+
+    Engineering:
+      "🎓 Engineering & Technology",
+
+    Medical:
+      "🩺 Medical & Healthcare",
+
+    Commerce:
+      "📊 Commerce & Management",
+
+    Arts:
+      "📚 Arts & Humanities",
+
+    Science:
+      "🔬 Science & Agriculture",
+
+    Diploma:
+      "🛠 Diploma / ITI / Technical",
+
+    Law:
+      "⚖️ Law / Architecture / Design",
+
+    General:
+      "📖 General Education",
+
+    all:
+      "🌐 कोणतेही शिक्षण"
+
+  };
+
+
+  userMessage(
+    educationLabels[education] ||
+    education
+  );
+
+
+  // Now start actual search
+  searchChatProfiles();
+
+}
+
+
 function selectProfileDistrict(district) {
 
   profileSearchPage = 1;
@@ -799,8 +944,18 @@ function selectProfileDistrict(district) {
 
   }
 
+    botMessage(`
 
-  searchChatProfiles();
+    🎓 <b>शिक्षण निवडा</b>
+
+    <br><br>
+
+    कृपया शिक्षणाचा प्रकार निवडा.
+
+  `);
+
+
+  showEducationOptions();
 
 }
 
@@ -967,17 +1122,17 @@ function searchChatProfiles() {
     )
 
 
-    .searchProfiles(
+      .searchProfiles(
 
-      profileSearchType,
+        profileSearchType,
 
-      profileSearchDistrict,
+        profileSearchDistrict,
 
-      "",
+        profileSearchEducation,
 
-      profileSearchPage
+        profileSearchPage
 
-    );
+      );
 
 }
 

@@ -362,23 +362,16 @@ const allProfiles = [];
       // EDUCATION FILTER
       // ========================================
 
-      if (
-        searchEducation &&
-        searchEducation !== "all" &&
-        searchEducation !== "सर्व"
-      ) {
+            if (
+              !matchesEducationCategory(
+                rowEducation,
+                searchEducation
+              )
+            ) {
 
-        if (
-          !rowEducation.includes(
-            searchEducation
-          )
-        ) {
+              continue;
 
-          continue;
-
-        }
-
-      }
+            }
 
 
 
@@ -568,7 +561,302 @@ allProfiles.push({
 }
 
 
+function matchesEducationCategory(
+  educationText,
+  category
+) {
 
+  educationText =
+    normalizeProfileText(
+      educationText
+    );
+
+
+  category =
+    normalizeProfileText(
+      category
+    );
+
+
+  // No education filter
+  if (
+    !category ||
+    category === "all" ||
+    category === "सर्व"
+  ) {
+
+    return true;
+
+  }
+
+
+  // ==========================================
+  // ENGINEERING & TECHNOLOGY
+  // ==========================================
+
+  if (category === "engineering") {
+
+    const keywords = [
+
+      "b.e",
+      "be ",
+      "b.e.",
+      "btech",
+      "b.tech",
+      "m.e",
+      "m.e.",
+      "mtech",
+      "m.tech",
+      "engineering",
+      "engineer",
+      "computer engineering",
+      "civil engineering",
+      "mechanical engineering",
+      "electrical engineering",
+      "electronics",
+      "information technology"
+
+    ];
+
+    return containsEducationKeyword(
+      educationText,
+      keywords
+    );
+
+  }
+
+
+  // ==========================================
+  // MEDICAL & HEALTHCARE
+  // ==========================================
+
+  if (category === "medical") {
+
+    const keywords = [
+
+      "mbbs",
+      "bams",
+      "bhms",
+      "bds",
+      "md ",
+      "m.d",
+      "medical",
+      "pharmacy",
+      "b.pharm",
+      "bpharm",
+      "m.pharm",
+      "mpharm",
+      "nursing",
+      "physiotherapy",
+      "bpt",
+      "mpt"
+
+    ];
+
+    return containsEducationKeyword(
+      educationText,
+      keywords
+    );
+
+  }
+
+
+  // ==========================================
+  // COMMERCE & MANAGEMENT
+  // ==========================================
+
+  if (category === "commerce") {
+
+    const keywords = [
+
+      "b.com",
+      "bcom",
+      "m.com",
+      "mcom",
+      "mba",
+      "bba",
+      "commerce",
+      "management",
+      "ca ",
+      "chartered accountant",
+      "cs ",
+      "cma"
+
+    ];
+
+    return containsEducationKeyword(
+      educationText,
+      keywords
+    );
+
+  }
+
+
+  // ==========================================
+  // ARTS & HUMANITIES
+  // ==========================================
+
+  if (category === "arts") {
+
+    const keywords = [
+
+      "b.a",
+      "ba ",
+      "m.a",
+      "ma ",
+      "arts",
+      "humanities",
+      "social science"
+
+    ];
+
+    return containsEducationKeyword(
+      educationText,
+      keywords
+    );
+
+  }
+
+
+  // ==========================================
+  // SCIENCE & AGRICULTURE
+  // ==========================================
+
+  if (category === "science") {
+
+    const keywords = [
+
+      "b.sc",
+      "bsc",
+      "m.sc",
+      "msc",
+      "science",
+      "agriculture",
+      "b.sc agri",
+      "bsc agri",
+      "m.sc agri",
+      "msc agri"
+
+    ];
+
+    return containsEducationKeyword(
+      educationText,
+      keywords
+    );
+
+  }
+
+
+  // ==========================================
+  // DIPLOMA / ITI / TECHNICAL
+  // ==========================================
+
+  if (category === "diploma") {
+
+    const keywords = [
+
+      "diploma",
+      "iti",
+      "polytechnic",
+      "technical"
+
+    ];
+
+    return containsEducationKeyword(
+      educationText,
+      keywords
+    );
+
+  }
+
+
+  // ==========================================
+  // LAW / ARCHITECTURE / DESIGN
+  // ==========================================
+
+  if (category === "law") {
+
+    const keywords = [
+
+      "llb",
+      "ll.m",
+      "llm",
+      "law",
+      "architecture",
+      "b.arch",
+      "m.arch",
+      "design",
+      "b.des",
+      "m.des"
+
+    ];
+
+    return containsEducationKeyword(
+      educationText,
+      keywords
+    );
+
+  }
+
+
+  function containsEducationKeyword(
+  educationText,
+  keywords
+) {
+
+  for (
+    let i = 0;
+    i < keywords.length;
+    i++
+  ) {
+
+    if (
+      educationText.includes(
+        keywords[i]
+      )
+    ) {
+
+      return true;
+
+    }
+
+  }
+
+
+  return false;
+
+}
+
+  // ==========================================
+  // GENERAL EDUCATION
+  // ==========================================
+
+  if (category === "general") {
+
+    const keywords = [
+
+      "10th",
+      "10 th",
+      "ssc",
+      "12th",
+      "12 th",
+      "hsc",
+      "graduate",
+      "graduation"
+
+    ];
+
+    return containsEducationKeyword(
+      educationText,
+      keywords
+    );
+
+  }
+
+
+  return false;
+
+}
 /**
  * ============================================
  * NORMALIZE HEADER
