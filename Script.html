@@ -1,0 +1,1641 @@
+<script>
+
+/* =========================================
+   CHATBOT START
+========================================= */
+let chatbotState = "normal";
+let profileSearchType = "";
+let profileSearchDistrict = "";
+let profileSearchPage = 1;
+
+window.onload = function () {
+
+  botMessage(
+    "👋 Welcome to Devang Pustika"
+  );
+
+  botMessage(
+    "How can I help you today?"
+  );
+
+  showMenu();
+
+};
+
+
+/* =========================================
+   ENTER KEY
+========================================= */
+
+function handleKey(e) {
+
+  if (e.key === "Enter") {
+
+    sendMessage();
+
+  }
+
+}
+
+
+/* =========================================
+   SEND USER MESSAGE
+========================================= */
+
+
+function sendMessage() {
+
+  const input =
+    document.getElementById("message");
+
+  const text =
+    input.value.trim();
+
+
+  if (text === "") {
+    return;
+  }
+
+
+  userMessage(text);
+
+  input.value = "";
+
+
+  /*
+   * ===================================
+   * E-BOOK MOBILE VERIFICATION
+   * ===================================
+   */
+
+  if (
+    chatbotState ===
+    "waiting_for_ebook_mobile"
+  ) {
+
+    verifyEbookMobile(text);
+
+    return;
+
+  }
+
+
+  /*
+   * ===================================
+   * NORMAL FAQ / AI CHAT
+   * ===================================
+   */
+
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function (result) {
+
+        hideTyping();
+
+
+        if (
+          result &&
+          result.found
+        ) {
+
+          botMessage(
+            result.answer
+          );
+
+
+          if (
+            result.action &&
+            result.action !== "none"
+          ) {
+
+            handleAction(
+              result.action
+            );
+
+          }
+
+        } else {
+
+          botMessage(
+            "❌ Sorry, I couldn't find an answer."
+          );
+
+        }
+
+      }
+    )
+
+    .withFailureHandler(
+      function (error) {
+
+        hideTyping();
+
+        console.error(error);
+
+        botMessage(
+          "⚠️ Something went wrong. Please try again."
+        );
+
+      }
+    )
+
+    .askBot(text);
+
+}
+
+
+/* =========================================
+   BOT MESSAGE
+========================================= */
+
+function botMessage(message) {
+
+  const chat =
+    document.getElementById("chat");
+
+  chat.innerHTML += `
+
+    <div class="bot">
+
+      ${message}
+
+    </div>
+
+  `;
+
+  scrollChat();
+
+}
+
+
+/* =========================================
+   USER MESSAGE
+========================================= */
+
+function userMessage(message) {
+
+  const chat =
+    document.getElementById("chat");
+
+  chat.innerHTML += `
+
+    <div class="user">
+
+      ${message}
+
+    </div>
+
+  `;
+
+  scrollChat();
+
+}
+
+
+/* =========================================
+   MAIN MENU
+========================================= */
+
+function showMenu() {
+
+  const chat =
+    document.getElementById("chat");
+
+  chat.innerHTML += `
+
+    <div class="menu">
+
+      <button
+        onclick="menuClick('registration')">
+
+        📝 Registration
+
+      </button>
+
+
+      <button
+        onclick="menuClick('ebook')">
+
+        📘 Download E-book
+
+      </button>
+
+
+      <button
+        onclick="menuClick('bride')">
+
+        👰 Search Bride
+
+      </button>
+
+
+      <button
+        onclick="menuClick('groom')">
+
+        🤵 Search Groom
+
+      </button>
+
+      <button onclick="menuClick('other')">
+        👤 Search Other
+      </button>
+
+      <button
+        onclick="menuClick('contact')">
+
+        ☎ Contact Us
+
+      </button>
+
+    </div>
+
+  `;
+
+  scrollChat();
+
+}
+
+function loadVerifiedEbook() {
+
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function (data) {
+
+        hideTyping();
+
+
+        if (
+          !data ||
+          !data.ebook
+        ) {
+
+          botMessage(
+
+            "⚠️ E-book is currently unavailable."
+
+          );
+
+          return;
+
+        }
+
+
+        const ebook =
+          data.ebook;
+
+
+        botMessage(`
+
+          📘 <b>${ebook.title}</b>
+
+          <br><br>
+
+          Your registration has been verified.
+
+          <br><br>
+
+          <a
+            class="chat-action-button"
+            href="${ebook.url}"
+            target="_blank"
+            rel="noopener noreferrer">
+
+            📘 Access E-book
+
+          </a>
+
+        `);
+
+      }
+    )
+
+    .withFailureHandler(
+      function (error) {
+
+        hideTyping();
+
+        console.error(error);
+
+
+        botMessage(
+
+          "⚠️ Unable to load the E-book."
+
+        );
+
+      }
+    )
+
+    .getChatLinks();
+
+}
+
+function showRegistrationButton() {
+
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function (data) {
+
+        hideTyping();
+
+
+        if (
+          !data ||
+          !data.registration
+        ) {
+
+          botMessage(
+
+            "Please use the Registration option from the main menu."
+
+          );
+
+          return;
+
+        }
+
+
+        botMessage(`
+
+          <a
+            class="chat-action-button"
+            href="${data.registration.url}"
+            target="_blank"
+            rel="noopener noreferrer">
+
+            📝 Register Your Name
+
+          </a>
+
+        `);
+
+      }
+    )
+
+    .withFailureHandler(
+      function (error) {
+
+        hideTyping();
+
+        console.error(error);
+
+      }
+    )
+
+    .getChatLinks();
+
+}
+
+function verifyEbookMobile(mobile) {
+
+  // Remove spaces from beginning/end
+  mobile = mobile.trim();
+
+  if (mobile === "") {
+
+    botMessage(
+      "⚠️ Please enter your registered mobile number."
+    );
+
+    return;
+  }
+
+
+  // Show typing while checking Google Sheet
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(function(result) {
+
+      hideTyping();
+
+      console.log("Verification Result:", result);
+
+
+      // No response received
+      if (!result) {
+
+        botMessage(
+          "⚠️ No response received from the verification system."
+        );
+
+        return;
+      }
+
+
+      // ==========================================
+      // REGISTERED USER
+      // ==========================================
+
+      if (
+        result.success === true &&
+        result.verified === true
+      ) {
+
+        chatbotState = "normal";
+
+        resetChatInput();
+
+
+        botMessage(`
+
+          ✅ <b>Registration Verified</b>
+
+          <br><br>
+
+          Welcome,
+          <b>${escapeHtml(result.name)}</b>
+
+          <br><br>
+
+          Your mobile number is registered
+          with Devang Pustika.
+
+        `);
+
+
+        // Show E-book after verification
+        loadVerifiedEbook();
+
+        return;
+      }
+
+
+      // ==========================================
+      // INVALID MOBILE NUMBER
+      // ==========================================
+
+      if (
+        result.invalidMobile === true
+      ) {
+
+        botMessage(`
+
+          ⚠️ <b>Invalid Mobile Number</b>
+
+          <br><br>
+
+          Please enter a valid
+          10-digit mobile number.
+
+          <br><br>
+
+          Example: 9876543210
+
+        `);
+
+        return;
+      }
+
+
+      // ==========================================
+      // NOT REGISTERED
+      // ==========================================
+
+      if (
+        result.success === true &&
+        result.verified === false
+      ) {
+
+        chatbotState = "normal";
+
+        resetChatInput();
+
+
+        botMessage(`
+
+          ⚠️ <b>Mobile Number Not Registered</b>
+
+          <br><br>
+
+          This mobile number was not found
+          in our registration records.
+
+          <br><br>
+
+          Please register your name first
+          to access the E-book.
+
+        `);
+
+
+        showRegistrationButton();
+
+        return;
+      }
+
+
+      // ==========================================
+      // OTHER SERVER ERROR
+      // ==========================================
+
+      chatbotState = "normal";
+
+      resetChatInput();
+
+
+      botMessage(
+        "⚠️ " +
+        (
+          result.message ||
+          "Unable to verify your registration."
+        )
+      );
+
+    })
+
+
+    .withFailureHandler(function(error) {
+
+      hideTyping();
+
+      chatbotState = "normal";
+
+      resetChatInput();
+
+      console.error(
+        "Verification Error:",
+        error
+      );
+
+
+      botMessage(`
+
+        ⚠️ <b>Verification Error</b>
+
+        <br><br>
+
+        ${error.message || error}
+
+      `);
+
+    })
+
+
+    .verifyEbookUser(mobile);
+
+}
+/* =========================================
+   MENU CLICK
+========================================= */
+
+function menuClick(option) {
+
+  switch (option) {
+
+    case "registration":
+
+      userMessage(
+        "📝 Registration"
+      );
+
+      loadLink(
+        "registration"
+      );
+
+      break;
+
+
+      case "ebook":
+
+        userMessage(
+          "📘 Download E-book"
+        );
+
+        startEbookVerification();
+
+        break;
+
+
+    case "contact":
+
+      userMessage(
+        "☎ Contact Us"
+      );
+
+      loadLink(
+        "contact"
+      );
+
+      break;
+
+
+    case "bride":
+
+      case "bride":
+
+      userMessage(
+        "👰 Search Bride"
+      );
+
+      startProfileSearch("bride");
+
+      break;
+
+
+    case "groom":
+
+        case "groom":
+
+        userMessage(
+          "🤵 Search Groom"
+        );
+
+        startProfileSearch("groom");
+
+        break;
+
+    case "other":
+
+      userMessage(
+        "👤 Search Other"
+      );
+
+      startProfileSearch("other");
+
+      break;  
+
+  }
+
+}
+
+function startProfileSearch(type) {
+
+  profileSearchType = type;
+
+  profileSearchDistrict = "";
+
+  profileSearchPage = 1;
+
+  chatbotState = "profile_search";
+
+
+  let title = "";
+
+
+  if (type === "bride") {
+
+    title = "👰 Bride Search";
+
+  }
+
+  else if (type === "groom") {
+
+    title = "🤵 Groom Search";
+
+  }
+
+  else {
+
+    title = "👤 Other Profile Search";
+
+  }
+
+
+  botMessage(`
+
+    <b>${title}</b>
+
+    <br><br>
+
+    Please select a district:
+
+  `);
+
+
+  showDistrictOptions();
+
+}
+
+
+function showDistrictOptions() {
+
+  const chat =
+    document.getElementById("chat");
+
+
+  chat.innerHTML += `
+
+    <div class="menu profile-filter-menu">
+
+      <button onclick="selectProfileDistrict('पुणे')">
+        पुणे
+      </button>
+
+      <button onclick="selectProfileDistrict('मुंबई')">
+        मुंबई
+      </button>
+
+      <button onclick="selectProfileDistrict('नाशिक')">
+        नाशिक
+      </button>
+
+      <button onclick="selectProfileDistrict('नागपूर')">
+        नागपूर
+      </button>
+
+      <button onclick="selectProfileDistrict('कोल्हापूर')">
+        कोल्हापूर
+      </button>
+
+      <button onclick="selectProfileDistrict('सातारा')">
+        सातारा
+      </button>
+
+      <button onclick="selectProfileDistrict('सांगली')">
+        सांगली
+      </button>
+
+      <button onclick="selectProfileDistrict('all')">
+        🌐 सर्व जिल्हे
+      </button>
+
+    </div>
+
+  `;
+
+
+  scrollChat();
+
+}
+
+function selectProfileDistrict(district) {
+
+  profileSearchPage = 1;
+
+  profileSearchDistrict =
+    district;
+
+
+  if (
+    district === "all"
+  ) {
+
+    userMessage(
+      "🌐 सर्व जिल्हे"
+    );
+
+  }
+
+  else {
+
+    userMessage(
+      "📍 " + district
+    );
+
+  }
+
+
+  searchChatProfiles();
+
+}
+
+function searchChatProfiles() {
+
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+
+        chatbotState =
+          "normal";
+
+
+        if (!result) {
+
+          botMessage(
+            "⚠️ Search response not received."
+          );
+
+          return;
+
+        }
+
+
+        if (
+          result.success !== true
+        ) {
+
+          botMessage(
+            "⚠️ " +
+            (
+              result.message ||
+              "Unable to search profiles."
+            )
+          );
+
+          return;
+
+        }
+
+
+        if (
+          !result.profiles ||
+          result.profiles.length === 0
+        ) {
+
+          botMessage(`
+
+            🔍 <b>No matching profiles found.</b>
+
+            <br><br>
+
+            Please try another district.
+
+          `);
+
+
+          showSearchAgainButton();
+
+          return;
+
+        }
+
+
+            const fromProfile =
+          ((result.page - 1) * result.pageSize) + 1;
+
+
+        const toProfile =
+          Math.min(
+            result.page * result.pageSize,
+            result.totalCount
+          );
+
+
+              const resultSectionId =
+            "profile-results-" + Date.now();
+
+
+          botMessage(`
+
+            <div id="${resultSectionId}">
+
+              🔍 <b>${result.totalCount} Matching Profiles Found</b>
+
+              <br><br>
+
+              Showing profiles
+              <b>${fromProfile} – ${toProfile}</b>
+              of
+              <b>${result.totalCount}</b>
+
+              <br>
+
+              Page
+              <b>${result.page}</b>
+              of
+              <b>${result.totalPages}</b>
+
+            </div>
+
+          `);
+
+          displayProfileResults(
+            result.profiles,
+            result.page,
+            result.pageSize
+          );
+
+        showProfilePagination(result);
+
+        setTimeout(function() {
+
+  const resultSection =
+    document.getElementById(
+      resultSectionId
+    );
+
+
+  if (resultSection) {
+
+    resultSection.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+  }
+
+}, 100);
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+        chatbotState =
+          "normal";
+
+
+        console.error(
+          "Profile Search Error:",
+          error
+        );
+
+
+        botMessage(
+
+          "⚠️ Unable to search profiles. Please try again."
+
+        );
+
+      }
+    )
+
+
+    .searchProfiles(
+
+      profileSearchType,
+
+      profileSearchDistrict,
+
+      "",
+
+      profileSearchPage
+
+    );
+
+}
+
+
+function showProfilePagination(result) {
+
+  const chat =
+    document.getElementById("chat");
+
+
+  let buttons = "";
+
+
+  // ========================================
+  // PREVIOUS BUTTON
+  // ========================================
+
+  if (
+    result.hasPrevious
+  ) {
+
+    buttons += `
+
+      <button
+        onclick="previousProfilePage()">
+
+        ◀ Previous 10
+
+      </button>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // NEXT BUTTON
+  // ========================================
+
+  if (
+    result.hasNext
+  ) {
+
+    buttons += `
+
+      <button
+        onclick="nextProfilePage()">
+
+        Next 10 ▶
+
+      </button>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // SEARCH AGAIN
+  // ========================================
+
+  buttons += `
+
+    <button
+      onclick="startProfileSearch(profileSearchType)">
+
+      🔍 New Search
+
+    </button>
+
+
+    <button
+      onclick="showMenu()">
+
+      🏠 Main Menu
+
+    </button>
+
+  `;
+
+
+  chat.innerHTML += `
+
+    <div class="menu profile-pagination">
+
+      ${buttons}
+
+    </div>
+
+  `;
+
+
+  scrollChat();
+
+}
+
+function nextProfilePage() {
+
+  profileSearchPage =
+    profileSearchPage + 1;
+
+
+  userMessage(
+    "Next 10 Profiles ▶"
+  );
+
+
+  searchChatProfiles();
+
+}
+
+
+function displayProfileResults(profiles, page, pageSize) {
+
+  profiles.forEach(
+    function(profile, index) {
+
+
+      let profileIcon = "👤";
+
+
+      if (
+        profileSearchType === "bride"
+      ) {
+
+        profileIcon = "👰";
+
+      }
+
+
+      else if (
+        profileSearchType === "groom"
+      ) {
+
+        profileIcon = "🤵";
+
+      }
+
+
+      const name =
+        escapeHtml(
+          profile.name || "-"
+        );
+
+
+      const district =
+        escapeHtml(
+          profile.district || "-"
+        );
+
+
+      const education =
+        escapeHtml(
+          profile.education || "-"
+        );
+
+
+      const age =
+        escapeHtml(
+          profile.age || "-"
+        );
+
+
+      const height =
+        escapeHtml(
+          profile.height || "-"
+        );
+
+
+      const caste =
+        escapeHtml(
+          profile.caste || "-"
+        );
+
+
+      const job =
+        escapeHtml(
+          profile.job || "-"
+        );
+
+
+      const income =
+        escapeHtml(
+          profile.income || "-"
+        );
+
+
+      const photo =
+        profile.photo || "";
+
+
+      // ========================================
+      // PROFILE IMAGE
+      // ========================================
+
+      let photoHtml = "";
+
+
+      if (photo) {
+
+        photoHtml = `
+
+          <div class="profile-photo-container">
+
+            <img
+              src="${photo}"
+              class="profile-photo"
+              alt="Profile Photo"
+              loading="lazy"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            >
+
+            <div
+              class="profile-photo-placeholder"
+              style="display:none;"
+            >
+
+              ${profileIcon}
+
+            </div>
+
+          </div>
+
+        `;
+
+      }
+
+      else {
+
+        photoHtml = `
+
+          <div class="profile-photo-container">
+
+            <div class="profile-photo-placeholder">
+
+              ${profileIcon}
+
+            </div>
+
+          </div>
+
+        `;
+
+      }
+
+
+      // ========================================
+      // PROFILE CARD
+      // ========================================
+
+      botMessage(`
+
+        <div class="profile-card">
+
+          ${photoHtml}
+
+
+          <div class="profile-card-title">
+
+          ${profileIcon}
+          Profile ${((page - 1) * pageSize) + index + 1}
+
+          </div>
+
+
+          <div class="profile-name">
+
+            ${name}
+
+          </div>
+
+
+          <div class="profile-details">
+
+            <div>
+
+              <b>📍 जिल्हा:</b>
+
+              ${district}
+
+            </div>
+
+
+            <div>
+
+              <b>🎓 शिक्षण:</b>
+
+              ${education}
+
+            </div>
+
+
+            <div>
+
+              <b>🎂 वय:</b>
+
+              ${age}
+
+            </div>
+
+
+            <div>
+
+              <b>📏 उंची:</b>
+
+              ${height}
+
+            </div>
+
+
+            <div>
+
+              <b>👥 पोट जात:</b>
+
+              ${caste}
+
+            </div>
+
+
+            <div>
+
+              <b>💼 नोकरी / व्यवसाय:</b>
+
+              ${job}
+
+            </div>
+
+
+            <div>
+
+              <b>💰 मासिक उत्पन्न:</b>
+
+              ${income}
+
+            </div>
+
+          </div>
+
+        </div>
+
+      `);
+
+    }
+  );
+
+}
+
+
+function showSearchAgainButton() {
+
+  const chat =
+    document.getElementById("chat");
+
+
+  chat.innerHTML += `
+
+    <div class="menu">
+
+      <button
+        onclick="startProfileSearch(profileSearchType)">
+
+        🔍 Search Again
+
+      </button>
+
+      <button
+        onclick="showMenu()">
+
+        🏠 Main Menu
+
+      </button>
+
+    </div>
+
+  `;
+
+
+  scrollChat();
+
+}
+
+
+function startEbookVerification() {
+
+  chatbotState =
+    "waiting_for_ebook_mobile";
+
+
+  botMessage(`
+
+    📱 <b>Mobile Verification</b>
+
+    <br><br>
+
+    Please enter your
+    <b>registered 10-digit mobile number</b>
+    to access the E-book.
+
+    <br><br>
+
+    <small>
+      Your mobile number must be registered
+      with Devang Pustika.
+    </small>
+
+  `);
+
+
+  const input =
+    document.getElementById("message");
+
+
+  input.placeholder =
+    "Enter registered mobile number...";
+
+
+  input.focus();
+
+}
+
+
+/* =========================================
+   LOAD LINK FROM GOOGLE SHEET
+========================================= */
+
+function loadLink(key) {
+
+  showTyping();
+
+  google.script.run
+
+    .withSuccessHandler(
+      function (data) {
+
+        hideTyping();
+
+        if (
+          !data ||
+          !data[key]
+        ) {
+
+          botMessage(
+            "⚠️ Link is currently unavailable."
+          );
+
+          return;
+
+        }
+
+        const item =
+          data[key];
+
+
+        let buttonText =
+          "Open";
+
+
+        if (
+          key === "registration"
+        ) {
+
+          buttonText =
+            "📝 Register Now";
+
+        }
+
+
+        if (
+          key === "ebook"
+        ) {
+
+          buttonText =
+            "📘 Open E-book";
+
+        }
+
+
+        if (
+          key === "contact"
+        ) {
+
+          buttonText =
+            "☎ Contact Us";
+
+        }
+
+
+        botMessage(`
+
+          <b>
+            ${item.title}
+          </b>
+
+          <br><br>
+
+          <a
+            class="chat-action-button"
+            href="${item.url}"
+            target="_blank"
+            rel="noopener noreferrer">
+
+            ${buttonText}
+
+          </a>
+
+        `);
+
+      }
+    )
+
+    .withFailureHandler(
+      function (error) {
+
+        hideTyping();
+
+        console.error(error);
+
+        botMessage(
+          "⚠️ Unable to load the link."
+        );
+
+      }
+    )
+
+    .getChatLinks();
+
+}
+
+
+/* =========================================
+   FAQ ACTION
+========================================= */
+
+function handleAction(action) {
+
+  if (
+    action === "registration"
+  ) {
+
+    loadLink(
+      "registration"
+    );
+
+  }
+
+
+else if (
+  action === "ebook"
+) {
+
+  startEbookVerification();
+
+}
+
+
+  else if (
+    action === "contact"
+  ) {
+
+    loadLink(
+      "contact"
+    );
+
+  }
+
+
+  else if (
+    action === "whatsapp"
+  ) {
+
+    loadLink(
+      "whatsapp"
+    );
+
+  }
+
+}
+
+
+/* =========================================
+   TYPING INDICATOR
+========================================= */
+
+function showTyping() {
+
+  hideTyping();
+
+  const chat =
+    document.getElementById("chat");
+
+  chat.innerHTML += `
+
+    <div
+      class="bot"
+      id="typingIndicator">
+
+      Typing...
+
+    </div>
+
+  `;
+
+  scrollChat();
+
+}
+
+
+function hideTyping() {
+
+  const typing =
+    document.getElementById(
+      "typingIndicator"
+    );
+
+  if (typing) {
+
+    typing.remove();
+
+  }
+
+}
+
+
+/* =========================================
+   AUTO SCROLL
+========================================= */
+
+function scrollChat() {
+
+  const chat =
+    document.getElementById("chat");
+
+  chat.scrollTop =
+    chat.scrollHeight;
+
+}
+
+function resetChatInput() {
+
+  const input =
+    document.getElementById("message");
+
+  input.placeholder =
+    "Type your message...";
+
+}
+
+
+function escapeHtml(text) {
+
+  const div =
+    document.createElement("div");
+
+  div.textContent =
+    text || "";
+
+  return div.innerHTML;
+
+}
+
+</script>

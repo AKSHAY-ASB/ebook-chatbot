@@ -1,0 +1,154 @@
+<script>
+
+window.onload=function(){
+
+botMessage("👋 Welcome to Devang Pustika");
+
+botMessage("How can I help you today?");
+
+showMenu();
+
+}
+
+function handleKey(e){
+
+if(e.key==="Enter"){
+
+sendMessage();
+
+}
+
+}
+
+function sendMessage(){
+
+const input=document.getElementById("message");
+
+const text=input.value.trim();
+
+if(text==="") return;
+
+userMessage(text);
+
+input.value="";
+
+}
+
+function botMessage(message){
+
+  const chat=document.getElementById("chat");
+
+  chat.innerHTML += `
+    <div class="bot">
+      ${message}
+    </div>
+  `;
+
+  chat.scrollTop = chat.scrollHeight;
+
+}
+
+function userMessage(message){
+
+const chat=document.getElementById("chat");
+
+chat.innerHTML+=`
+<div class="user">
+${message}
+</div>
+`;
+
+chat.scrollTop=chat.scrollHeight;
+
+}
+
+function showMenu(){
+
+const chat=document.getElementById("chat");
+
+chat.innerHTML+=`
+
+<div class="menu">
+
+<button onclick="menuClick('📝 Registration')">
+
+📝 Registration
+
+</button>
+
+<button onclick="menuClick('📘 Download E-book')">
+
+📘 Download E-book
+
+</button>
+
+<button onclick="menuClick('👰 Search Bride')">
+
+👰 Search Bride
+
+</button>
+
+<button onclick="menuClick('🤵 Search Groom')">
+
+🤵 Search Groom
+
+</button>
+
+<button onclick="menuClick('☎ Contact Us')">
+
+☎ Contact Us
+
+</button>
+
+</div>
+
+`;
+
+}
+
+function menuClick(option) {
+
+  userMessage(option);
+
+  google.script.run
+    .withSuccessHandler(function(data) {
+
+      switch(option) {
+
+        case "📝 Registration":
+          botMessage(`
+<b>${data.registration.title}</b><br><br>
+<a href="${data.registration.url}" target="_blank">
+Click here to Register
+</a>
+`);
+          break;
+
+        case "📘 Download E-book":
+          botMessage(`
+<b>${data.ebook.title}</b><br><br>
+<a href="${data.ebook.url}" target="_blank">
+Download E-book
+</a>
+`);
+          break;
+
+        case "☎ Contact Us":
+          botMessage(`
+<b>${data.contact.title}</b><br><br>
+<a href="${data.contact.url}" target="_blank">
+Contact Us
+</a>
+`);
+          break;
+
+        default:
+          botMessage("Feature coming soon...");
+      }
+
+    })
+    .getChatLinks();
+
+}
+
+</script>

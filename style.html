@@ -1,0 +1,337 @@
+<style>
+
+*{
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+
+margin:0;
+background:#f2f4f8;
+
+}
+
+.chat-container{
+
+width:420px;
+height:650px;
+
+margin:30px auto;
+
+background:white;
+
+border-radius:15px;
+
+overflow:hidden;
+
+box-shadow:0 10px 25px rgba(0,0,0,.15);
+
+display:flex;
+
+flex-direction:column;
+
+}
+
+.header{
+
+background:#0057B8;
+
+color:white;
+
+padding:18px;
+
+font-size:22px;
+
+font-weight:bold;
+
+text-align:center;
+
+}
+
+#chat{
+
+flex:1;
+
+overflow-y:auto;
+
+padding:15px;
+
+background:#fafafa;
+
+}
+
+.bot{
+
+background:#ECEFF1;
+
+padding:12px;
+
+border-radius:15px;
+
+margin-bottom:10px;
+
+width:80%;
+
+}
+
+.user{
+
+background:#0057B8;
+
+color:white;
+
+padding:12px;
+
+border-radius:15px;
+
+margin-bottom:10px;
+
+margin-left:auto;
+
+width:80%;
+
+}
+
+.bottom{
+
+display:flex;
+
+padding:10px;
+
+border-top:1px solid #ddd;
+
+}
+
+.bottom input{
+
+flex:1;
+
+padding:12px;
+
+font-size:16px;
+
+border:1px solid #ccc;
+
+border-radius:8px;
+
+outline:none;
+
+}
+
+.bottom button{
+
+margin-left:10px;
+
+padding:12px 18px;
+
+background:#0057B8;
+
+color:white;
+
+border:none;
+
+border-radius:8px;
+
+cursor:pointer;
+
+}
+
+.menu{
+
+display:flex;
+
+flex-direction:column;
+
+gap:8px;
+
+margin-top:15px;
+
+}
+
+.menu button{
+
+padding:12px;
+
+border-radius:8px;
+
+border:1px solid #0057B8;
+
+background:white;
+
+cursor:pointer;
+
+font-size:15px;
+
+}
+
+.menu button:hover{
+
+background:#0057B8;
+
+color:white;
+
+}
+
+.chat-action-button {
+
+  display: inline-block;
+
+  background: #0057B8;
+
+  color: white;
+
+  text-decoration: none;
+
+  padding: 10px 16px;
+
+  border-radius: 8px;
+
+  font-weight: 600;
+
+  margin-top: 5px;
+
+}
+
+
+.chat-action-button:hover {
+
+  opacity: 0.9;
+
+}
+
+
+.profile-filter-menu {
+
+  margin-top: 10px;
+
+}
+
+
+.profile-card {
+
+  background: #ffffff;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 12px;
+
+  padding: 14px;
+
+  margin-top: 5px;
+
+}
+
+
+.profile-card-title {
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  margin-bottom: 7px;
+
+  opacity: 0.75;
+
+}
+
+
+.profile-name {
+
+  font-size: 17px;
+
+  font-weight: 700;
+
+  margin-bottom: 10px;
+
+}
+
+
+.profile-details {
+
+  line-height: 1.7;
+
+  font-size: 14px;
+
+}
+
+
+.profile-details div {
+
+  margin-bottom: 3px;
+
+}
+
+/* =========================================
+   PROFILE PHOTO CONTAINER
+========================================= */
+
+.profile-photo-container {
+
+  width: 100%;
+
+  max-width: 220px;
+
+  height: 280px;
+
+  margin: 0 auto 15px auto;
+
+  border-radius: 12px;
+
+  overflow: hidden;
+
+  border: 1px solid #e5e7eb;
+
+  background: #f8f9fa;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+}
+
+
+/* =========================================
+   ACTUAL PROFILE PHOTO
+========================================= */
+
+.profile-photo {
+
+  width: 100%;
+
+  height: 100%;
+
+  object-fit: contain;
+
+  object-position: center;
+
+  display: block;
+
+}
+
+
+/* =========================================
+   PLACEHOLDER - IF PHOTO NOT AVAILABLE
+========================================= */
+
+.profile-photo-placeholder {
+
+  width: 100%;
+
+  height: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 45px;
+
+  background: #f3f4f6;
+
+}
+
+</style>

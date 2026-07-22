@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<?!= include('style'); ?>
+
+</head>
+
+<body>
+
+<div class="chat-container">
+
+<div class="header">
+🤖 Devang Chatbot
+</div>
+
+<div id="chat"></div>
+
+<div class="bottom">
+
+<input
+id="message"
+type="text"
+placeholder="Type your message..."
+onkeypress="handleKey(event)"
+>
+
+<button onclick="sendMessage()">
+Send
+</button>
+
+</div>
+
+</div>
+
+<?!= include('script'); ?>
+
+</body>
+
+</html>
