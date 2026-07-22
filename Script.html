@@ -1,6 +1,5 @@
 <script>
-
-/* =========================================
+  /* =========================================
    CHATBOT START
 ========================================= */
 let chatbotState = "normal";
@@ -8,6 +7,18 @@ let profileSearchType = "";
 let profileSearchDistrict = "";
 let profileSearchPage = 1;
 let profileSearchEducation = "";
+let profileSearchIncome = "";
+
+let profileAccessVerified = false;
+
+let profileUserMobile = "";
+
+let profileUserName = "";
+
+let profileUserRegisteredSheet = "";
+
+let pendingProfileSearchType = "";
+
 
 window.onload = function () {
 
@@ -58,6 +69,7 @@ function sendMessage() {
   }
 
 
+  // Show user's message
   userMessage(text);
 
   input.value = "";
@@ -77,8 +89,71 @@ function sendMessage() {
     verifyEbookMobile(text);
 
     return;
-
   }
+
+
+  /*
+   * ===================================
+   * PROFILE SEARCH MOBILE VERIFICATION
+   * ===================================
+   */
+
+if (
+  chatbotState ===
+  "profile_mobile_verification"
+) {
+
+  // Remove spaces, +91, hyphens, etc.
+  let mobile =
+    text.replace(/\D/g, "");
+
+
+  // Handle 91XXXXXXXXXX
+  if (
+    mobile.length === 12 &&
+    mobile.startsWith("91")
+  ) {
+
+    mobile =
+      mobile.substring(2);
+  }
+
+
+  // ==========================================
+  // INVALID MOBILE INPUT
+  // ==========================================
+
+  if (
+    !/^[6-9]\d{9}$/.test(mobile)
+  ) {
+
+    botMessage(`
+
+      ⚠️ <b>Invalid Mobile Number</b>
+
+      <br><br>
+
+      कृपया नोंदणी करताना दिलेला
+      <b>10 अंकी मोबाईल नंबर</b> टाका.
+
+      <br><br>
+
+      उदाहरण: <b>9876543210</b>
+
+    `);
+
+    return;
+  }
+
+
+  // ==========================================
+  // VALID MOBILE FORMAT
+  // ==========================================
+
+  verifyProfileMobile(mobile);
+
+  return;
+}
 
 
   /*
@@ -93,7 +168,7 @@ function sendMessage() {
   google.script.run
 
     .withSuccessHandler(
-      function (result) {
+      function(result) {
 
         hideTyping();
 
@@ -119,19 +194,39 @@ function sendMessage() {
 
           }
 
-        } else {
-
-          botMessage(
-            "❌ Sorry, I couldn't find an answer."
-          );
-
         }
+
+          else {
+
+            botMessage(`
+
+              👋 <b>Welcome to Devang Pustika</b>
+
+              <br><br>
+
+              माफ करा, तुमचा प्रश्न मला समजला नाही.
+
+              <br><br>
+
+              मी तुम्हाला खालील पर्यायांमध्ये मदत करू शकतो.
+
+              <br><br>
+
+              कृपया एक पर्याय निवडा.
+
+            `);
+
+
+            // Show main chatbot menu again
+            showMenu();
+
+          }
 
       }
     )
 
     .withFailureHandler(
-      function (error) {
+      function(error) {
 
         hideTyping();
 
@@ -172,7 +267,133 @@ function botMessage(message) {
 
 }
 
+function getSelectedFiltersHtml() {
 
+  // ==========================================
+  // PROFILE TYPE
+  // ==========================================
+
+  let typeLabel = "👤 Other";
+
+  if (profileSearchType === "bride") {
+    typeLabel = "👰 Bride";
+  }
+
+  else if (profileSearchType === "groom") {
+    typeLabel = "🤵 Groom";
+  }
+
+
+  // ==========================================
+  // DISTRICT
+  // ==========================================
+
+  let districtLabel =
+    profileSearchDistrict === "all"
+      ? "सर्व जिल्हे"
+      : profileSearchDistrict;
+
+
+  // ==========================================
+  // EDUCATION
+  // ==========================================
+
+  const educationLabels = {
+
+    Engineering:
+      "Engineering & Technology",
+
+    Medical:
+      "Medical & Healthcare",
+
+    Commerce:
+      "Commerce & Management",
+
+    Arts:
+      "Arts & Humanities",
+
+    Science:
+      "Science & Agriculture",
+
+    Diploma:
+      "Diploma / ITI / Technical",
+
+    Law:
+      "Law / Architecture / Design",
+
+    General:
+      "General Education",
+
+    all:
+      "कोणतेही शिक्षण"
+
+  };
+
+
+  const educationLabel =
+    educationLabels[profileSearchEducation] ||
+    profileSearchEducation ||
+    "कोणतेही शिक्षण";
+
+
+  // ==========================================
+  // INCOME
+  // ==========================================
+
+  let incomeLabel = "कोणतेही उत्पन्न";
+
+
+  if (
+    profileSearchIncome &&
+    profileSearchIncome !== "all"
+  ) {
+
+    incomeLabel =
+      profileSearchIncome
+        .replace("मासिक उत्पन्न", "")
+        .replace("रु.", "₹")
+        .trim();
+
+  }
+
+
+  // ==========================================
+  // RETURN FILTER BOX
+  // ==========================================
+
+  return `
+
+    <div class="selected-filters">
+
+      <div class="selected-filters-title">
+        🔎 <b>Selected Filters</b>
+      </div>
+
+      <div class="selected-filter-row">
+        <b>Profile:</b>
+        ${typeLabel}
+      </div>
+
+      <div class="selected-filter-row">
+        <b>📍 District:</b>
+        ${escapeHtml(districtLabel)}
+      </div>
+
+      <div class="selected-filter-row">
+        <b>🎓 Education:</b>
+        ${escapeHtml(educationLabel)}
+      </div>
+
+      <div class="selected-filter-row">
+        <b>💰 Monthly Income:</b>
+        ${escapeHtml(incomeLabel)}
+      </div>
+
+    </div>
+
+  `;
+
+}
 /* =========================================
    USER MESSAGE
 ========================================= */
@@ -590,6 +811,61 @@ function verifyEbookMobile(mobile) {
     .verifyEbookUser(mobile);
 
 }
+
+
+function requestProfileSearchAccess(type) {
+
+  pendingProfileSearchType =
+    type;
+
+
+  // ==========================================
+  // ALREADY VERIFIED IN CURRENT SESSION
+  // ==========================================
+
+  if (profileAccessVerified) {
+
+    startProfileSearch(type);
+
+    return;
+  }
+
+
+  // ==========================================
+  // WAIT FOR MOBILE NUMBER
+  // ==========================================
+
+  chatbotState =
+    "profile_mobile_verification";
+
+
+  botMessage(`
+
+    🔐 <b>Profile Search Verification</b>
+
+    <br><br>
+
+    प्रोफाइल शोधण्यासाठी आपला
+    नोंदणीकृत मोबाईल नंबर टाका.
+
+    <br><br>
+
+    📱 <b>10 अंकी मोबाईल नंबर टाका.</b>
+
+  `);
+
+
+  const input =
+    document.getElementById("message");
+
+
+  input.placeholder =
+    "Enter registered mobile number...";
+
+
+  input.focus();
+
+}
 /* =========================================
    MENU CLICK
 ========================================= */
@@ -635,20 +911,17 @@ function menuClick(option) {
       break;
 
 
-    case "bride":
-
       case "bride":
 
       userMessage(
         "👰 Search Bride"
       );
 
-      startProfileSearch("bride");
+        requestProfileSearchAccess(
+          "bride"
+        );
 
       break;
-
-
-    case "groom":
 
         case "groom":
 
@@ -656,7 +929,9 @@ function menuClick(option) {
           "🤵 Search Groom"
         );
 
-        startProfileSearch("groom");
+        requestProfileSearchAccess(
+          "groom"
+        );
 
         break;
 
@@ -666,13 +941,193 @@ function menuClick(option) {
         "👤 Search Other"
       );
 
-      startProfileSearch("other");
+       requestProfileSearchAccess(
+        "other"
+      );
 
       break;  
 
   }
 
 }
+
+
+
+function verifyProfileMobile(mobile) {
+
+  const cleanMobile =
+    mobile.replace(/\D/g, "");
+
+
+  if (cleanMobile.length !== 10) {
+
+    botMessage(
+      "⚠️ कृपया योग्य 10 अंकी मोबाईल नंबर टाका."
+    );
+
+    return;
+
+  }
+
+
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+
+        if (
+          result &&
+          result.verified
+        ) {
+
+          profileAccessVerified =
+            true;
+
+
+          profileUserMobile =
+            result.mobile;
+
+
+          profileUserName =
+            result.name;
+
+
+          profileUserRegisteredSheet =
+            result.registeredSheet;
+
+
+          chatbotState =
+            "normal";
+
+
+          botMessage(`
+
+            ✅ <b>Verification Successful</b>
+
+            <br><br>
+
+            नमस्कार
+            <b>${escapeHtml(result.name)}</b>
+
+            <br><br>
+
+            आता तुम्ही प्रोफाइल शोधू शकता.
+
+          `);
+
+
+          startProfileSearch(
+            pendingProfileSearchType
+          );
+
+        }
+
+        else {
+
+  profileAccessVerified = false;
+
+  chatbotState = "normal";
+
+
+  botMessage(`
+
+    ❌ <b>Registration Not Found</b>
+
+    <br><br>
+
+    हा मोबाईल नंबर वधू / वर / इतर
+    नोंदणीमध्ये आढळला नाही.
+
+    <br><br>
+
+    प्रथम आपली नोंदणी करा.
+
+  `);
+
+
+  google.script.run
+
+    .withSuccessHandler(function(data) {
+
+      if (
+        data &&
+        data.registration &&
+        data.registration.url
+      ) {
+
+        const chat =
+          document.getElementById("chat");
+
+
+        chat.innerHTML += `
+
+          <div class="menu">
+
+            <button
+              onclick="window.open(
+                '${data.registration.url}',
+                '_blank'
+              )">
+
+              📝 Register Now
+
+            </button>
+
+          </div>
+
+        `;
+
+
+        chat.scrollTop =
+          chat.scrollHeight;
+
+      }
+
+    })
+
+    .withFailureHandler(function(error) {
+
+      console.error(
+        "Registration Link Error:",
+        error
+      );
+
+    })
+
+    .getChatLinks();
+
+}
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+
+        botMessage(
+          "⚠️ Verification करताना समस्या आली. कृपया पुन्हा प्रयत्न करा."
+        );
+
+      }
+    )
+
+
+    .verifyProfileSearchAccess(
+      cleanMobile
+    );
+
+}
+
 
 function startProfileSearch(type) {
 
@@ -912,7 +1367,176 @@ function selectProfileEducation(education) {
   );
 
 
-  // Now start actual search
+botMessage(`
+
+  💰 <b>मासिक उत्पन्न निवडा</b>
+
+  <br><br>
+
+  कृपया मासिक उत्पन्नाचा पर्याय निवडा.
+
+`);
+
+showIncomeOptions();
+
+}
+
+function showIncomeOptions() {
+
+  const chat =
+    document.getElementById("chat");
+
+
+  chat.innerHTML += `
+
+    <div class="menu income-filter-menu">
+
+
+      <button
+        onclick="selectProfileIncome('मी सध्या नोकरी करत नाही, त्यामुळे माझे नियमित उत्पन्न नाही.')">
+
+        मी सध्या नोकरी करत नाही, त्यामुळे माझे नियमित उत्पन्न नाही.
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. १०,००० ते १५,०००')">
+
+        ₹१०,००० ते ₹१५,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. १५,००० ते २०,०००')">
+
+        ₹१५,००० ते ₹२०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. २०,००० ते २५,०००')">
+
+        ₹२०,००० ते ₹२५,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. २५,००० ते ३०,०००')">
+
+        ₹२५,००० ते ₹३०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. ३५,००० ते ४०,०००')">
+
+        ₹३५,००० ते ₹४०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. ४५,००० ते ५०,०००')">
+
+        ₹४५,००० ते ₹५०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. ५०,००० ते ७०,०००')">
+
+        ₹५०,००० ते ₹७०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. ७०,००० ते ९०,०००')">
+
+        ₹७०,००० ते ₹९०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. ९०,००० ते १,००,०००')">
+
+        ₹९०,००० ते ₹१,००,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. १००,०००  पेक्षा जास्त')">
+
+        ₹१,००,००० पेक्षा जास्त
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. २००,०००  पेक्षा जास्त')">
+
+        ₹२,००,००० पेक्षा जास्त
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('all')">
+
+        🌐 कोणतेही उत्पन्न
+
+      </button>
+
+
+    </div>
+
+  `;
+
+
+  scrollChat();
+
+}
+
+function selectProfileIncome(income) {
+
+  profileSearchIncome =
+    income;
+
+  profileSearchPage = 1;
+
+
+  if (income === "all") {
+
+    userMessage(
+      "🌐 कोणतेही उत्पन्न"
+    );
+
+  }
+
+  else {
+
+    let displayIncome =
+      income
+        .replace("मासिक उत्पन्न", "")
+        .replace("रु.", "₹")
+        .trim();
+
+
+    userMessage(
+      "💰 " + displayIncome
+    );
+
+  }
+
+
   searchChatProfiles();
 
 }
@@ -1038,8 +1662,12 @@ function searchChatProfiles() {
           );
 
 
-              const resultSectionId =
+                  const resultSectionId =
             "profile-results-" + Date.now();
+
+
+          const selectedFiltersHtml =
+            getSelectedFiltersHtml();
 
 
           botMessage(`
@@ -1050,28 +1678,36 @@ function searchChatProfiles() {
 
               <br><br>
 
-              Showing profiles
-              <b>${fromProfile} – ${toProfile}</b>
-              of
-              <b>${result.totalCount}</b>
+              ${selectedFiltersHtml}
 
               <br>
 
-              Page
-              <b>${result.page}</b>
-              of
-              <b>${result.totalPages}</b>
+              <div class="result-count">
+
+                Showing profiles
+                <b>${fromProfile} – ${toProfile}</b>
+                of
+                <b>${result.totalCount}</b>
+
+                <br>
+
+                Page
+                <b>${result.page}</b>
+                of
+                <b>${result.totalPages}</b>
+
+              </div>
 
             </div>
 
-          `);
+          `);     
 
           displayProfileResults(
             result.profiles,
             result.page,
             result.pageSize
           );
-
+        saveProfileSearchLog(result);
         showProfilePagination(result);
 
         setTimeout(function() {
@@ -1123,16 +1759,74 @@ function searchChatProfiles() {
 
 
       .searchProfiles(
-
         profileSearchType,
-
         profileSearchDistrict,
-
         profileSearchEducation,
-
+        profileSearchIncome,
         profileSearchPage
-
       );
+
+}
+
+
+function saveProfileSearchLog(result) {
+
+  // Only log first page.
+  // Next 10 / Previous 10 ला नवीन search समजणार नाही.
+
+  if (result.page !== 1) {
+
+    return;
+
+  }
+
+
+  const logData = {
+
+    mobile:
+      profileUserMobile,
+
+    name:
+      profileUserName,
+
+    registeredSheet:
+      profileUserRegisteredSheet,
+
+    type:
+      profileSearchType,
+
+    district:
+      profileSearchDistrict,
+
+    education:
+      profileSearchEducation,
+
+    income:
+      profileSearchIncome,
+
+    totalCount:
+      result.totalCount,
+
+    page:
+      result.page
+
+  };
+
+
+  google.script.run
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "Profile Log Error:",
+          error
+        );
+
+      }
+    )
+    .logProfileSearch(
+      logData
+    );
 
 }
 

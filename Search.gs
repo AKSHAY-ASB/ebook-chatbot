@@ -18,8 +18,374 @@
  *
  */
 
+const DISTRICTS_36 = [
 
-function searchProfiles(type, district, education, page) {
+  "मुंबई",
+  "मुंबई उपनगर",
+  "ठाणे",
+  "पालघर",
+
+  "रायगड",
+  "रत्नागिरी",
+  "सिंधुदुर्ग",
+
+  "नाशिक",
+  "धुळे",
+  "नंदुरबार",
+  "जळगाव",
+  "अहमदनगर",
+
+  "पुणे",
+  "सातारा",
+  "सांगली",
+  "सोलापूर",
+  "कोल्हापूर",
+
+  "औरंगाबाद",
+  "जालना",
+  "परभणी",
+  "हिंगोली",
+  "नांदेड",
+  "लातूर",
+  "उस्मानाबाद",
+  "बीड",
+
+  "अमरावती",
+  "अकोला",
+  "यवतमाळ",
+  "बुलढाणा",
+  "वाशिम",
+
+  "नागपूर",
+  "भंडारा",
+  "गोंदिया",
+  "चंद्रपूर",
+  "गडचिरोली"
+
+];
+
+function normalizeDistrict(value) {
+
+  if (!value) {
+    return "";
+  }
+
+
+  let v = value
+    .toString()
+    .toLowerCase()
+    .trim();
+
+
+  const map = {
+
+    "mumbai suburban": "मुंबई उपनगर",
+    "mumbai suburb": "मुंबई उपनगर",
+    "suburban": "मुंबई उपनगर",
+
+    "mumbai": "मुंबई",
+
+    "thane": "ठाणे",
+    "palghar": "पालघर",
+    "raigad": "रायगड",
+    "ratnagiri": "रत्नागिरी",
+    "sindhudurg": "सिंधुदुर्ग",
+
+    "nashik": "नाशिक",
+    "dhule": "धुळे",
+    "nandurbar": "नंदुरबार",
+    "jalgaon": "जळगाव",
+
+    "ahmednagar": "अहमदनगर",
+    "ahilyanagar": "अहमदनगर",
+
+    "pune": "पुणे",
+    "satara": "सातारा",
+    "sangli": "सांगली",
+    "solapur": "सोलापूर",
+    "kolhapur": "कोल्हापूर",
+
+    "chhatrapati sambhajinagar":
+      "औरंगाबाद",
+
+    "sambhajinagar":
+      "औरंगाबाद",
+
+    "aurangabad":
+      "औरंगाबाद",
+
+    "jalna": "जालना",
+    "parbhani": "परभणी",
+    "hingoli": "हिंगोली",
+    "nanded": "नांदेड",
+    "latur": "लातूर",
+
+    "dharashiv":
+      "उस्मानाबाद",
+
+    "osmanabad":
+      "उस्मानाबाद",
+
+    "beed": "बीड",
+
+    "amravati": "अमरावती",
+    "akola": "अकोला",
+    "yavatmal": "यवतमाळ",
+    "buldhana": "बुलढाणा",
+    "washim": "वाशिम",
+
+    "nagpur": "नागपूर",
+    "bhandara": "भंडारा",
+    "gondia": "गोंदिया",
+    "chandrapur": "चंद्रपूर",
+    "gadchiroli": "गडचिरोली"
+
+  };
+
+
+  // Marathi district already present
+
+  for (
+    let i = 0;
+    i < DISTRICTS_36.length;
+    i++
+  ) {
+
+    const district =
+      DISTRICTS_36[i];
+
+    if (
+      v.includes(
+        district.toLowerCase()
+      )
+    ) {
+
+      return district;
+
+    }
+
+  }
+
+
+  // English → Marathi
+
+  for (let eng in map) {
+
+    if (v.includes(eng)) {
+
+      return map[eng];
+
+    }
+
+  }
+
+
+  return v;
+
+}
+
+function smartNormalizeEducation(value) {
+
+  if (!value) {
+    return "";
+  }
+
+
+  let v = value
+    .toString()
+    .toLowerCase()
+    .trim();
+
+
+  v = v
+    .replace(/[(),.\-\/]/g, " ")
+    .replace(/\s+/g, " ");
+
+
+  // ==========================================
+  // MEDICAL & HEALTHCARE
+  // ==========================================
+
+  if (
+    /\b(mbbs|bhms|bams|bds|bpt|mpt|bpharm|mpharm|pharmacy|nursing|physio|physiotherapy|medical|doctor|veterinary)\b/.test(v)
+  ) {
+
+    return "Medical & Healthcare";
+
+  }
+
+
+  // ==========================================
+  // ENGINEERING & TECHNOLOGY
+  // ==========================================
+
+  if (
+    /\b(be|b e|btech|b tech|me|m e|mtech|m tech|engineering|engineer|mechanical|civil|electrical|chemical|automobile|entc|electronics|instrumentation|production|textile|cdac)\b/.test(v) ||
+    /इंजिनिअर|बी टेक|बी ई/.test(v)
+  ) {
+
+    return "Engineering & Technology";
+
+  }
+
+
+  // ==========================================
+  // COMMERCE & MANAGEMENT
+  // ==========================================
+
+  if (
+    /\b(bcom|b com|mcom|m com|commerce|mba|bba|pgdm|management|marketing|finance|banking|accountant|cma)\b/.test(v) ||
+    /\bca\b/.test(v) ||
+    /\bcs\b/.test(v)
+  ) {
+
+    return "Commerce & Management";
+
+  }
+
+
+  // ==========================================
+  // ARTS & HUMANITIES
+  // ==========================================
+
+  if (
+    /\b(ba|b a|ma|m a|arts|history|geography|marathi|sanskrit|msw|humanities)\b/.test(v)
+  ) {
+
+    return "Arts & Humanities";
+
+  }
+
+
+  // ==========================================
+  // SCIENCE & AGRICULTURE
+  // ==========================================
+
+  if (
+    /\b(bsc|b sc|msc|m sc|science|chemistry|physics|botany|zoology|agriculture|agri|biotech|microbiology|research|phd)\b/.test(v) ||
+    /कृषी/.test(v)
+  ) {
+
+    return "Science & Agriculture";
+
+  }
+
+
+  // ==========================================
+  // DIPLOMA / ITI / TECHNICAL
+  // ==========================================
+
+  if (
+    /\b(diploma|iti|mechanic|electrician|draftsman|polytechnic|technical|industrial)\b/.test(v)
+  ) {
+
+    return "Diploma / ITI / Technical";
+
+  }
+
+
+  // ==========================================
+  // LAW / ARCHITECTURE / DESIGN
+  // ==========================================
+
+  if (
+    /\b(llb|llm|law|interior|design|architecture|architect|b arch|m arch|tourism|hospitality)\b/.test(v)
+  ) {
+
+    return "Law / Architecture / Design";
+
+  }
+
+
+  // ==========================================
+  // GENERAL EDUCATION
+  // ==========================================
+
+  if (
+    /\b(10th|10|ssc|12th|12|hsc|school|mscit|typing)\b/.test(v) ||
+    /दहावी|बारावी/.test(v)
+  ) {
+
+    return "General Education (10th / 12th / Others)";
+
+  }
+
+
+  return value
+    .toString()
+    .trim();
+
+}
+
+
+function getEducationCategoryName(value) {
+
+  const key =
+    normalizeProfileText(
+      value
+    );
+
+
+  const map = {
+
+    "engineering":
+      "Engineering & Technology",
+
+    "medical":
+      "Medical & Healthcare",
+
+    "commerce":
+      "Commerce & Management",
+
+    "arts":
+      "Arts & Humanities",
+
+    "science":
+      "Science & Agriculture",
+
+    "diploma":
+      "Diploma / ITI / Technical",
+
+    "law":
+      "Law / Architecture / Design",
+
+    "general":
+      "General Education (10th / 12th / Others)"
+
+  };
+
+
+  return map[key] || value;
+
+}
+
+function normalizeIncome(value) {
+
+  if (!value) {
+    return "";
+  }
+
+
+  return value
+    .toString()
+    .toLowerCase()
+    .trim()
+
+    .replace(/मासिक उत्पन्न/g, "")
+
+    .replace(/रु\./g, "")
+    .replace(/रु/g, "")
+
+    .replace(/₹/g, "")
+
+    .replace(/\s+/g, " ")
+
+    .trim();
+
+}
+
+
+function searchProfiles(type, district, education, income, page) {
 
   try {
 
@@ -158,7 +524,7 @@ function searchProfiles(type, district, education, page) {
     // ==========================================
 
     const headers =
-      data[0].map(function(header) {
+      data[0].map(function (header) {
 
         return normalizeHeader(
           header
@@ -287,23 +653,33 @@ function searchProfiles(type, district, education, page) {
     // ==========================================
 
     const searchDistrict =
-      normalizeProfileText(
-        district
-      );
+      district === "all"
+        ? "all"
+        : normalizeDistrict(
+          district
+        );
 
 
     const searchEducation =
-      normalizeProfileText(
-        education
-      );
+      education === "all"
+        ? "all"
+        : getEducationCategoryName(
+          education
+        );
 
 
+    const searchIncome =
+      income === "all"
+        ? "all"
+        : normalizeIncome(
+          income
+        );
 
     // ==========================================
     // 8. SEARCH
     // ==========================================
 
-const allProfiles = [];
+    const allProfiles = [];
 
 
     for (
@@ -314,28 +690,8 @@ const allProfiles = [];
 
       const row = data[i];
 
-
-      const rowDistrict =
-        normalizeProfileText(
-          getProfileCell(
-            row,
-            districtIndex
-          )
-        );
-
-
-      const rowEducation =
-        normalizeProfileText(
-          getProfileCell(
-            row,
-            educationIndex
-          )
-        );
-
-
-
       // ========================================
-      // DISTRICT FILTER
+      // SMART DISTRICT FILTER
       // ========================================
 
       if (
@@ -344,10 +700,18 @@ const allProfiles = [];
         searchDistrict !== "सर्व"
       ) {
 
+        const rowDistrict =
+          normalizeDistrict(
+            getProfileCell(
+              row,
+              districtIndex
+            )
+          );
+
+
         if (
-          !rowDistrict.includes(
-            searchDistrict
-          )
+          rowDistrict !==
+          searchDistrict
         ) {
 
           continue;
@@ -359,178 +723,222 @@ const allProfiles = [];
 
 
       // ========================================
-      // EDUCATION FILTER
+      // SMART EDUCATION FILTER
       // ========================================
 
-            if (
-              !matchesEducationCategory(
-                rowEducation,
-                searchEducation
-              )
-            ) {
+      if (
+        searchEducation &&
+        searchEducation !== "all" &&
+        searchEducation !== "सर्व"
+      ) {
 
-              continue;
+        const rowEducation =
+          smartNormalizeEducation(
+            getProfileCell(
+              row,
+              educationIndex
+            )
+          );
 
-            }
+
+        if (
+          rowEducation !==
+          searchEducation
+        ) {
+
+          continue;
+
+        }
+
+      }
 
 
+      // ========================================
+      // SMART MONTHLY INCOME FILTER
+      // ========================================
+
+      if (
+        searchIncome &&
+        searchIncome !== "all" &&
+        searchIncome !== "सर्व"
+      ) {
+
+        const rowIncome =
+          normalizeIncome(
+            getProfileCell(
+              row,
+              incomeIndex
+            )
+          );
+
+
+        if (
+          rowIncome !==
+          searchIncome
+        ) {
+
+          continue;
+
+        }
+
+      }
 
       // ========================================
       // ADD PROFILE
       // ========================================
 
-allProfiles.push({
+      allProfiles.push({
 
-  id:
-    getProfileCell(
-      row,
-      idIndex
-    ),
+        id:
+          getProfileCell(
+            row,
+            idIndex
+          ),
 
-  name:
-    getProfileCell(
-      row,
-      nameIndex
-    ),
+        name:
+          getProfileCell(
+            row,
+            nameIndex
+          ),
 
-  district:
-    getProfileCell(
-      row,
-      districtIndex
-    ),
+        district:
+          getProfileCell(
+            row,
+            districtIndex
+          ),
 
-  education:
-    getProfileCell(
-      row,
-      educationIndex
-    ),
+        education:
+          getProfileCell(
+            row,
+            educationIndex
+          ),
 
-  birthDate:
-    getProfileCell(
-      row,
-      birthDateIndex
-    ),
+        birthDate:
+          getProfileCell(
+            row,
+            birthDateIndex
+          ),
 
-  age:
-    getProfileCell(
-      row,
-      ageIndex
-    ),
+        age:
+          getProfileCell(
+            row,
+            ageIndex
+          ),
 
-  height:
-    getProfileCell(
-      row,
-      heightIndex
-    ),
+        height:
+          getProfileCell(
+            row,
+            heightIndex
+          ),
 
-  caste:
-    getProfileCell(
-      row,
-      casteIndex
-    ),
+        caste:
+          getProfileCell(
+            row,
+            casteIndex
+          ),
 
-  job:
-    getProfileCell(
-      row,
-      jobIndex
-    ),
+        job:
+          getProfileCell(
+            row,
+            jobIndex
+          ),
 
-  income:
-    getProfileCell(
-      row,
-      incomeIndex
-    ),
+        income:
+          getProfileCell(
+            row,
+            incomeIndex
+          ),
 
-  address:
-    getProfileCell(
-      row,
-      addressIndex
-    ),
+        address:
+          getProfileCell(
+            row,
+            addressIndex
+          ),
 
-  photo:
-    convertProfilePhotoUrl(
-      getProfileCell(
-        row,
-        photoIndex
-      )
-    )
+        photo:
+          convertProfilePhotoUrl(
+            getProfileCell(
+              row,
+              photoIndex
+            )
+          )
 
-});
+      });
 
     }
 
 
-        // ==========================================
-        // PAGINATION
-        // ==========================================
+    // ==========================================
+    // PAGINATION
+    // ==========================================
 
-        const totalProfiles =
-          allProfiles.length;
-
-
-        const totalPages =
-          Math.ceil(
-            totalProfiles / pageSize
-          );
+    const totalProfiles =
+      allProfiles.length;
 
 
-        const profiles =
-          allProfiles.slice(
-            startIndex,
-            endIndex
-          );
+    const totalPages =
+      Math.ceil(
+        totalProfiles / pageSize
+      );
 
 
-        const hasNext =
-          page < totalPages;
+    const profiles =
+      allProfiles.slice(
+        startIndex,
+        endIndex
+      );
 
 
-        const hasPrevious =
-          page > 1;
+    const hasNext =
+      page < totalPages;
 
-      // ==========================================
-      // 9. RETURN RESULTS
-      // ==========================================
 
-        return {
+    const hasPrevious =
+      page > 1;
 
-        success: true,
+    // ==========================================
+    // 9. RETURN RESULTS
+    // ==========================================
 
-        type: type,
+    return {
 
-        sheetName: sheetName,
+      success: true,
 
-        // Current page
-        page: page,
+      type: type,
 
-        // 10 profiles maximum
-        pageSize: pageSize,
+      sheetName: sheetName,
 
-        // Total matching profiles
-        totalCount: totalProfiles,
+      // Current page
+      page: page,
 
-        // Total number of pages
-        totalPages: totalPages,
+      // 10 profiles maximum
+      pageSize: pageSize,
 
-        // Profiles on current page
-        count: profiles.length,
+      // Total matching profiles
+      totalCount: totalProfiles,
 
-        profiles: profiles,
+      // Total number of pages
+      totalPages: totalPages,
 
-        // Navigation
-        hasNext: hasNext,
+      // Profiles on current page
+      count: profiles.length,
 
-        hasPrevious: hasPrevious,
+      profiles: profiles,
 
-        message:
-          totalProfiles > 0
+      // Navigation
+      hasNext: hasNext,
 
-            ? totalProfiles +
-              " matching profiles found."
+      hasPrevious: hasPrevious,
 
-            : "No matching profiles found."
+      message:
+        totalProfiles > 0
 
-      };
+          ? totalProfiles +
+          " matching profiles found."
+
+          : "No matching profiles found."
+
+    };
 
 
   }
@@ -800,32 +1208,32 @@ function matchesEducationCategory(
 
 
   function containsEducationKeyword(
-  educationText,
-  keywords
-) {
-
-  for (
-    let i = 0;
-    i < keywords.length;
-    i++
+    educationText,
+    keywords
   ) {
 
-    if (
-      educationText.includes(
-        keywords[i]
-      )
+    for (
+      let i = 0;
+      i < keywords.length;
+      i++
     ) {
 
-      return true;
+      if (
+        educationText.includes(
+          keywords[i]
+        )
+      ) {
+
+        return true;
+
+      }
 
     }
 
+
+    return false;
+
   }
-
-
-  return false;
-
-}
 
   // ==========================================
   // GENERAL EDUCATION
@@ -982,7 +1390,6 @@ function normalizeProfileText(value) {
 
   }
 
-
   return value
     .toString()
     .toLowerCase()
@@ -1094,3 +1501,54 @@ function convertProfilePhotoUrl(url) {
   return url;
 
 }
+
+function normalizeIncome(value) {
+
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  return value
+    .toString()
+    .toLowerCase()
+    .replace(/मासिक उत्पन्न/g, "")
+    .replace(/रु\./g, "")
+    .replace(/रु/g, "")
+    .replace(/₹/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+
+function testSmartFilter() {
+
+  const result =
+    searchProfiles(
+
+      "bride",
+
+      "Mumbai",
+
+      "Engineering",
+
+      "मासिक उत्पन्न  रु. ५०,००० ते ७०,०००",
+
+      1
+
+    );
+
+
+  Logger.log(
+    JSON.stringify(
+      result,
+      null,
+      2
+    )
+  );
+
+}
+
+testSmartFilter();
