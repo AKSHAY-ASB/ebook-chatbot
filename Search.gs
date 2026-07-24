@@ -385,7 +385,7 @@ function normalizeIncome(value) {
 }
 
 
-function searchProfiles(type, district, education, income, page) {
+function searchProfiles(type, district, education, income, page, userMobile) {
 
   try {
 
@@ -867,13 +867,34 @@ function searchProfiles(type, district, education, income, page) {
 
     }
 
+    // ==========================================
+    // EXCLUDE DISLIKED FROM NORMAL SEARCH
+    // ==========================================
 
+    const visibleProfiles =
+      excludeDislikedProfiles(
+        allProfiles,
+        userMobile,
+        type
+      );
+
+
+    // ==========================================
+    // MARK ALREADY LIKED PROFILES
+    // ==========================================
+
+    const profilesWithReactions =
+      addProfileReactions(
+        visibleProfiles,
+        userMobile,
+        type
+      );
     // ==========================================
     // PAGINATION
     // ==========================================
 
     const totalProfiles =
-      allProfiles.length;
+      visibleProfiles.length;
 
 
     const totalPages =
@@ -883,7 +904,7 @@ function searchProfiles(type, district, education, income, page) {
 
 
     const profiles =
-      allProfiles.slice(
+      profilesWithReactions.slice(
         startIndex,
         endIndex
       );
@@ -1456,48 +1477,68 @@ function convertProfilePhotoUrl(url) {
 
   url = url.toString().trim();
 
-  // Google Drive file ID patterns
   let fileId = "";
 
-  // Example:
-  // https://drive.google.com/file/d/FILE_ID/view
-  const fileMatch =
-    url.match(/\/d\/([a-zA-Z0-9_-]+)/);
 
-  if (fileMatch && fileMatch[1]) {
+  // ==========================================
+  // FORMAT 1
+  // drive.google.com/file/d/FILE_ID/view
+  // ==========================================
 
-    fileId = fileMatch[1];
+  let match =
+    url.match(
+      /\/file\/d\/([a-zA-Z0-9_-]+)/
+    );
+
+  if (match && match[1]) {
+
+    fileId = match[1];
 
   }
 
 
-  // Example:
-  // https://drive.google.com/open?id=FILE_ID
-  // https://drive.google.com/uc?id=FILE_ID
+  // ==========================================
+  // FORMAT 2
+  // drive.google.com/open?id=FILE_ID
+  // drive.google.com/uc?id=FILE_ID
+  // ==========================================
+
   if (!fileId) {
 
-    const idMatch =
-      url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    match =
+      url.match(
+        /[?&]id=([a-zA-Z0-9_-]+)/
+      );
 
-    if (idMatch && idMatch[1]) {
+    if (match && match[1]) {
 
-      fileId = idMatch[1];
+      fileId = match[1];
 
     }
 
   }
 
 
+  // ==========================================
+  // GOOGLE DRIVE IMAGE
+  // ==========================================
+
   if (fileId) {
 
-    return "https://drive.google.com/thumbnail?id=" +
-      fileId +
-      "&sz=w400";
+    return (
+      "https://drive.google.com/thumbnail" +
+      "?id=" +
+      encodeURIComponent(fileId) +
+      "&sz=w1000"
+    );
 
   }
 
 
-  // If already normal image URL
+  // ==========================================
+  // NORMAL IMAGE URL
+  // ==========================================
+
   return url;
 
 }
@@ -1523,32 +1564,1233 @@ function normalizeIncome(value) {
 }
 
 
-function testSmartFilter() {
+// ==========================================
+// GET COMPLETE PROFILE BY ID
+// ==========================================
 
-  const result =
-    searchProfiles(
+function getFullProfile(
+  type,
+  profileId,
+  viewerMobile,
+  viewerName,
+  viewerRegisteredSheet
+) {
 
-      "bride",
+  try {
 
-      "Mumbai",
+    if (!type || !profileId) {
 
-      "Engineering",
+      return {
+        success: false,
+        message: "Invalid profile information."
+      };
 
-      "मासिक उत्पन्न  रु. ५०,००० ते ७०,०००",
+    }
 
-      1
 
+    // ========================================
+    // SELECT CORRECT SHEET
+    // ========================================
+
+    const sheetMap = {
+
+      bride: "वधू",
+
+      groom: "वर",
+
+      other: "इतर"
+
+    };
+
+
+    const sheetName =
+      sheetMap[
+      type.toString().toLowerCase()
+      ];
+
+
+    if (!sheetName) {
+
+      return {
+        success: false,
+        message: "Invalid profile type."
+      };
+
+    }
+
+
+    const ss =
+      SpreadsheetApp
+        .getActiveSpreadsheet();
+
+
+    const sheet =
+      ss.getSheetByName(
+        sheetName
+      );
+
+
+    if (!sheet) {
+
+      return {
+        success: false,
+        message:
+          "Profile sheet not found."
+      };
+
+    }
+
+
+    // ========================================
+    // GET DATA
+    // ========================================
+
+    const data =
+      sheet
+        .getDataRange()
+        .getDisplayValues();
+
+
+    if (data.length < 2) {
+
+      return {
+        success: false,
+        message:
+          "No profile data found."
+      };
+
+    }
+
+
+    // ========================================
+    // NORMALIZE HEADERS
+    // ========================================
+
+    const headers =
+      data[0].map(function (header) {
+
+        return normalizeHeader(
+          header
+        );
+
+      });
+
+
+    // ========================================
+    // FIND COLUMN INDEXES
+    // ========================================
+
+    const idIndex =
+      findProfileHeader(
+        headers,
+        "ID"
+      );
+
+
+    const nameIndex =
+      findProfileHeader(
+        headers,
+        "नाव :"
+      );
+
+
+    const addressIndex =
+      findProfileHeader(
+        headers,
+        "कायमचा  पत्ता  :"
+      );
+
+
+    const districtIndex =
+      findProfileHeader(
+        headers,
+        "जिल्हा निवडा"
+      );
+
+
+    const educationIndex =
+      findProfileHeader(
+        headers,
+        "शिक्षण :"
+      );
+
+
+    const birthDateIndex =
+      findProfileHeader(
+        headers,
+        "जन्मतारीख :"
+      );
+
+
+    const ageIndex =
+      findProfileHeader(
+        headers,
+        "वय :"
+      );
+
+
+    const birthTimeIndex =
+      findProfileHeader(
+        headers,
+        "जन्म वेळ :"
+      );
+
+
+    const birthPlaceIndex =
+      findProfileHeader(
+        headers,
+        "जन्म ठिकाण :"
+      );
+
+
+    const navrasIndex =
+      findProfileHeader(
+        headers,
+        "नावरस नाव :"
+      );
+
+
+    const complexionIndex =
+      findProfileHeader(
+        headers,
+        "वर्ण :"
+      );
+
+
+    const heightIndex =
+      findProfileHeader(
+        headers,
+        "ऊंची  :"
+      );
+
+
+    const bloodGroupIndex =
+      findProfileHeader(
+        headers,
+        "रक्त गट :"
+      );
+
+
+    const casteIndex =
+      findProfileHeader(
+        headers,
+        "पोट जात :"
+      );
+
+
+    const rashiIndex =
+      findProfileHeader(
+        headers,
+        "रास  :"
+      );
+
+
+    const jobIndex =
+      findProfileHeader(
+        headers,
+        "नोकरी / व्यवसाय व ठिकाण"
+      );
+
+
+    const incomeIndex =
+      findProfileHeader(
+        headers,
+        "मासिक उत्पन्न :"
+      );
+
+
+    const fatherIndex =
+      findProfileHeader(
+        headers,
+        "वडिलांचे पूर्ण नाव :"
+      );
+
+
+    const brotherIndex =
+      findProfileHeader(
+        headers,
+        "भाऊ : विषयीची माहिती द्या :"
+      );
+
+
+    const sisterIndex =
+      findProfileHeader(
+        headers,
+        "बहिण : विषयीची माहिती द्या :"
+      );
+
+
+    const expectationIndex =
+      findProfileHeader(
+        headers,
+        "अपेक्षा (आपल्या अपेक्षा थोडक्यात नोंदवा)"
+      );
+
+
+    const photoIndex =
+      findProfileHeader(
+        headers,
+        "फोटो : (फोटो हा पासपोर्ट स्वरूपाचा असावा)"
+      );
+
+
+    // ========================================
+    // ID COLUMN CHECK
+    // ========================================
+
+    if (idIndex === -1) {
+
+      return {
+        success: false,
+        message:
+          "ID column not found."
+      };
+
+    }
+
+
+    // ========================================
+    // FIND EXACT PROFILE
+    // ========================================
+
+    const searchId =
+      profileId
+        .toString()
+        .trim()
+        .toLowerCase();
+
+
+    for (
+      let i = 1;
+      i < data.length;
+      i++
+    ) {
+
+      const row =
+        data[i];
+
+
+      const rowId =
+        getProfileCell(
+          row,
+          idIndex
+        )
+          .toString()
+          .trim()
+          .toLowerCase();
+
+
+      if (
+        rowId === searchId
+      ) {
+
+        const profileName =
+          getProfileCell(
+            row,
+            nameIndex
+          );
+
+        // ==========================================
+        // SAVE FULL PROFILE VIEW LOG
+        // ==========================================
+
+        if (viewerMobile) {
+
+          try {
+
+            logProfileViewServer(
+
+              viewerMobile,
+
+              viewerName || "",
+
+              viewerRegisteredSheet || "",
+
+              type,
+
+              getProfileCell(
+                row,
+                idIndex
+              ),
+
+              profileName,
+
+              "Full Profile Viewed"
+
+            );
+
+          }
+
+          catch (logError) {
+
+            console.error(
+              "Profile View Logging Error:",
+              logError
+            );
+
+          }
+
+        }
+        // ====================================
+        // PROFILE FOUND
+        // ====================================
+
+        return {
+
+          success: true,
+
+          profile: {
+
+            id:
+              getProfileCell(
+                row,
+                idIndex
+              ),
+
+            type:
+              type,
+
+            name:
+              getProfileCell(
+                row,
+                nameIndex
+              ),
+
+            address:
+              getProfileCell(
+                row,
+                addressIndex
+              ),
+
+            district:
+              getProfileCell(
+                row,
+                districtIndex
+              ),
+
+            education:
+              getProfileCell(
+                row,
+                educationIndex
+              ),
+
+            birthDate:
+              getProfileCell(
+                row,
+                birthDateIndex
+              ),
+
+            age:
+              getProfileCell(
+                row,
+                ageIndex
+              ),
+
+            birthTime:
+              getProfileCell(
+                row,
+                birthTimeIndex
+              ),
+
+            birthPlace:
+              getProfileCell(
+                row,
+                birthPlaceIndex
+              ),
+
+            navrasName:
+              getProfileCell(
+                row,
+                navrasIndex
+              ),
+
+            complexion:
+              getProfileCell(
+                row,
+                complexionIndex
+              ),
+
+            height:
+              getProfileCell(
+                row,
+                heightIndex
+              ),
+
+            bloodGroup:
+              getProfileCell(
+                row,
+                bloodGroupIndex
+              ),
+
+            caste:
+              getProfileCell(
+                row,
+                casteIndex
+              ),
+
+            rashi:
+              getProfileCell(
+                row,
+                rashiIndex
+              ),
+
+            job:
+              getProfileCell(
+                row,
+                jobIndex
+              ),
+
+            income:
+              getProfileCell(
+                row,
+                incomeIndex
+              ),
+
+            fatherName:
+              getProfileCell(
+                row,
+                fatherIndex
+              ),
+
+            brother:
+              getProfileCell(
+                row,
+                brotherIndex
+              ),
+
+            sister:
+              getProfileCell(
+                row,
+                sisterIndex
+              ),
+
+            expectation:
+              getProfileCell(
+                row,
+                expectationIndex
+              ),
+
+            photo:
+              convertProfilePhotoUrl(
+                getProfileCell(
+                  row,
+                  photoIndex
+                )
+              )
+
+          }
+
+        };
+
+      }
+
+    }
+
+
+    // ========================================
+    // PROFILE NOT FOUND
+    // ========================================
+
+    return {
+
+      success: false,
+
+      message:
+        "Profile not found."
+
+    };
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "getFullProfile Error:",
+      error
     );
 
 
+    return {
+
+      success: false,
+
+      message:
+        "Unable to load profile."
+
+    };
+
+  }
+
+}
+
+
+function testGetFullProfile() {
+
+  const result = getFullProfile(
+    "bride",
+    "YOUR_ACTUAL_ID"
+  );
+
   Logger.log(
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
+    JSON.stringify(result, null, 2)
   );
 
 }
 
-testSmartFilter();
+
+function debugProfileId(type, profileId) {
+
+  const sheetMap = {
+    bride: "वधू",
+    groom: "वर",
+    other: "इतर"
+  };
+
+  const sheetName =
+    sheetMap[
+    type.toString().toLowerCase()
+    ];
+
+  const ss =
+    SpreadsheetApp.getActiveSpreadsheet();
+
+  const sheet =
+    ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+
+    Logger.log(
+      "Sheet not found: " +
+      sheetName
+    );
+
+    return;
+  }
+
+
+  const data =
+    sheet
+      .getDataRange()
+      .getDisplayValues();
+
+
+  const headers =
+    data[0].map(function (header) {
+
+      return normalizeHeader(header);
+
+    });
+
+
+  const idIndex =
+    findProfileHeader(
+      headers,
+      "ID"
+    );
+
+
+  Logger.log(
+    "Searching Sheet = " +
+    sheetName
+  );
+
+  Logger.log(
+    "Requested Profile ID = [" +
+    profileId +
+    "]"
+  );
+
+  Logger.log(
+    "ID Column Index = " +
+    idIndex
+  );
+
+
+  if (idIndex === -1) {
+
+    Logger.log(
+      "❌ ID column was not found."
+    );
+
+    return;
+  }
+
+
+  for (
+    let i = 1;
+    i < data.length;
+    i++
+  ) {
+
+    const sheetId =
+      getProfileCell(
+        data[i],
+        idIndex
+      );
+
+    Logger.log(
+      "Row " +
+      (i + 1) +
+      " → ID = [" +
+      sheetId +
+      "]"
+    );
+
+
+    if (
+      sheetId
+        .toString()
+        .trim()
+        .toLowerCase()
+      ===
+      profileId
+        .toString()
+        .trim()
+        .toLowerCase()
+    ) {
+
+      Logger.log(
+        "✅ PROFILE FOUND AT ROW " +
+        (i + 1)
+      );
+
+      return;
+
+    }
+
+  }
+
+
+  Logger.log(
+    "❌ PROFILE ID NOT FOUND"
+  );
+
+}
+
+function testProfileDebug() {
+
+  debugProfileId(
+    "bride",
+    "ID048"
+  );
+
+}
+
+
+// ==========================================
+// GET PROFILE CONTACT DETAILS
+// ==========================================
+
+function getProfileContact(
+  type,
+  profileId
+) {
+
+  try {
+
+    if (!type || !profileId) {
+
+      return {
+        success: false,
+        message:
+          "Invalid profile information."
+      };
+
+    }
+
+
+    // ========================================
+    // SELECT SHEET
+    // ========================================
+
+    const sheetMap = {
+
+      bride: "वधू",
+
+      groom: "वर",
+
+      other: "इतर"
+
+    };
+
+
+    const sheetName =
+      sheetMap[
+      type
+        .toString()
+        .toLowerCase()
+      ];
+
+
+    if (!sheetName) {
+
+      return {
+        success: false,
+        message:
+          "Invalid profile type."
+      };
+
+    }
+
+
+    const ss =
+      SpreadsheetApp
+        .getActiveSpreadsheet();
+
+
+    const sheet =
+      ss.getSheetByName(
+        sheetName
+      );
+
+
+    if (!sheet) {
+
+      return {
+        success: false,
+        message:
+          "Profile sheet not found."
+      };
+
+    }
+
+
+    // ========================================
+    // GET DATA
+    // ========================================
+
+    const data =
+      sheet
+        .getDataRange()
+        .getDisplayValues();
+
+
+    if (data.length < 2) {
+
+      return {
+        success: false,
+        message:
+          "No profile data found."
+      };
+
+    }
+
+
+    const headers =
+      data[0].map(function (header) {
+
+        return normalizeHeader(
+          header
+        );
+
+      });
+
+
+    // ========================================
+    // FIND REQUIRED COLUMNS
+    // ========================================
+
+    const idIndex =
+      findProfileHeader(
+        headers,
+        "ID"
+      );
+
+
+    const nameIndex =
+      findProfileHeader(
+        headers,
+        "नाव :"
+      );
+
+
+    const mobile1Index =
+      findProfileHeader(
+        headers,
+        "संपर्क क्रमांक १ :"
+      );
+
+
+    const mobile2Index =
+      findProfileHeader(
+        headers,
+        "संपर्क क्रमांक २ :"
+      );
+
+
+    const emailIndex =
+      findProfileHeader(
+        headers,
+        "ई-मेल आयडी :"
+      );
+
+
+    if (idIndex === -1) {
+
+      return {
+        success: false,
+        message:
+          "ID column not found."
+      };
+
+    }
+
+
+    // ========================================
+    // FIND PROFILE
+    // ========================================
+
+    const searchId =
+      profileId
+        .toString()
+        .trim()
+        .toLowerCase();
+
+
+    for (
+      let i = 1;
+      i < data.length;
+      i++
+    ) {
+
+      const row =
+        data[i];
+
+
+      const rowId =
+        getProfileCell(
+          row,
+          idIndex
+        )
+          .toString()
+          .trim()
+          .toLowerCase();
+
+
+      if (
+        rowId === searchId
+      ) {
+
+        return {
+
+          success: true,
+
+          contact: {
+
+            id:
+              getProfileCell(
+                row,
+                idIndex
+              ),
+
+            type:
+              type,
+
+            name:
+              getProfileCell(
+                row,
+                nameIndex
+              ),
+
+            mobile1:
+              getProfileCell(
+                row,
+                mobile1Index
+              ),
+
+            mobile2:
+              getProfileCell(
+                row,
+                mobile2Index
+              ),
+
+            email:
+              getProfileCell(
+                row,
+                emailIndex
+              )
+
+          }
+
+        };
+
+      }
+
+    }
+
+
+    return {
+
+      success: false,
+
+      message:
+        "Profile not found."
+
+    };
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "getProfileContact Error:",
+      error
+    );
+
+
+    return {
+
+      success: false,
+
+      message:
+        "Unable to load contact details."
+
+    };
+
+  }
+
+}
+
+// ==========================================
+// REMOVE USER'S DISLIKED PROFILES
+// FROM NORMAL SEARCH ONLY
+// ==========================================
+
+function excludeDislikedProfiles(
+  profiles,
+  userMobile,
+  profileType
+) {
+
+  if (
+    !profiles ||
+    profiles.length === 0
+  ) {
+    return [];
+  }
+
+
+  userMobile =
+    String(userMobile || "").trim();
+
+
+  profileType =
+    String(profileType || "")
+      .trim()
+      .toLowerCase();
+
+
+  // User not verified / mobile unavailable
+  // Keep normal results unchanged
+  if (!userMobile) {
+    return profiles;
+  }
+
+
+  const disliked =
+    getDislikedProfileIds(
+      userMobile
+    );
+
+
+  if (
+    !disliked ||
+    disliked.length === 0
+  ) {
+    return profiles;
+  }
+
+
+  // ========================================
+  // CREATE DISLIKE SET
+  // Example: bride_ID801
+  // ========================================
+
+  const dislikedSet =
+    new Set();
+
+
+  disliked.forEach(
+    function (item) {
+
+      const type =
+        String(item.type || "")
+          .trim()
+          .toLowerCase();
+
+
+      const id =
+        String(item.id || "")
+          .trim();
+
+
+      if (
+        type &&
+        id
+      ) {
+
+        dislikedSet.add(
+          type + "_" + id
+        );
+
+      }
+
+    }
+  );
+
+
+  // ========================================
+  // REMOVE DISLIKED
+  // ========================================
+
+  return profiles.filter(
+    function (profile) {
+
+      const id =
+        String(
+          profile.id || ""
+        ).trim();
+
+
+      const type =
+        String(
+          profile.type ||
+          profileType ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
+
+
+      const key =
+        type + "_" + id;
+
+
+      return !dislikedSet.has(
+        key
+      );
+
+    }
+  );
+
+}
+
+
+// ==========================================
+// ADD USER REACTION TO NORMAL SEARCH RESULTS
+// ==========================================
+
+function addProfileReactions(
+  profiles,
+  userMobile,
+  profileType
+) {
+
+  if (
+    !profiles ||
+    profiles.length === 0
+  ) {
+    return [];
+  }
+
+
+  userMobile =
+    String(userMobile || "").trim();
+
+
+  profileType =
+    String(profileType || "")
+      .trim()
+      .toLowerCase();
+
+
+  // User mobile unavailable
+  if (!userMobile) {
+
+    return profiles.map(
+      function (profile) {
+
+        profile.reaction = "";
+
+        return profile;
+
+      }
+    );
+
+  }
+
+
+  const likedProfiles =
+    getLikedProfileIds(
+      userMobile
+    );
+
+
+  const likedSet =
+    new Set();
+
+
+  likedProfiles.forEach(
+    function (item) {
+
+      const type =
+        String(item.type || "")
+          .trim()
+          .toLowerCase();
+
+
+      const id =
+        String(item.id || "")
+          .trim();
+
+
+      if (
+        type &&
+        id
+      ) {
+
+        likedSet.add(
+          type + "_" + id
+        );
+
+      }
+
+    }
+  );
+
+
+  profiles.forEach(
+    function (profile) {
+
+      const id =
+        String(
+          profile.id || ""
+        ).trim();
+
+
+      const type =
+        String(
+          profile.type ||
+          profileType ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
+
+
+      const key =
+        type + "_" + id;
+
+
+      profile.reaction =
+        likedSet.has(key)
+          ? "LIKE"
+          : "";
+
+    }
+  );
+
+
+  return profiles;
+
+}
