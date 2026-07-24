@@ -3623,7 +3623,7 @@ function showLikedProfiles() {
       <br><br>
 
       Mobile Number registered असल्यास
-      तुमचे Liked Profiles आपोआप उघडतील.
+      तुमचे Liked Profiles उघडतील.
 
     `);
 
@@ -3772,12 +3772,14 @@ botMessage(`
           result.profiles
         );
 
+        showSearchAgainButton();
+
         scrollProfileSectionToTop(
   likedSectionId
 );
 
 
-        scrollChat();
+       
 
       }
     )
@@ -4390,9 +4392,7 @@ function showDislikedProfiles() {
     !profileUserMobile
   ) {
 
-    pendingProfileCategory =
-      "disliked";
-
+    pendingProfileCategory = "disliked";
 
     botMessage(`
 
@@ -4406,20 +4406,45 @@ function showDislikedProfiles() {
       <br><br>
 
       Mobile Number registered असल्यास
-      तुमचे Disliked Profiles आपोआप उघडतील.
+      तुमचे Disliked Profiles उघडतील.
 
     `);
 
 
-    askMobileVerification();
+    chatbotState =
+      "profile_mobile_verification";
+
+
+    const input =
+      document.getElementById("message");
+
+
+    input.placeholder =
+      "Enter registered mobile number...";
+
+
+    input.focus();
 
     return;
-
   }
+
+
+  // ==========================================
+  // 2. VERIFIED USER
+  // ==========================================
+
+  console.log(
+    "LOADING DISLIKED PROFILES FOR:",
+    profileUserMobile
+  );
 
 
   showTyping();
 
+
+  // ==========================================
+  // 3. LOAD DISLIKED PROFILES
+  // ==========================================
 
   google.script.run
 
@@ -4429,9 +4454,19 @@ function showDislikedProfiles() {
         hideTyping();
 
 
+        console.log(
+          "DISLIKED PROFILES RESULT:",
+          result
+        );
+
+
+        // ======================================
+        // INVALID RESPONSE
+        // ======================================
+
         if (
           !result ||
-          !result.success
+          result.success !== true
         ) {
 
           botMessage(`
@@ -4440,14 +4475,21 @@ function showDislikedProfiles() {
 
             <br><br>
 
-            कृपया पुन्हा प्रयत्न करा.
+            ${
+              result && result.message
+                ? escapeHtml(result.message)
+                : "कृपया पुन्हा प्रयत्न करा."
+            }
 
           `);
 
           return;
-
         }
 
+
+        // ======================================
+        // NO DISLIKED PROFILES
+        // ======================================
 
         if (
           !result.profiles ||
@@ -4460,32 +4502,81 @@ function showDislikedProfiles() {
 
             <br><br>
 
-            तुम्ही कोणतेही profile
+            तुम्ही अजून कोणतेही Profile
             Dislike केलेले नाही.
 
           `);
 
           return;
-
         }
 
 
-        botMessage(`
+        // ======================================
+        // PROFILES FOUND
+        // ======================================
 
-          👎 <b>Disliked Profiles</b>
+     // ======================================
+// CREATE RESULT SECTION
+// ======================================
 
-          <br><br>
-
-          तुम्ही एकूण
-          <b>${result.totalCount}</b>
-          profile Dislike केले आहेत.
-
-        `);
+const dislikedSectionId =
+  "disliked-results-" + Date.now();
 
 
-        displayDislikedProfileResults(
-          result.profiles
-        );
+botMessage(`
+
+  <div id="${dislikedSectionId}">
+
+    👎 <b>Disliked Profiles</b>
+
+    <br><br>
+
+    तुम्ही एकूण
+    <b>${result.totalCount}</b>
+    Profile Dislike केले आहेत.
+
+  </div>
+
+`);
+
+
+// ======================================
+// DISPLAY PROFILE CARDS
+// ======================================
+
+displayDislikedProfileResults(
+  result.profiles
+);
+
+showSearchAgainButton();
+// ======================================
+// SCROLL TO DISLIKED RESULTS
+// ======================================
+
+setTimeout(
+  function() {
+
+    const section =
+      document.getElementById(
+        dislikedSectionId
+      );
+
+
+    if (section) {
+
+      section.scrollIntoView({
+
+        behavior: "smooth",
+
+        block: "start"
+
+      });
+
+    }
+
+  },
+  150
+);
 
       }
     )
@@ -4505,8 +4596,12 @@ function showDislikedProfiles() {
 
         botMessage(`
 
-          ⚠️ Disliked Profiles load करताना
-          समस्या आली.
+          ⚠️ <b>Disliked Profiles load करताना
+          समस्या आली.</b>
+
+          <br><br>
+
+          कृपया पुन्हा प्रयत्न करा.
 
         `);
 
@@ -4545,10 +4640,15 @@ function displayDislikedProfileResults(
 
 }
 
+
 function displayDislikedProfileCard(
   profile,
   profileNumber
 ) {
+
+  // ==========================================
+  // PROFILE BASIC VALUES
+  // ==========================================
 
   const currentProfileType =
     String(
@@ -4570,6 +4670,10 @@ function displayDislikedProfileCard(
     ).trim();
 
 
+  // ==========================================
+  // PROFILE ICON
+  // ==========================================
+
   let profileIcon = "👤";
 
 
@@ -4590,6 +4694,10 @@ function displayDislikedProfileCard(
   }
 
 
+  // ==========================================
+  // SAFE VALUES
+  // ==========================================
+
   const safeType =
     escapeJsValue(
       currentProfileType
@@ -4607,6 +4715,10 @@ function displayDislikedProfileCard(
       currentProfileName
     );
 
+
+  // ==========================================
+  // DISPLAY VALUES
+  // ==========================================
 
   const name =
     escapeHtml(
@@ -4660,6 +4772,10 @@ function displayDislikedProfileCard(
     profile.photo || "";
 
 
+  // ==========================================
+  // PROFILE IMAGE
+  // ==========================================
+
   let photoHtml = "";
 
 
@@ -4684,7 +4800,9 @@ function displayDislikedProfileCard(
           class="profile-photo-placeholder"
           style="display:none;"
         >
+
           ${profileIcon}
+
         </div>
 
       </div>
@@ -4699,8 +4817,12 @@ function displayDislikedProfileCard(
 
       <div class="profile-photo-container">
 
-        <div class="profile-photo-placeholder">
+        <div
+          class="profile-photo-placeholder"
+        >
+
           ${profileIcon}
+
         </div>
 
       </div>
@@ -4710,16 +4832,23 @@ function displayDislikedProfileCard(
   }
 
 
+  // ==========================================
+  // DISLIKED PROFILE CARD
+  // ==========================================
+
   botMessage(`
 
-    <div class="profile-card disliked-profile-card">
+    <div class="profile-card">
+
 
       ${photoHtml}
 
 
       <div class="profile-card-title">
 
-        👎 Disliked Profile ${profileNumber}
+        ${profileIcon}
+
+        Disliked Profile ${profileNumber}
 
       </div>
 
@@ -4733,43 +4862,53 @@ function displayDislikedProfileCard(
 
       <div class="profile-details">
 
+
         <div>
           <b>📍 जिल्हा:</b>
           ${district}
         </div>
+
 
         <div>
           <b>🎓 शिक्षण:</b>
           ${education}
         </div>
 
+
         <div>
           <b>🎂 वय:</b>
           ${age}
         </div>
+
 
         <div>
           <b>📏 उंची:</b>
           ${height}
         </div>
 
+
         <div>
           <b>👥 पोट जात:</b>
           ${caste}
         </div>
+
 
         <div>
           <b>💼 नोकरी / व्यवसाय:</b>
           ${job}
         </div>
 
+
         <div>
           <b>💰 मासिक उत्पन्न:</b>
           ${income}
         </div>
 
+
       </div>
 
+
+      <!-- VIEW FULL PROFILE -->
 
       <div class="profile-actions">
 
@@ -4783,13 +4922,20 @@ function displayDislikedProfileCard(
             )
           "
         >
+
           👤 View Full Profile
+
         </button>
 
       </div>
 
 
+      <!-- LIKE / DISLIKE -->
+
       <div class="profile-reaction-actions">
+
+
+        <!-- CHANGE TO LIKE -->
 
         <button
           type="button"
@@ -4803,25 +4949,34 @@ function displayDislikedProfileCard(
             )
           "
         >
+
           ♡ Like
+
         </button>
 
+
+        <!-- ALREADY DISLIKED -->
 
         <button
           type="button"
           class="profile-reaction-btn disliked-active"
           disabled
         >
+
           👎 Disliked
+
         </button>
 
+
       </div>
+
 
     </div>
 
   `);
 
 }
+
 
 function changeDislikedProfileToLike(
   type,
