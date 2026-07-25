@@ -489,6 +489,20 @@ function showMenu() {
         👎 Disliked Profiles
       </button>
 
+      <button
+        type="button"
+        onclick="showReceivedInterests()"
+      >
+        📥 Received Interests
+      </button>
+
+      <button
+        type="button"
+        onclick="showSentInterests()"
+      >
+        📤 Sent Interests
+      </button>
+
     </div>
 
   `;
@@ -1069,6 +1083,56 @@ function verifyProfileMobile(mobile) {
     return;
 
   }
+
+
+      // ========================================
+      // USER WAITING FOR SENT INTERESTS
+      // ========================================
+
+      if (
+        pendingProfileCategory ===
+        "sentInterests"
+      ) {
+
+        pendingProfileCategory = "";
+
+
+        console.log(
+          "OPENING SENT INTERESTS AFTER VERIFICATION"
+        );
+
+
+        showSentInterests();
+
+
+        return;
+
+      }
+
+
+    // ========================================
+    // RECEIVED INTERESTS AFTER VERIFICATION
+    // ========================================
+
+    if (
+      pendingProfileCategory ===
+      "receivedInterests"
+    ) {
+
+      pendingProfileCategory = "";
+
+
+      console.log(
+        "OPENING RECEIVED INTERESTS AFTER VERIFICATION"
+      );
+
+
+      showReceivedInterests();
+
+
+      return;
+
+    }
 
 
   // ========================================
@@ -2489,6 +2553,8 @@ function displayProfileResults(
 
           </div>
 
+          
+
 
         </div>
 
@@ -2863,10 +2929,30 @@ function viewFullProfile(
           return;
         }
 
+      // ========================================
+      // ADD PROFILE TYPE TO FULL PROFILE OBJECT
+      // ========================================
 
-        displayFullProfile(
-          result.profile
-        );
+      result.profile.type =
+        String(type || "")
+          .trim()
+          .toLowerCase();
+
+
+      console.log(
+        "TYPE ADDED TO FULL PROFILE:",
+        {
+          type: result.profile.type,
+          id: result.profile.id,
+          name: result.profile.name
+        }
+      );
+
+
+      displayFullProfile(
+        result.profile
+      );
+
 
       }
     )
@@ -2906,10 +2992,52 @@ function viewFullProfile(
     );
 
 }
-
-// function displayFullProfile(profile,"Full Profile Viewed") {
   
   function displayFullProfile(profile) {
+
+  // // ========================================
+  // // RESOLVE PROFILE TYPE FOR FULL PROFILE
+  // // ========================================
+
+  // const currentFullProfileType =
+  //   String(
+  //     profile.type ||
+  //     profileSearchType ||
+  //     ""
+  //   )
+  //   .trim()
+  //   .toLowerCase();
+
+
+  // console.log(
+  //   "FULL PROFILE INTEREST DATA:",
+  //   {
+  //     profileTypeFromObject:
+  //       profile.type,
+
+  //     profileSearchType:
+  //       profileSearchType,
+
+  //     resolvedType:
+  //       currentFullProfileType,
+
+  //     id:
+  //       profile.id,
+
+  //     name:
+  //       profile.name
+  //   }
+  // );
+
+    botMessage(`
+
+    <div class="full-profile-card">
+
+       PROFILE DETAILS...
+
+    </div>
+
+  `);
 
   const photoHtml =
     profile.photo
@@ -3054,6 +3182,30 @@ function viewFullProfile(
         >
           ☎ View Contact Details
         </button>
+
+      </div>
+
+      <div class="interest-profile-action">
+
+          <button
+            type="button"
+            class="send-interest-btn"
+            onclick="
+              openSendInterestConfirmation(
+                '${escapeJsValue(
+                  profile.type || ""
+                )}',
+                '${escapeJsValue(
+                  profile.id || ""
+                )}',
+                '${escapeJsValue(
+                  profile.name || ""
+                )}'
+              )
+            "
+          >
+            💌 Send Interest for Full Profile
+          </button>
 
       </div>
 
@@ -4225,6 +4377,28 @@ function displayLikedProfileCard(
           👤 View Full Profile
 
         </button>
+
+         <div class="interest-profile-action">
+         <button
+          type="button"
+          class="send-interest-btn"
+          onclick="
+            openSendInterestConfirmation(
+              '${escapeJsValue(
+                profile.type || ""
+              )}',
+              '${escapeJsValue(
+                profile.id || ""
+              )}',
+              '${escapeJsValue(
+                profile.name || ""
+              )}'
+            )
+          "
+        >
+          💌 Send Interest
+        </button>
+        </div>
 
       </div>
 
