@@ -4,6 +4,7 @@
 ========================================= */
 let chatbotState = "normal";
 let profileSearchType = "";
+let profileCurrentPage = 1;
 let profileSearchDistrict = "";
 let profileSearchPage = 1;
 let profileSearchEducation = "";
@@ -1876,6 +1877,11 @@ function searchChatProfiles() {
 
           `);     
 
+          profileCurrentPage =
+          Number(
+            result.page || 1
+          );
+
           displayProfileResults(
             result.profiles,
             result.page,
@@ -2074,7 +2080,7 @@ function showProfilePagination(result) {
 
 
     <button
-      onclick="showMenu()">
+      onclick="showMenu()" style="margin-bottom:10px">
 
       🏠 Main Menu
 
@@ -2113,12 +2119,132 @@ function nextProfilePage() {
 
 }
 
+// ==========================================
+// COMMON INTEREST STATUS UI
+// Used by Search Card + Full Profile
+// ==========================================
+
+function getInterestStatusHtml(
+  interestStatus
+) {
+
+  interestStatus =
+    String(
+      interestStatus || "NONE"
+    )
+    .trim()
+    .toUpperCase();
+
+
+  // ========================================
+  // PENDING - SENT
+  // ========================================
+
+  if (
+    interestStatus === "PENDING_SENT"
+  ) {
+
+    return `
+
+      <div class="profile-interest-status pending">
+
+        ⏳ <b>Pending</b>
+
+      </div>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // PENDING - RECEIVED
+  // ========================================
+
+  if (
+    interestStatus === "PENDING_RECEIVED"
+  ) {
+
+    return `
+
+      <div class="profile-interest-status pending">
+
+        ⏳ <b>Pending</b>
+
+      </div>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // ACCEPTED
+  // ========================================
+
+  if (
+    interestStatus === "ACCEPTED"
+  ) {
+
+    return `
+
+      <div class="profile-interest-status accepted">
+
+        ❤️ <b>Accepted</b>
+
+      </div>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // DECLINED
+  // ========================================
+
+  if (
+    interestStatus === "DECLINED"
+  ) {
+
+    return `
+
+      <div class="profile-interest-status declined">
+
+        ❌ <b>Declined</b>
+
+      </div>
+
+    `;
+
+  }
+
+
+  // NONE = no status UI
+  return "";
+
+}
 
 function displayProfileResults(
   profiles,
   page,
   pageSize
 ) {
+
+  console.log(
+    "CURRENT PROFILE SEARCH TYPE:",
+    profileSearchType
+  );
+
+    const pageScrollMarkerId =
+    "profile-search-page-" +
+    String(page) +
+    "-" +
+    Date.now();
+
+
+
+
 
   console.log(
     "CURRENT PROFILE SEARCH TYPE:",
@@ -2155,6 +2281,45 @@ function displayProfileResults(
           profile.name || ""
         ).trim();
 
+      
+      // ========================================
+      // INTEREST RELATIONSHIP
+      // ========================================
+
+      const relationship =
+        profile.interestRelationship || {};
+
+
+      const interestStatus =
+        String(
+          relationship.status || "NONE"
+        )
+        .trim()
+        .toUpperCase();
+
+        const canViewContact =
+          relationship.canViewContact === true;
+
+
+      console.log(
+        "SEARCH PROFILE INTEREST STATUS:",
+        {
+          profileId:
+            currentProfileId,
+
+          profileName:
+            currentProfileName,
+
+          profileType:
+            currentProfileType,
+
+          interestStatus:
+            interestStatus,
+
+          relationship:
+            relationship
+        }
+      );
 
       // ========================================
       // CURRENT SAVED REACTION
@@ -2166,6 +2331,16 @@ function displayProfileResults(
         )
         .trim()
         .toUpperCase();
+
+
+      // ========================================
+      // INTEREST STATUS DISPLAY
+      // ========================================
+
+      const interestStatusHtml =
+        getInterestStatusHtml(
+          interestStatus
+        );    
 
 
       // ========================================
@@ -2299,7 +2474,7 @@ function displayProfileResults(
 
         photoHtml = `
 
-          <div class="profile-photo-container">
+          <div class="profile-photo-container" id="${pageScrollMarkerId}">
 
             <img
               src="${photo}"
@@ -2525,6 +2700,15 @@ function displayProfileResults(
           </div>
 
 
+          <!-- INTEREST STATUS -->
+
+          <div class="interest-profile-action">
+
+            ${interestStatusHtml}
+
+          </div>
+
+
           <!-- LIKE / DISLIKE -->
 
           <div class="profile-reaction-actions">
@@ -2562,6 +2746,258 @@ function displayProfileResults(
 
     }
   );
+
+  // ========================================
+  // SCROLL TO FIRST PROFILE OF THIS PAGE
+  // ========================================
+
+  scrollToCurrentProfilePage(
+    pageScrollMarkerId
+  );
+
+}
+
+
+// ==========================================
+// SCROLL TO CURRENT SEARCH PAGE FIRST PROFILE
+// ==========================================
+
+function scrollToCurrentProfilePage(
+  markerId
+) {
+
+  setTimeout(
+    function() {
+
+      const target =
+        document.getElementById(
+          markerId
+        );
+
+
+      if (!target) {
+
+        console.log(
+          "PROFILE SCROLL TARGET NOT FOUND:",
+          markerId
+        );
+
+        return;
+
+      }
+
+
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+    },
+    200
+  );
+
+}
+
+// ==========================================
+// PREVIOUS PROFILE SEARCH PAGE
+// ==========================================
+
+function previousProfilePage() {
+
+  console.log(
+    "PREVIOUS PROFILE PAGE:",
+    {
+      currentPage: profileSearchPage,
+      searchType: profileSearchType,
+      district: profileSearchDistrict,
+      education: profileSearchEducation,
+      income: profileSearchIncome
+    }
+  );
+
+
+  // Already on first page
+  if (
+    !profileSearchPage ||
+    profileSearchPage <= 1
+  ) {
+
+    return;
+
+  }
+
+
+  // Go to previous page
+  profileSearchPage =
+    profileSearchPage - 1;
+
+
+  // Reload using SAME search filters
+  loadCurrentProfileSearchPage();
+
+}
+
+
+// ==========================================
+// NEXT PROFILE SEARCH PAGE
+// ==========================================
+
+function nextProfilePage() {
+
+  console.log(
+    "NEXT PROFILE PAGE:",
+    {
+      currentPage: profileSearchPage,
+      searchType: profileSearchType,
+      district: profileSearchDistrict,
+      education: profileSearchEducation,
+      income: profileSearchIncome
+    }
+  );
+
+
+  // Go to next page
+  profileSearchPage =
+    Number(
+      profileSearchPage || 1
+    ) + 1;
+
+
+  // Reload using SAME search filters
+  loadCurrentProfileSearchPage();
+
+}
+
+// ==========================================
+// LOAD CURRENT PROFILE SEARCH PAGE
+// ==========================================
+
+function loadCurrentProfileSearchPage() {
+
+  console.log(
+    "LOAD PROFILE SEARCH PAGE:",
+    {
+      type:
+        profileSearchType,
+
+      district:
+        profileSearchDistrict,
+
+      education:
+        profileSearchEducation,
+
+      income:
+        profileSearchIncome,
+
+      page:
+        profileSearchPage,
+
+      userMobile:
+        profileUserMobile
+    }
+  );
+
+
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+
+        console.log(
+          "PROFILE SEARCH PAGE RESULT:",
+          result
+        );
+
+
+        if (
+          !result ||
+          result.success !== true
+        ) {
+
+          botMessage(
+            "⚠️ Profile search करता आला नाही."
+          );
+
+          return;
+
+        }
+
+
+        // ==================================
+        // SAVE ACTUAL CURRENT PAGE
+        // ==================================
+
+        profileSearchPage =
+          Number(
+            result.page ||
+            profileSearchPage ||
+            1
+          );
+
+
+        // ==================================
+        // DISPLAY PROFILES
+        // ==================================
+
+        displayProfileResults(
+
+          result.profiles || [],
+
+          result.page ||
+            profileSearchPage,
+
+          result.pageSize ||
+            10
+
+        );
+
+
+        // ==================================
+        // PAGINATION BUTTONS
+        // ==================================
+
+        showProfilePagination(
+          result
+        );
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+
+        console.error(
+          "PROFILE SEARCH PAGE ERROR:",
+          error
+        );
+
+
+        botMessage(
+          "⚠️ Profiles load करताना समस्या आली."
+        );
+
+      }
+    )
+
+
+    .searchProfiles(
+      profileSearchType,
+      profileSearchDistrict,
+      profileSearchEducation,
+      profileSearchIncome,
+      profileSearchPage,
+      profileUserMobile
+    );
 
 }
 
@@ -2993,95 +3429,349 @@ function viewFullProfile(
 
 }
   
-  function displayFullProfile(profile) {
 
-  // // ========================================
-  // // RESOLVE PROFILE TYPE FOR FULL PROFILE
-  // // ========================================
+function displayFullProfile(profile) {
 
-  // const currentFullProfileType =
-  //   String(
-  //     profile.type ||
-  //     profileSearchType ||
-  //     ""
-  //   )
-  //   .trim()
-  //   .toLowerCase();
+  if (!profile) {
+
+    botMessage(
+      "⚠️ Profile information not found."
+    );
+
+    return;
+  }
 
 
-  // console.log(
-  //   "FULL PROFILE INTEREST DATA:",
-  //   {
-  //     profileTypeFromObject:
-  //       profile.type,
+  // ==========================================
+  // BASIC PROFILE VALUES
+  // ==========================================
 
-  //     profileSearchType:
-  //       profileSearchType,
+  const currentProfileType =
+    String(
+      profile.type || ""
+    )
+    .trim()
+    .toLowerCase();
 
-  //     resolvedType:
-  //       currentFullProfileType,
 
-  //     id:
-  //       profile.id,
+  const currentProfileId =
+    String(
+      profile.id || ""
+    ).trim();
 
-  //     name:
-  //       profile.name
-  //   }
-  // );
 
-    botMessage(`
+  const currentProfileName =
+    String(
+      profile.name || ""
+    ).trim();
 
-    <div class="full-profile-card">
 
-       PROFILE DETAILS...
+  // ==========================================
+  // SAFE VALUES
+  // IMPORTANT: Define BEFORE button HTML
+  // ==========================================
 
-    </div>
+  const safeType =
+    escapeJsValue(
+      currentProfileType
+    );
 
-  `);
+
+  const safeId =
+    escapeJsValue(
+      currentProfileId
+    );
+
+
+  const safeName =
+    escapeJsValue(
+      currentProfileName
+    );
+
+
+  // ==========================================
+  // INTEREST RELATIONSHIP
+  // ==========================================
+
+  const relationship =
+    profile.interestRelationship || {};
+
+
+  const interestStatus =
+    String(
+      relationship.status || "NONE"
+    )
+    .trim()
+    .toUpperCase();
+
+
+  const canViewContact =
+    relationship.canViewContact === true;
+
+
+  console.log(
+    "FULL PROFILE INTEREST STATUS:",
+    {
+      profileId:
+        currentProfileId,
+
+      profileName:
+        currentProfileName,
+
+      profileType:
+        currentProfileType,
+
+      interestStatus:
+        interestStatus,
+
+      canViewContact:
+        canViewContact,
+
+      relationship:
+        relationship
+    }
+  );
+
+
+  // ==========================================
+  // INTEREST STATUS UI
+  // ==========================================
+
+    const interestStatusHtml =
+      getInterestStatusHtml(
+        interestStatus
+      );
+
+
+  if (
+    interestStatus === "PENDING_SENT"
+  ) {
+
+    interestStatusHtml = `
+
+      <div class="profile-interest-status">
+
+        ⏳ <b>Status:</b>
+        Request Already Sent
+
+      </div>
+
+    `;
+
+  }
+
+
+  else if (
+    interestStatus === "PENDING_RECEIVED"
+  ) {
+
+    interestStatusHtml = `
+
+      <div class="profile-interest-status">
+
+        📥 <b>Status:</b>
+        Request Received
+
+      </div>
+
+    `;
+
+  }
+
+
+  else if (
+    interestStatus === "ACCEPTED"
+  ) {
+
+    interestStatusHtml = `
+
+      <div class="profile-interest-status accepted">
+
+        ❤️ <b>Status:</b>
+        Accepted
+
+      </div>
+
+    `;
+
+  }
+
+
+  else if (
+    interestStatus === "DECLINED"
+  ) {
+
+    interestStatusHtml = `
+
+      <div class="profile-interest-status declined">
+
+        <b>Status:</b>
+        Not Proceeding
+
+      </div>
+
+    `;
+
+  }
+
+
+  // ==========================================
+  // CONTACT BUTTON
+  // ONLY AFTER ACCEPTED
+  // ==========================================
+
+  let contactButtonHtml = "";
+
+
+  if (
+    interestStatus === "ACCEPTED" &&
+    canViewContact === true
+  ) {
+
+    contactButtonHtml = `
+
+      <button
+        type="button"
+        class="view-profile-btn"
+        onclick="viewProfileContact(
+          '${safeType}',
+          '${safeId}'
+        )"
+      >
+        ☎ View Contact Details
+      </button>
+
+    `;
+
+  }
+
+
+  // ==========================================
+  // SEND INTEREST BUTTON
+  // ONLY WHEN NO RELATIONSHIP EXISTS
+  // ==========================================
+
+  let sendInterestButtonHtml = "";
+
+
+  if (
+    interestStatus === "NONE"
+  ) {
+
+    sendInterestButtonHtml = `
+
+      <button
+        type="button"
+        class="send-interest-btn"
+        onclick="openSendInterestConfirmation(
+          '${safeType}',
+          '${safeId}',
+          '${safeName}'
+        )"
+      >
+        💌 Send Interest
+      </button>
+
+    `;
+
+  }
+
+
+  // ==========================================
+  // PROFILE ICON
+  // ==========================================
+
+  let profileIcon = "👤";
+
+
+  if (
+    currentProfileType === "bride"
+  ) {
+
+    profileIcon = "👰";
+
+  }
+
+  else if (
+    currentProfileType === "groom"
+  ) {
+
+    profileIcon = "🤵";
+
+  }
+
+
+  // ==========================================
+  // PROFILE PHOTO
+  // ==========================================
 
   const photoHtml =
     profile.photo
       ? `
+
         <div class="full-profile-photo">
 
           <img
             src="${profile.photo}"
             alt="Profile Photo"
             loading="lazy"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            onerror="
+              this.style.display='none';
+              this.nextElementSibling.style.display='flex';
+            "
           >
 
           <div
             class="profile-photo-placeholder"
             style="display:none;"
           >
-            👤
+            ${profileIcon}
           </div>
 
         </div>
+
       `
       : `
+
         <div class="full-profile-photo">
 
           <div class="profile-photo-placeholder">
-            👤
+
+            ${profileIcon}
+
           </div>
 
         </div>
+
       `;
 
+
+  // ==========================================
+  // DISPLAY FULL PROFILE
+  // ==========================================
 
   botMessage(`
 
     <div class="full-profile-card">
 
+
       <div class="full-profile-title">
-        👤 <b>Complete Profile</b>
+
+        ${profileIcon}
+        <b>Complete Profile</b>
+
       </div>
 
 
       ${photoHtml}
 
+
+      <!-- INTEREST STATUS -->
+
+      ${interestStatusHtml}
+
+
+      <!-- BASIC INFORMATION -->
 
       <div class="full-profile-section">
 
@@ -3089,16 +3779,34 @@ function viewFullProfile(
           Basic Information
         </div>
 
-        ${profileRow("🆔", "ID", profile.id)}
+        ${profileRow(
+          "🆔",
+          "ID",
+          profile.id
+        )}
 
-        ${profileRow("👤", "Name", profile.name)}
+        ${profileRow(
+          "👤",
+          "Name",
+          profile.name
+        )}
 
-        ${profileRow("📍", "District", profile.district)}
+        ${profileRow(
+          "📍",
+          "District",
+          profile.district
+        )}
 
-        ${profileRow("🏠", "Permanent Address", profile.address)}
+        ${profileRow(
+          "🏠",
+          "Permanent Address",
+          profile.address
+        )}
 
       </div>
 
+
+      <!-- PERSONAL DETAILS -->
 
       <div class="full-profile-section">
 
@@ -3106,28 +3814,70 @@ function viewFullProfile(
           Personal Details
         </div>
 
-        ${profileRow("🎂", "Birth Date", profile.birthDate)}
+        ${profileRow(
+          "🎂",
+          "Birth Date",
+          profile.birthDate
+        )}
 
-        ${profileRow("🎂", "Age", profile.age)}
+        ${profileRow(
+          "🎂",
+          "Age",
+          profile.age
+        )}
 
-        ${profileRow("⏰", "Birth Time", profile.birthTime)}
+        ${profileRow(
+          "⏰",
+          "Birth Time",
+          profile.birthTime
+        )}
 
-        ${profileRow("📍", "Birth Place", profile.birthPlace)}
+        ${profileRow(
+          "📍",
+          "Birth Place",
+          profile.birthPlace
+        )}
 
-        ${profileRow("📝", "Navras Name", profile.navrasName)}
+        ${profileRow(
+          "📝",
+          "Navras Name",
+          profile.navrasName
+        )}
 
-        ${profileRow("", "वर्ण", profile.complexion)}
+        ${profileRow(
+          "",
+          "वर्ण",
+          profile.complexion
+        )}
 
-        ${profileRow("📏", "Height", profile.height)}
+        ${profileRow(
+          "📏",
+          "Height",
+          profile.height
+        )}
 
-        ${profileRow("🩸", "Blood Group", profile.bloodGroup)}
+        ${profileRow(
+          "🩸",
+          "Blood Group",
+          profile.bloodGroup
+        )}
 
-        ${profileRow("", "पोट जात", profile.caste)}
+        ${profileRow(
+          "",
+          "पोट जात",
+          profile.caste
+        )}
 
-        ${profileRow("", "रास", profile.rashi)}
+        ${profileRow(
+          "",
+          "रास",
+          profile.rashi
+        )}
 
       </div>
 
+
+      <!-- EDUCATION & CAREER -->
 
       <div class="full-profile-section">
 
@@ -3135,14 +3885,28 @@ function viewFullProfile(
           Education & Career
         </div>
 
-        ${profileRow("🎓", "Education", profile.education)}
+        ${profileRow(
+          "🎓",
+          "Education",
+          profile.education
+        )}
 
-        ${profileRow("💼", "Job / Business", profile.job)}
+        ${profileRow(
+          "💼",
+          "Job / Business",
+          profile.job
+        )}
 
-        ${profileRow("💰", "Monthly Income", profile.income)}
+        ${profileRow(
+          "💰",
+          "Monthly Income",
+          profile.income
+        )}
 
       </div>
 
+
+      <!-- FAMILY INFORMATION -->
 
       <div class="full-profile-section">
 
@@ -3150,14 +3914,28 @@ function viewFullProfile(
           Family Information
         </div>
 
-        ${profileRow("", "Father's Name", profile.fatherName)}
+        ${profileRow(
+          "",
+          "Father's Name",
+          profile.fatherName
+        )}
 
-        ${profileRow("", "Brother", profile.brother)}
+        ${profileRow(
+          "",
+          "Brother",
+          profile.brother
+        )}
 
-        ${profileRow("", "Sister", profile.sister)}
+        ${profileRow(
+          "",
+          "Sister",
+          profile.sister
+        )}
 
       </div>
 
+
+      <!-- EXPECTATIONS -->
 
       <div class="full-profile-section">
 
@@ -3165,55 +3943,56 @@ function viewFullProfile(
           Expectations
         </div>
 
-        ${profileRow("", "Expectations", profile.expectation)}
+        ${profileRow(
+          "",
+          "Expectations",
+          profile.expectation
+        )}
 
       </div>
 
 
-      <div class="profile-actions">
+      <!-- CONTACT BUTTON -->
 
-        <button
-          type="button"
-          class="view-profile-btn"
-          onclick="viewProfileContact(
-            '${escapeJsValue(profile.type || profileSearchType)}',
-            '${escapeJsValue(profile.id)}'
-          )"
-        >
-          ☎ View Contact Details
-        </button>
+      ${
+        contactButtonHtml
+          ? `
 
-      </div>
+            <div class="profile-actions">
 
-      <div class="interest-profile-action">
+              ${contactButtonHtml}
 
-          <button
-            type="button"
-            class="send-interest-btn"
-            onclick="
-              openSendInterestConfirmation(
-                '${escapeJsValue(
-                  profile.type || ""
-                )}',
-                '${escapeJsValue(
-                  profile.id || ""
-                )}',
-                '${escapeJsValue(
-                  profile.name || ""
-                )}'
-              )
-            "
-          >
-            💌 Send Interest for Full Profile
-          </button>
+            </div>
 
-      </div>
+          `
+          : ""
+      }
+
+
+      <!-- SEND INTEREST -->
+
+      ${
+        sendInterestButtonHtml
+          ? `
+
+            <div class="interest-profile-action">
+
+              ${sendInterestButtonHtml}
+
+            </div>
+
+          `
+          : ""
+      }
+
 
     </div>
 
   `);
 
 }
+
+
 
 function profileRow(
   icon,
@@ -4098,6 +4877,80 @@ function displayLikedProfileCard(
     ).trim();
 
 
+
+      // ========================================
+      // INTEREST RELATIONSHIP
+      // ========================================
+
+            const relationship =
+              profile.interestRelationship || {};
+
+
+            const interestStatus =
+              String(
+                relationship.status || "NONE"
+              )
+              .trim()
+              .toUpperCase();
+
+               const canViewContact =
+          relationship.canViewContact === true;
+
+
+            console.log(
+              "PROFILE SEARCH STATUS:",
+              {
+                id:
+                  currentProfileId,
+
+                type:
+                  currentProfileType,
+
+                status:
+                  interestStatus,
+
+                relationship:
+                  relationship
+              }
+            );
+
+
+
+            // ========================================
+            // CONTACT BUTTON
+            // ONLY AFTER INTEREST ACCEPTED
+            // ========================================
+
+            let contactButtonHtml = "";
+
+
+            if (
+              interestStatus === "ACCEPTED" &&
+              canViewContact === true
+            ) {
+
+              contactButtonHtml = `
+
+                <div class="profile-actions">
+
+                  <button
+                    type="button"
+                    class="view-profile-btn"
+                    onclick="viewProfileContact(
+                      '${safeType}',
+                      '${safeId}'
+                    )"
+                  >
+                    ☎ View Contact Details
+                  </button>
+
+                </div>
+
+              `;
+
+}
+
+
   // ==========================================
   // PROFILE ICON
   // ==========================================
@@ -4379,26 +5232,8 @@ function displayLikedProfileCard(
         </button>
 
          <div class="interest-profile-action">
-         <button
-          type="button"
-          class="send-interest-btn"
-          onclick="
-            openSendInterestConfirmation(
-              '${escapeJsValue(
-                profile.type || ""
-              )}',
-              '${escapeJsValue(
-                profile.id || ""
-              )}',
-              '${escapeJsValue(
-                profile.name || ""
-              )}'
-            )
-          "
-        >
-          💌 Send Interest
-        </button>
-        </div>
+          ${interestStatusHtml}
+          </div>
 
       </div>
 

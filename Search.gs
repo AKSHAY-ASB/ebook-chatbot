@@ -675,6 +675,15 @@ function searchProfiles(type, district, education, income, page, userMobile) {
           income
         );
 
+
+      // ==========================================
+      // 8. INTEREST RELATIONSHIP MAP
+      // READ INTEREST SHEET ONLY ONCE
+      // ==========================================
+
+     
+
+
     // ==========================================
     // 8. SEARCH
     // ==========================================
@@ -787,13 +796,45 @@ function searchProfiles(type, district, education, income, page, userMobile) {
       // ADD PROFILE
       // ========================================
 
+   // ========================================
+// PROFILE ID / TYPE
+// ========================================
+
+const currentProfileId =
+  String(
+    getProfileCell(
+      row,
+      idIndex
+    ) || ""
+  ).trim();
+
+
+const currentProfileType =
+  normalizeInterestProfileType(
+    type
+  );
+
+
+// ========================================
+// INTEREST RELATIONSHIP
+// ========================================
+
+
+
+
+
+
+// ========================================
+// ADD PROFILE
+// ========================================
+
       allProfiles.push({
 
         id:
-          getProfileCell(
-            row,
-            idIndex
-          ),
+          currentProfileId,
+
+        type:
+          currentProfileType,
 
         name:
           getProfileCell(
@@ -910,6 +951,51 @@ function searchProfiles(type, district, education, income, page, userMobile) {
       );
 
 
+      // ==========================================
+// ADD INTEREST STATUS ONLY TO CURRENT PAGE
+// ==========================================
+
+const profilesWithInterest =
+  profiles.map(function(profile) {
+
+    try {
+
+      profile.interestRelationship =
+        getInterestRelationship(
+          userMobile,
+          type,
+          profile.id
+        );
+
+    }
+    catch (error) {
+
+      console.error(
+        "Interest relationship error:",
+        profile.id,
+        error
+      );
+
+      profile.interestRelationship = {
+        exists: false,
+        interestId: "",
+        status: "NONE",
+        rawStatus: "",
+        direction: "",
+        canSendInterest: true,
+        canViewContact: false,
+        hideFromSearch: false,
+        isMatched: false,
+        isClosed: false
+      };
+
+    }
+
+    return profile;
+
+  });
+
+
     const hasNext =
       page < totalPages;
 
@@ -942,9 +1028,9 @@ function searchProfiles(type, district, education, income, page, userMobile) {
       totalPages: totalPages,
 
       // Profiles on current page
-      count: profiles.length,
+      count: profilesWithInterest.length,
 
-      profiles: profiles,
+      profiles: profilesWithInterest,
 
       // Navigation
       hasNext: hasNext,
@@ -964,28 +1050,27 @@ function searchProfiles(type, district, education, income, page, userMobile) {
 
   }
 
-  catch (error) {
+catch (error) {
 
-    console.error(
-      "Profile Search Error:",
-      error
-    );
+  console.error(
+    "Profile Search Error:",
+    error
+  );
 
+  return {
+    success: false,
+    count: 0,
+    profiles: [],
+    message:
+      "Profile Search Error: " +
+      (
+        error && error.message
+          ? error.message
+          : String(error)
+      )
+  };
 
-    return {
-
-      success: false,
-
-      count: 0,
-
-      profiles: [],
-
-      message:
-        "Something went wrong while searching profiles."
-
-    };
-
-  }
+}
 
 }
 
@@ -1931,6 +2016,10 @@ function getFullProfile(
           }
 
         }
+
+
+
+        
         // ====================================
         // PROFILE FOUND
         // ====================================
@@ -2086,7 +2175,12 @@ function getFullProfile(
 
     }
 
-
+      profile.interestRelationship =
+      getInterestRelationship(
+        userMobile,
+        type,
+        profileId
+      );
     // ========================================
     // PROFILE NOT FOUND
     // ========================================
