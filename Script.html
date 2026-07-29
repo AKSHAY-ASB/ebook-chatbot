@@ -2104,20 +2104,6 @@ function showProfilePagination(result) {
 
 }
 
-function nextProfilePage() {
-
-  profileSearchPage =
-    profileSearchPage + 1;
-
-
-  userMessage(
-    "Next 10 Profiles ▶"
-  );
-
-
-  searchChatProfiles();
-
-}
 
 // ==========================================
 // COMMON INTEREST STATUS UI
@@ -2225,6 +2211,226 @@ function getInterestStatusHtml(
 
 }
 
+
+
+
+// ==========================================
+// COMMON PROFILE INTEREST UI
+// Used by Search / Liked / other profile cards
+// ==========================================
+
+function getProfileInterestActions(
+  profile,
+  profileType,
+  profileId,
+  profileName
+) {
+
+  // ========================================
+  // 1. RELATIONSHIP
+  // ========================================
+
+  const relationship =
+    profile &&
+    profile.interestRelationship
+      ? profile.interestRelationship
+      : {};
+
+
+  // ========================================
+  // 2. STATUS
+  // ========================================
+
+  const interestStatus =
+    String(
+      relationship.status || "NONE"
+    )
+    .trim()
+    .toUpperCase();
+
+
+  // ========================================
+  // 3. CONTACT PERMISSION
+  // ========================================
+
+  const canViewContact =
+    relationship.canViewContact === true;
+
+
+  // ========================================
+  // 4. SAFE VALUES
+  // ========================================
+
+  const safeType =
+    escapeJsValue(
+      String(profileType || "")
+        .trim()
+        .toLowerCase()
+    );
+
+
+  const safeId =
+    escapeJsValue(
+      String(profileId || "")
+        .trim()
+    );
+
+
+  const safeName =
+    escapeJsValue(
+      String(profileName || "")
+        .trim()
+    );
+
+
+  // ========================================
+  // 5. STATUS HTML
+  // Reuse existing common function
+  // ========================================
+
+  const statusHtml =
+    getInterestStatusHtml(
+      interestStatus
+    );
+
+
+  // ========================================
+  // 6. ACTION BUTTON
+  // ========================================
+
+  let actionHtml = "";
+
+
+  // ========================================
+  // ACCEPTED
+  // Show Contact Details
+  // ========================================
+
+  if (
+    interestStatus === "ACCEPTED" &&
+    canViewContact === true
+  ) {
+
+    actionHtml = `
+
+      <button
+        type="button"
+        class="view-profile-btn"
+        onclick="viewProfileContact(
+          '${safeType}',
+          '${safeId}'
+        )"
+      >
+
+        ☎ View Contact Details
+
+      </button>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // NO INTEREST RELATIONSHIP
+  // Show Send Interest
+  // ========================================
+
+  else if (
+    interestStatus === "NONE"
+  ) {
+
+    actionHtml = `
+
+      <button
+        type="button"
+        class="send-interest-btn"
+        onclick="openSendInterestConfirmation(
+          '${safeType}',
+          '${safeId}',
+          '${safeName}'
+        )"
+      >
+
+        💌 Send Interest
+
+      </button>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // PENDING / DECLINED
+  // No action button
+  // Status is displayed by statusHtml
+  // ========================================
+
+  else {
+
+    actionHtml = "";
+
+  }
+
+
+  // ========================================
+  // 7. DEBUG
+  // ========================================
+
+  console.log(
+    "COMMON PROFILE INTEREST UI:",
+    {
+      profileId:
+        profileId,
+
+      profileName:
+        profileName,
+
+      profileType:
+        profileType,
+
+      interestStatus:
+        interestStatus,
+
+      canViewContact:
+        canViewContact,
+
+      relationship:
+        relationship
+    }
+  );
+
+
+  // ========================================
+  // 8. RETURN
+  // ========================================
+
+  return {
+
+    relationship:
+      relationship,
+
+    status:
+      interestStatus,
+
+    canViewContact:
+      canViewContact,
+
+    statusHtml:
+      statusHtml,
+
+    actionHtml:
+      actionHtml
+
+  };
+
+}
+
+
+
+
+
 function displayProfileResults(
   profiles,
   page,
@@ -2281,45 +2487,21 @@ function displayProfileResults(
           profile.name || ""
         ).trim();
 
+
+      // ========================================
+      // COMMON INTEREST UI
+      // ========================================
+
+      const interestUI =
+        getProfileInterestActions(
+          profile,
+          currentProfileType,
+          currentProfileId,
+          currentProfileName
+        );
+
       
-      // ========================================
-      // INTEREST RELATIONSHIP
-      // ========================================
 
-      const relationship =
-        profile.interestRelationship || {};
-
-
-      const interestStatus =
-        String(
-          relationship.status || "NONE"
-        )
-        .trim()
-        .toUpperCase();
-
-        const canViewContact =
-          relationship.canViewContact === true;
-
-
-      console.log(
-        "SEARCH PROFILE INTEREST STATUS:",
-        {
-          profileId:
-            currentProfileId,
-
-          profileName:
-            currentProfileName,
-
-          profileType:
-            currentProfileType,
-
-          interestStatus:
-            interestStatus,
-
-          relationship:
-            relationship
-        }
-      );
 
       // ========================================
       // CURRENT SAVED REACTION
@@ -2332,15 +2514,6 @@ function displayProfileResults(
         .trim()
         .toUpperCase();
 
-
-      // ========================================
-      // INTEREST STATUS DISPLAY
-      // ========================================
-
-      const interestStatusHtml =
-        getInterestStatusHtml(
-          interestStatus
-        );    
 
 
       // ========================================
@@ -2365,22 +2538,8 @@ function displayProfileResults(
         );
 
 
-      console.log(
-        "CURRENT PROFILE:",
-        {
-          type:
-            currentProfileType,
 
-          id:
-            currentProfileId,
-
-          name:
-            currentProfileName,
-
-          reaction:
-            currentReaction
-        }
-      );
+        
 
 
       // ========================================
@@ -2702,11 +2861,33 @@ function displayProfileResults(
 
           <!-- INTEREST STATUS -->
 
-          <div class="interest-profile-action">
+            ${
+              interestUI.statusHtml
+                ? `
+                    <div class="interest-profile-action">
 
-            ${interestStatusHtml}
+                      ${interestUI.statusHtml}
 
-          </div>
+                    </div>
+                  `
+                : ""
+            }
+
+          
+          <!-- INTEREST ACTION -->
+
+          ${
+            interestUI.actionHtml
+              ? `
+                  <div class="interest-profile-action">
+
+                    ${interestUI.actionHtml}
+
+                  </div>
+                `
+              : ""
+          }
+
 
 
           <!-- LIKE / DISLIKE -->
@@ -3320,6 +3501,16 @@ function viewFullProfile(
   profileId
 ) {
 
+  type =
+    String(type || "")
+      .trim()
+      .toLowerCase();
+
+  profileId =
+    String(profileId || "")
+      .trim();
+
+
   if (!type || !profileId) {
 
     botMessage(
@@ -3328,6 +3519,16 @@ function viewFullProfile(
 
     return;
   }
+
+
+  console.log(
+    "VIEW FULL PROFILE REQUEST:",
+    {
+      type: type,
+      profileId: profileId,
+      userMobile: profileUserMobile
+    }
+  );
 
 
   showTyping();
@@ -3339,6 +3540,12 @@ function viewFullProfile(
       function(result) {
 
         hideTyping();
+
+
+        console.log(
+          "FULL PROFILE BACKEND RESULT:",
+          result
+        );
 
 
         if (
@@ -3354,8 +3561,7 @@ function viewFullProfile(
             <br><br>
 
             ${
-              result &&
-              result.message
+              result && result.message
                 ? escapeHtml(result.message)
                 : "Profile information not found."
             }
@@ -3365,30 +3571,43 @@ function viewFullProfile(
           return;
         }
 
-      // ========================================
-      // ADD PROFILE TYPE TO FULL PROFILE OBJECT
-      // ========================================
 
-      result.profile.type =
-        String(type || "")
-          .trim()
-          .toLowerCase();
+        // ======================================
+        // VERIFY RETURNED PROFILE
+        // ======================================
+
+        console.log(
+          "FULL PROFILE MATCH CHECK:",
+          {
+            requestedType:
+              type,
+
+            requestedId:
+              profileId,
+
+            returnedId:
+              result.profile.id,
+
+            returnedName:
+              result.profile.name,
+
+            returnedProfile:
+              result.profile
+          }
+        );
 
 
-      console.log(
-        "TYPE ADDED TO FULL PROFILE:",
-        {
-          type: result.profile.type,
-          id: result.profile.id,
-          name: result.profile.name
-        }
-      );
+        // ======================================
+        // ADD PROFILE TYPE
+        // ======================================
+
+        result.profile.type =
+          type;
 
 
-      displayFullProfile(
-        result.profile
-      );
-
+        displayFullProfile(
+          result.profile
+        );
 
       }
     )
@@ -3398,6 +3617,7 @@ function viewFullProfile(
       function(error) {
 
         hideTyping();
+
 
         console.error(
           "Full Profile Error:",
@@ -3419,7 +3639,7 @@ function viewFullProfile(
     )
 
 
-   .getFullProfile(
+    .getFullProfile(
       type,
       profileId,
       profileUserMobile || "",
@@ -3428,7 +3648,7 @@ function viewFullProfile(
     );
 
 }
-  
+
 
 function displayFullProfile(profile) {
 
@@ -3466,239 +3686,44 @@ function displayFullProfile(profile) {
     ).trim();
 
 
-  // ==========================================
-  // SAFE VALUES
-  // IMPORTANT: Define BEFORE button HTML
-  // ==========================================
+    // ==========================================
+    // COMMON INTEREST UI
+    // ==========================================
 
-  const safeType =
-    escapeJsValue(
-      currentProfileType
-    );
-
-
-  const safeId =
-    escapeJsValue(
-      currentProfileId
-    );
-
-
-  const safeName =
-    escapeJsValue(
-      currentProfileName
-    );
-
-
-  // ==========================================
-  // INTEREST RELATIONSHIP
-  // ==========================================
-
-  const relationship =
-    profile.interestRelationship || {};
-
-
-  const interestStatus =
-    String(
-      relationship.status || "NONE"
-    )
-    .trim()
-    .toUpperCase();
-
-
-  const canViewContact =
-    relationship.canViewContact === true;
-
-
-  console.log(
-    "FULL PROFILE INTEREST STATUS:",
-    {
-      profileId:
-        currentProfileId,
-
-      profileName:
-        currentProfileName,
-
-      profileType:
+    const interestUI =
+      getProfileInterestActions(
+        profile,
         currentProfileType,
-
-      interestStatus:
-        interestStatus,
-
-      canViewContact:
-        canViewContact,
-
-      relationship:
-        relationship
-    }
-  );
-
-
-  // ==========================================
-  // INTEREST STATUS UI
-  // ==========================================
-
-    const interestStatusHtml =
-      getInterestStatusHtml(
-        interestStatus
+        currentProfileId,
+        currentProfileName
       );
 
 
-  if (
-    interestStatus === "PENDING_SENT"
-  ) {
-
-    interestStatusHtml = `
-
-      <div class="profile-interest-status">
-
-        ⏳ <b>Status:</b>
-        Request Already Sent
-
-      </div>
-
-    `;
-
-  }
 
 
-  else if (
-    interestStatus === "PENDING_RECEIVED"
-  ) {
 
-    interestStatusHtml = `
+    // ==========================================
+    // PROFILE ICON
+    // ==========================================
 
-      <div class="profile-interest-status">
-
-        📥 <b>Status:</b>
-        Request Received
-
-      </div>
-
-    `;
-
-  }
+      let profileIcon = "👤";
 
 
-  else if (
-    interestStatus === "ACCEPTED"
-  ) {
+      if (
+        currentProfileType === "bride"
+      ) {
 
-    interestStatusHtml = `
+        profileIcon = "👰";
 
-      <div class="profile-interest-status accepted">
+      }
 
-        ❤️ <b>Status:</b>
-        Accepted
+      else if (
+        currentProfileType === "groom"
+      ) {
 
-      </div>
+        profileIcon = "🤵";
 
-    `;
-
-  }
-
-
-  else if (
-    interestStatus === "DECLINED"
-  ) {
-
-    interestStatusHtml = `
-
-      <div class="profile-interest-status declined">
-
-        <b>Status:</b>
-        Not Proceeding
-
-      </div>
-
-    `;
-
-  }
-
-
-  // ==========================================
-  // CONTACT BUTTON
-  // ONLY AFTER ACCEPTED
-  // ==========================================
-
-  let contactButtonHtml = "";
-
-
-  if (
-    interestStatus === "ACCEPTED" &&
-    canViewContact === true
-  ) {
-
-    contactButtonHtml = `
-
-      <button
-        type="button"
-        class="view-profile-btn"
-        onclick="viewProfileContact(
-          '${safeType}',
-          '${safeId}'
-        )"
-      >
-        ☎ View Contact Details
-      </button>
-
-    `;
-
-  }
-
-
-  // ==========================================
-  // SEND INTEREST BUTTON
-  // ONLY WHEN NO RELATIONSHIP EXISTS
-  // ==========================================
-
-  let sendInterestButtonHtml = "";
-
-
-  if (
-    interestStatus === "NONE"
-  ) {
-
-    sendInterestButtonHtml = `
-
-      <button
-        type="button"
-        class="send-interest-btn"
-        onclick="openSendInterestConfirmation(
-          '${safeType}',
-          '${safeId}',
-          '${safeName}'
-        )"
-      >
-        💌 Send Interest
-      </button>
-
-    `;
-
-  }
-
-
-  // ==========================================
-  // PROFILE ICON
-  // ==========================================
-
-  let profileIcon = "👤";
-
-
-  if (
-    currentProfileType === "bride"
-  ) {
-
-    profileIcon = "👰";
-
-  }
-
-  else if (
-    currentProfileType === "groom"
-  ) {
-
-    profileIcon = "🤵";
-
-  }
+      }
 
 
   // ==========================================
@@ -3766,9 +3791,7 @@ function displayFullProfile(profile) {
       ${photoHtml}
 
 
-      <!-- INTEREST STATUS -->
 
-      ${interestStatusHtml}
 
 
       <!-- BASIC INFORMATION -->
@@ -3952,38 +3975,38 @@ function displayFullProfile(profile) {
       </div>
 
 
-      <!-- CONTACT BUTTON -->
+        <!-- ======================================
+            INTEREST STATUS
+        ======================================= -->
 
-      ${
-        contactButtonHtml
-          ? `
+        ${
+          interestUI.statusHtml
+            ? `
+                <div class="interest-profile-action">
 
-            <div class="profile-actions">
+                  ${interestUI.statusHtml}
 
-              ${contactButtonHtml}
-
-            </div>
-
-          `
-          : ""
-      }
+                </div>
+              `
+            : ""
+        }
 
 
-      <!-- SEND INTEREST -->
+        <!-- ======================================
+            INTEREST ACTION
+        ======================================= -->
 
-      ${
-        sendInterestButtonHtml
-          ? `
+        ${
+          interestUI.actionHtml
+            ? `
+                <div class="interest-profile-action">
 
-            <div class="interest-profile-action">
+                  ${interestUI.actionHtml}
 
-              ${sendInterestButtonHtml}
-
-            </div>
-
-          `
-          : ""
-      }
+                </div>
+              `
+            : ""
+        }
 
 
     </div>
@@ -4277,28 +4300,7 @@ function displayProfileContact(
     contactHtml
   );
 
-
-  // ==========================================
-  // SAVE CONTACT VIEW LOG
-  // ==========================================
-
-  saveProfileViewLog(
-    {
-
-      type:
-        contact.type,
-
-      id:
-        contact.id,
-
-      name:
-        contact.name
-
-    },
-
-    "Contact Viewed"
-
-  );
+    scrollChat();
 
 }
 
@@ -4854,7 +4856,7 @@ function displayLikedProfileCard(
 ) {
 
   // ==========================================
-  // PROFILE BASIC VALUES
+  // 1. PROFILE BASIC VALUES
   // ==========================================
 
   const currentProfileType =
@@ -4877,107 +4879,22 @@ function displayLikedProfileCard(
     ).trim();
 
 
+  // ==========================================
+  // COMMON INTEREST UI
+  // ==========================================
 
-      // ========================================
-      // INTEREST RELATIONSHIP
-      // ========================================
-
-            const relationship =
-              profile.interestRelationship || {};
-
-
-            const interestStatus =
-              String(
-                relationship.status || "NONE"
-              )
-              .trim()
-              .toUpperCase();
-
-               const canViewContact =
-          relationship.canViewContact === true;
-
-
-            console.log(
-              "PROFILE SEARCH STATUS:",
-              {
-                id:
-                  currentProfileId,
-
-                type:
-                  currentProfileType,
-
-                status:
-                  interestStatus,
-
-                relationship:
-                  relationship
-              }
-            );
-
-
-
-            // ========================================
-            // CONTACT BUTTON
-            // ONLY AFTER INTEREST ACCEPTED
-            // ========================================
-
-            let contactButtonHtml = "";
-
-
-            if (
-              interestStatus === "ACCEPTED" &&
-              canViewContact === true
-            ) {
-
-              contactButtonHtml = `
-
-                <div class="profile-actions">
-
-                  <button
-                    type="button"
-                    class="view-profile-btn"
-                    onclick="viewProfileContact(
-                      '${safeType}',
-                      '${safeId}'
-                    )"
-                  >
-                    ☎ View Contact Details
-                  </button>
-
-                </div>
-
-              `;
-
-}
+  const interestUI =
+    getProfileInterestActions(
+      profile,
+      currentProfileType,
+      currentProfileId,
+      currentProfileName
+    );
 
 
   // ==========================================
-  // PROFILE ICON
-  // ==========================================
-
-  let profileIcon = "👤";
-
-
-  if (
-    currentProfileType === "bride"
-  ) {
-
-    profileIcon = "👰";
-
-  }
-
-
-  else if (
-    currentProfileType === "groom"
-  ) {
-
-    profileIcon = "🤵";
-
-  }
-
-
-  // ==========================================
-  // SAFE VALUES
+  // 2. SAFE VALUES
+  // IMPORTANT: BEFORE BUTTON HTML
   // ==========================================
 
   const safeType =
@@ -4999,7 +4916,31 @@ function displayLikedProfileCard(
 
 
   // ==========================================
-  // DISPLAY VALUES
+  // 7. PROFILE ICON
+  // ==========================================
+
+  let profileIcon = "👤";
+
+
+  if (
+    currentProfileType === "bride"
+  ) {
+
+    profileIcon = "👰";
+
+  }
+
+  else if (
+    currentProfileType === "groom"
+  ) {
+
+    profileIcon = "🤵";
+
+  }
+
+
+  // ==========================================
+  // 8. DISPLAY VALUES
   // ==========================================
 
   const name =
@@ -5055,7 +4996,7 @@ function displayLikedProfileCard(
 
 
   // ==========================================
-  // PROFILE IMAGE
+  // 9. PROFILE IMAGE
   // ==========================================
 
   let photoHtml = "";
@@ -5093,7 +5034,6 @@ function displayLikedProfileCard(
 
   }
 
-
   else {
 
     photoHtml = `
@@ -5116,7 +5056,7 @@ function displayLikedProfileCard(
 
 
   // ==========================================
-  // LIKED PROFILE CARD
+  // 10. LIKED PROFILE CARD
   // ==========================================
 
   botMessage(`
@@ -5212,51 +5152,76 @@ function displayLikedProfileCard(
       </div>
 
 
-      <!-- VIEW FULL PROFILE -->
+      <!-- ======================================
+           VIEW FULL PROFILE
+      ======================================= -->
 
       <div class="profile-actions">
 
         <button
           type="button"
           class="view-profile-btn"
-          onclick="
-            viewFullProfile(
-              '${safeType}',
-              '${safeId}'
-            )
-          "
+          onclick="viewFullProfile(
+            '${safeType}',
+            '${safeId}'
+          )"
         >
 
           👤 View Full Profile
 
         </button>
 
-         <div class="interest-profile-action">
-          ${interestStatusHtml}
-          </div>
-
       </div>
 
 
-      <!-- LIKE / DISLIKE -->
+      <!-- ======================================
+          INTEREST STATUS
+      ======================================= -->
+
+      ${
+        interestUI.statusHtml
+          ? `
+              <div class="interest-profile-action">
+
+                ${interestUI.statusHtml}
+
+              </div>
+            `
+          : ""
+      }
+
+
+      <!-- ======================================
+          INTEREST ACTION
+      ======================================= -->
+
+      ${
+        interestUI.actionHtml
+          ? `
+              <div class="interest-profile-action">
+
+                ${interestUI.actionHtml}
+
+              </div>
+            `
+          : ""
+      }
+
+
+      <!-- ======================================
+          LIKE / DISLIKE
+      ======================================= -->
 
       <div class="profile-reaction-actions">
-
-
-        <!-- ALREADY LIKED -->
 
         <button
           type="button"
           class="profile-reaction-btn liked-active"
           disabled
         >
-
           ❤️ Liked
-
         </button>
 
-
-        <!-- CHANGE TO DISLIKE -->
 
         <button
           type="button"
@@ -5270,11 +5235,8 @@ function displayLikedProfileCard(
             )
           "
         >
-
           👎 Dislike
-
         </button>
-
 
       </div>
 
