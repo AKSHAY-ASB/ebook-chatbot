@@ -201,23 +201,49 @@ if (
 
           else {
 
+                const invalidMessageId =
+              "invalid-chat-message-" +
+              Date.now();
+
+
             botMessage(`
 
-              👋 <b>Welcome to Devang Pustika</b>
+              <div id="${invalidMessageId}">
 
-              <br><br>
+                👋 <b>Welcome to Devang Pustika</b>
 
-              माफ करा, तुमचा प्रश्न मला समजला नाही.
+                <br><br>
 
-              <br><br>
+                माफ करा, तुमचा प्रश्न मला समजला नाही.
 
-              मी तुम्हाला खालील पर्यायांमध्ये मदत करू शकतो.
+                <br><br>
 
-              <br><br>
+                मी तुम्हाला खालील पर्यायांमध्ये मदत करू शकतो.
 
-              कृपया एक पर्याय निवडा.
+                <br><br>
+
+                कृपया एक पर्याय निवडा.
+
+              </div>
 
             `);
+
+
+            // Show main chatbot menu again
+            showMenu();
+
+
+            // Scroll specifically to invalid message
+            setTimeout(
+              function() {
+
+                scrollToChatSection(
+                  invalidMessageId
+                );
+
+              },
+              100
+            );
 
 
             // Show main chatbot menu again
@@ -1887,30 +1913,31 @@ function searchChatProfiles() {
             result.page,
             result.pageSize
           );
+          
         saveProfileSearchLog(result);
         showProfilePagination(result);
 
         setTimeout(function() {
 
-  const resultSection =
-    document.getElementById(
-      resultSectionId
-    );
+            const resultSection =
+              document.getElementById(
+                resultSectionId
+              );
 
 
-  if (resultSection) {
+              if (resultSection) {
 
-    resultSection.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
+                resultSection.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start"
+                });
 
-  }
+              }
 
-}, 100);
+          }, 100);
 
-      }
-    )
+        }
+      )
 
 
     .withFailureHandler(
@@ -1964,34 +1991,34 @@ function saveProfileSearchLog(result) {
 
   const logData = {
 
-    mobile:
-      profileUserMobile,
+  mobile:
+    profileUserMobile,
 
-    name:
-      profileUserName,
+  name:
+    profileUserName,
 
-    registeredSheet:
-      profileUserRegisteredSheet,
+  registeredSheet:
+    profileUserRegisteredSheet,
 
-    type:
-      profileSearchType,
+  type:
+    profileSearchType,
 
-    district:
-      profileSearchDistrict,
+  district:
+    profileSearchDistrict,
 
-    education:
-      profileSearchEducation,
+  education:
+    profileSearchEducation,
 
-    income:
-      profileSearchIncome,
+  income:
+    profileSearchIncome,
 
-    totalCount:
-      result.totalCount,
+  totalCount:
+    result.totalCount,
 
-    page:
-      result.page
+  totalPages:
+    result.totalPages
 
-  };
+};
 
 
   google.script.run
@@ -2372,34 +2399,6 @@ function getProfileInterestActions(
     actionHtml = "";
 
   }
-
-
-  // ========================================
-  // 7. DEBUG
-  // ========================================
-
-  console.log(
-    "COMMON PROFILE INTEREST UI:",
-    {
-      profileId:
-        profileId,
-
-      profileName:
-        profileName,
-
-      profileType:
-        profileType,
-
-      interestStatus:
-        interestStatus,
-
-      canViewContact:
-        canViewContact,
-
-      relationship:
-        relationship
-    }
-  );
 
 
   // ========================================
@@ -3461,6 +3460,32 @@ function hideTyping() {
 /* =========================================
    AUTO SCROLL
 ========================================= */
+function scrollToChatSection(
+  elementId
+) {
+
+  requestAnimationFrame(
+    function() {
+
+      const element =
+        document.getElementById(
+          elementId
+        );
+
+      if (!element) {
+        return;
+      }
+
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+    }
+  );
+
+}
+
 
 function scrollChat() {
 
@@ -4708,8 +4733,8 @@ botMessage(`
         showSearchAgainButton();
 
         scrollProfileSectionToTop(
-  likedSectionId
-);
+          likedSectionId
+        );
 
 
        

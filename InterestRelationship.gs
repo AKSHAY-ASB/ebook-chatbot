@@ -384,44 +384,594 @@ function getInterestRelationship(
 }
 
 
+// ==========================================
+// BULK INTEREST RELATIONSHIPS
+// Optimized for multiple profiles
+// Reads user + Interest sheet only ONCE
+// ==========================================
+
 function addInterestRelationshipsToProfiles(
   profiles,
   userMobile,
   profileType
 ) {
 
-  if (
-    !Array.isArray(profiles)
-  ) {
+  try {
 
-    return [];
+    // ========================================
+    // VALIDATE PROFILES
+    // ========================================
+
+    if (
+      !Array.isArray(profiles) ||
+      profiles.length === 0
+    ) {
+
+      return [];
+
+    }
+
+
+    // ========================================
+    // DEFAULT RELATIONSHIP
+    // ========================================
+
+    function createDefaultRelationship() {
+
+      return {
+
+        exists: false,
+
+        interestId: "",
+
+        status: "NONE",
+
+        direction: "",
+
+        canSendInterest: true,
+
+        canViewContact: false,
+
+        hideFromSearch: false,
+
+        isMatched: false,
+
+        isClosed: false
+
+      };
+
+    }
+
+
+    // ========================================
+    // NORMALIZE MOBILE
+    // ========================================
+
+    userMobile =
+      String(userMobile || "")
+        .replace(/\D/g, "")
+        .slice(-10);
+
+
+    // ========================================
+    // NORMALIZE PROFILE TYPE
+    // ========================================
+
+    profileType =
+      normalizeInterestProfileType(
+        profileType
+      );
+
+
+    // ========================================
+    // INVALID USER / TYPE
+    // ========================================
+
+    if (
+      !userMobile ||
+      !profileType
+    ) {
+
+      profiles.forEach(
+        function(profile) {
+
+          profile.interestRelationship =
+            createDefaultRelationship();
+
+        }
+      );
+
+
+      return profiles;
+
+    }
+
+
+    // ========================================
+    // FIND CURRENT USER
+    // ONLY ONCE
+    // ========================================
+
+    const currentUser =
+      findInterestUserProfile(
+        userMobile
+      );
+
+
+    if (
+      !currentUser ||
+      !currentUser.found
+    ) {
+
+      profiles.forEach(
+        function(profile) {
+
+          profile.interestRelationship =
+            createDefaultRelationship();
+
+        }
+      );
+
+
+      return profiles;
+
+    }
+
+
+    // ========================================
+    // GET INTEREST SHEET
+    // ONLY ONCE
+    // ========================================
+
+    const sheet =
+      getProfileInterestSheet();
+
+
+    if (!sheet) {
+
+      profiles.forEach(
+        function(profile) {
+
+          profile.interestRelationship =
+            createDefaultRelationship();
+
+        }
+      );
+
+
+      return profiles;
+
+    }
+
+
+    // ========================================
+    // READ INTEREST SHEET
+    // ONLY ONCE
+    // ========================================
+
+    const data =
+      sheet
+        .getDataRange()
+        .getDisplayValues();
+
+
+    // ========================================
+    // CREATE TARGET PROFILE ID SET
+    // ========================================
+
+    const targetProfileIds = {};
+
+
+    profiles.forEach(
+      function(profile) {
+
+        const profileId =
+          String(
+            profile.id || ""
+          ).trim();
+
+
+        if (profileId) {
+
+          targetProfileIds[
+            profileId
+          ] = true;
+
+        }
+
+      }
+    );
+
+
+    // ========================================
+    // RELATIONSHIP MAP
+    // ========================================
+
+    const relationshipMap = {};
+
+
+    // ========================================
+    // SCAN INTEREST DATA ONCE
+    // ========================================
+
+    for (
+      let i = 1;
+      i < data.length;
+      i++
+    ) {
+
+      const row =
+        data[i];
+
+
+      const interestId =
+        String(
+          row[1] || ""
+        ).trim();
+
+
+      const senderType =
+        String(
+          row[5] || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+      const senderId =
+        String(
+          row[6] || ""
+        ).trim();
+
+
+      const receiverType =
+        String(
+          row[10] || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+      const receiverId =
+        String(
+          row[11] || ""
+        ).trim();
+
+
+      const status =
+        String(
+          row[12] || "PENDING"
+        )
+        .trim()
+        .toUpperCase();
+
+
+      let targetProfileId = "";
+
+      let direction = "";
+
+
+      // ======================================
+      // CURRENT USER SENT INTEREST
+      // ======================================
+
+      if (
+        senderType ===
+          currentUser.type &&
+
+        senderId ===
+          currentUser.id &&
+
+        receiverType ===
+          profileType &&
+
+        targetProfileIds[
+          receiverId
+        ]
+      ) {
+
+        targetProfileId =
+          receiverId;
+
+        direction =
+          "SENT";
+
+      }
+
+
+      // ======================================
+      // CURRENT USER RECEIVED INTEREST
+      // ======================================
+
+      else if (
+        receiverType ===
+          currentUser.type &&
+
+        receiverId ===
+          currentUser.id &&
+
+        senderType ===
+          profileType &&
+
+        targetProfileIds[
+          senderId
+        ]
+      ) {
+
+        targetProfileId =
+          senderId;
+
+        direction =
+          "RECEIVED";
+
+      }
+
+
+      // ======================================
+      // NOT ONE OF CURRENT PAGE PROFILES
+      // ======================================
+
+      if (!targetProfileId) {
+
+        continue;
+
+      }
+
+
+      // ======================================
+      // KEEP FIRST MATCH
+      // Same behaviour as old function
+      // ======================================
+
+      if (
+        relationshipMap[
+          targetProfileId
+        ]
+      ) {
+
+        continue;
+
+      }
+
+
+      // ======================================
+      // PENDING
+      // ======================================
+
+      if (
+        status === "PENDING"
+      ) {
+
+        relationshipMap[
+          targetProfileId
+        ] = {
+
+          exists: true,
+
+          interestId:
+            interestId,
+
+          status:
+            direction === "SENT"
+              ? "PENDING_SENT"
+              : "PENDING_RECEIVED",
+
+          rawStatus:
+            "PENDING",
+
+          direction:
+            direction,
+
+          canSendInterest:
+            false,
+
+          canViewContact:
+            false,
+
+          hideFromSearch:
+            false,
+
+          isMatched:
+            false,
+
+          isClosed:
+            false
+
+        };
+
+
+        continue;
+
+      }
+
+
+      // ======================================
+      // ACCEPTED
+      // ======================================
+
+      if (
+        status === "ACCEPTED"
+      ) {
+
+        relationshipMap[
+          targetProfileId
+        ] = {
+
+          exists: true,
+
+          interestId:
+            interestId,
+
+          status:
+            "ACCEPTED",
+
+          rawStatus:
+            "ACCEPTED",
+
+          direction:
+            direction,
+
+          canSendInterest:
+            false,
+
+          canViewContact:
+            true,
+
+          hideFromSearch:
+            true,
+
+          isMatched:
+            true,
+
+          isClosed:
+            false
+
+        };
+
+
+        continue;
+
+      }
+
+
+      // ======================================
+      // DECLINED
+      // ======================================
+
+      if (
+        status === "DECLINED"
+      ) {
+
+        relationshipMap[
+          targetProfileId
+        ] = {
+
+          exists: true,
+
+          interestId:
+            interestId,
+
+          status:
+            "DECLINED",
+
+          rawStatus:
+            "DECLINED",
+
+          direction:
+            direction,
+
+          canSendInterest:
+            false,
+
+          canViewContact:
+            false,
+
+          hideFromSearch:
+            true,
+
+          isMatched:
+            false,
+
+          isClosed:
+            true
+
+        };
+
+      }
+
+    }
+
+
+    // ========================================
+    // ATTACH RESULT TO PROFILES
+    // ========================================
+
+    profiles.forEach(
+      function(profile) {
+
+        const profileId =
+          String(
+            profile.id || ""
+          ).trim();
+
+
+        profile.interestRelationship =
+
+          relationshipMap[
+            profileId
+          ] ||
+
+          createDefaultRelationship();
+
+      }
+    );
+
+
+    console.log(
+      "BULK INTEREST LOOKUP:",
+      {
+        profiles:
+          profiles.length,
+
+        relationships:
+          Object.keys(
+            relationshipMap
+          ).length
+      }
+    );
+
+
+    return profiles;
 
   }
 
 
-  return profiles.map(
-    function(profile) {
+  catch (error) {
 
-      const relationship =
-        getInterestRelationship(
-
-          userMobile,
-
-          profileType,
-
-          profile.id
-
-        );
+    console.error(
+      "addInterestRelationshipsToProfiles Error:",
+      error
+    );
 
 
-      profile.interestRelationship =
-        relationship;
+    // ========================================
+    // SAFE FALLBACK
+    // ========================================
+
+    profiles.forEach(
+      function(profile) {
+
+        profile.interestRelationship = {
+
+          exists: false,
+
+          interestId: "",
+
+          status: "NONE",
+
+          direction: "",
+
+          canSendInterest: true,
+
+          canViewContact: false,
+
+          hideFromSearch: false,
+
+          isMatched: false,
+
+          isClosed: false,
+
+          error: true
+
+        };
+
+      }
+    );
 
 
-      return profile;
+    return profiles;
 
-    }
-  );
+  }
 
 }
 

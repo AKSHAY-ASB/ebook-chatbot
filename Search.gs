@@ -675,15 +675,6 @@ function searchProfiles(type, district, education, income, page, userMobile) {
           income
         );
 
-
-      // ==========================================
-      // 8. INTEREST RELATIONSHIP MAP
-      // READ INTEREST SHEET ONLY ONCE
-      // ==========================================
-
-     
-
-
     // ==========================================
     // 8. SEARCH
     // ==========================================
@@ -796,37 +787,28 @@ function searchProfiles(type, district, education, income, page, userMobile) {
       // ADD PROFILE
       // ========================================
 
-   // ========================================
-// PROFILE ID / TYPE
-// ========================================
+      // ========================================
+      // PROFILE ID / TYPE
+      // ========================================
 
-const currentProfileId =
-  String(
-    getProfileCell(
-      row,
-      idIndex
-    ) || ""
-  ).trim();
-
-
-const currentProfileType =
-  normalizeInterestProfileType(
-    type
-  );
+      const currentProfileId =
+        String(
+          getProfileCell(
+            row,
+            idIndex
+          ) || ""
+        ).trim();
 
 
-// ========================================
-// INTEREST RELATIONSHIP
-// ========================================
+      const currentProfileType =
+        normalizeInterestProfileType(
+          type
+        );
 
 
-
-
-
-
-// ========================================
-// ADD PROFILE
-// ========================================
+      // ========================================
+      // ADD PROFILE
+      // ========================================
 
       allProfiles.push({
 
@@ -908,92 +890,68 @@ const currentProfileType =
 
     }
 
-    // ==========================================
-    // EXCLUDE DISLIKED FROM NORMAL SEARCH
-    // ==========================================
+      // ==========================================
+      // REMOVE DISLIKED PROFILES
+      // MUST HAPPEN BEFORE PAGINATION
+      // ==========================================
 
-    const visibleProfiles =
-      excludeDislikedProfiles(
-        allProfiles,
-        userMobile,
-        type
-      );
-
-
-    // ==========================================
-    // MARK ALREADY LIKED PROFILES
-    // ==========================================
-
-    const profilesWithReactions =
-      addProfileReactions(
-        visibleProfiles,
-        userMobile,
-        type
-      );
-    // ==========================================
-    // PAGINATION
-    // ==========================================
-
-    const totalProfiles =
-      visibleProfiles.length;
-
-
-    const totalPages =
-      Math.ceil(
-        totalProfiles / pageSize
-      );
-
-
-    const profiles =
-      profilesWithReactions.slice(
-        startIndex,
-        endIndex
-      );
+      const visibleProfiles =
+        excludeDislikedProfiles(
+          allProfiles,
+          userMobile,
+          type
+        );
 
 
       // ==========================================
-// ADD INTEREST STATUS ONLY TO CURRENT PAGE
-// ==========================================
+      // TOTAL COUNT AFTER DISLIKE EXCLUSION
+      // ==========================================
 
-const profilesWithInterest =
-  profiles.map(function(profile) {
+      const totalProfiles =
+        visibleProfiles.length;
 
-    try {
 
-      profile.interestRelationship =
-        getInterestRelationship(
-          userMobile,
-          type,
-          profile.id
+      const totalPages =
+        Math.ceil(
+          totalProfiles / pageSize
         );
 
-    }
-    catch (error) {
 
-      console.error(
-        "Interest relationship error:",
-        profile.id,
-        error
-      );
+        // ==========================================
+        // CURRENT PAGE ONLY
+        // ==========================================
 
-      profile.interestRelationship = {
-        exists: false,
-        interestId: "",
-        status: "NONE",
-        rawStatus: "",
-        direction: "",
-        canSendInterest: true,
-        canViewContact: false,
-        hideFromSearch: false,
-        isMatched: false,
-        isClosed: false
-      };
+        const profiles =
+          visibleProfiles.slice(
+            startIndex,
+            endIndex
+          );
 
-    }
 
-    return profile;
+        // ==========================================
+        // ADD LIKE STATUS
+        // CURRENT 10 PROFILES ONLY
+        // ==========================================
 
-  });
+        const profilesWithReactions =
+          addProfileReactions(
+            profiles,
+            userMobile,
+            type
+          );
+
+
+        // ==========================================
+        // ADD INTEREST RELATIONSHIPS
+        // CURRENT 10 PROFILES ONLY BULK / FAST
+        // ==========================================
+
+        const profilesWithInterest =
+          addInterestRelationshipsToProfiles(
+            profilesWithReactions,
+            userMobile,
+            type
+          );
 
 
     const hasNext =
@@ -1050,27 +1008,27 @@ const profilesWithInterest =
 
   }
 
-catch (error) {
+  catch (error) {
 
-  console.error(
-    "Profile Search Error:",
-    error
-  );
+    console.error(
+      "Profile Search Error:",
+      error
+    );
 
-  return {
-    success: false,
-    count: 0,
-    profiles: [],
-    message:
-      "Profile Search Error: " +
-      (
-        error && error.message
-          ? error.message
-          : String(error)
-      )
-  };
+    return {
+      success: false,
+      count: 0,
+      profiles: [],
+      message:
+        "Profile Search Error: " +
+        (
+          error && error.message
+            ? error.message
+            : String(error)
+        )
+    };
 
-}
+  }
 
 }
 
@@ -2019,7 +1977,7 @@ function getFullProfile(
 
 
 
-        
+
         // ====================================
         // PROFILE FOUND
         // ====================================
@@ -2175,7 +2133,7 @@ function getFullProfile(
 
     }
 
-      profile.interestRelationship =
+    profile.interestRelationship =
       getInterestRelationship(
         userMobile,
         type,

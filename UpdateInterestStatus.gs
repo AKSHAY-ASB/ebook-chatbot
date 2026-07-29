@@ -14,8 +14,12 @@ function updateInterestStatus(
     // 1. NORMALIZE INPUT
     // ========================================
 
+    const rawUserMobile =
+      String(userMobile || "");
+
+
     userMobile =
-      String(userMobile || "")
+      rawUserMobile
         .replace(/\D/g, "")
         .slice(-10);
 
@@ -31,6 +35,17 @@ function updateInterestStatus(
         .toUpperCase();
 
 
+    console.log(
+      "UPDATE INTEREST REQUEST:",
+      {
+        rawUserMobile: rawUserMobile,
+        normalizedUserMobile: userMobile,
+        interestId: interestId,
+        newStatus: newStatus
+      }
+    );
+
+
     // ========================================
     // 2. VALIDATION
     // ========================================
@@ -41,9 +56,15 @@ function updateInterestStatus(
     ) {
 
       return {
+
         success: false,
-        code: "INVALID_REQUEST",
-        message: "Required information is missing."
+
+        code:
+          "INVALID_REQUEST",
+
+        message:
+          "Required information is missing."
+
       };
 
     }
@@ -55,9 +76,15 @@ function updateInterestStatus(
     ) {
 
       return {
+
         success: false,
-        code: "INVALID_STATUS",
-        message: "Invalid Interest status."
+
+        code:
+          "INVALID_STATUS",
+
+        message:
+          "Invalid Interest status."
+
       };
 
     }
@@ -74,9 +101,15 @@ function updateInterestStatus(
     if (!sheet) {
 
       return {
+
         success: false,
-        code: "SHEET_NOT_FOUND",
-        message: "Profile Interests sheet not found."
+
+        code:
+          "SHEET_NOT_FOUND",
+
+        message:
+          "Profile Interests sheet not found."
+
       };
 
     }
@@ -115,10 +148,38 @@ function updateInterestStatus(
 
 
       // ======================================
-      // RECEIVER MOBILE
-      // Column H = index 7
+      // MATCHED ROW FOUND
       // ======================================
 
+      const senderMobile =
+        String(
+          data[i][2] || ""
+        )
+        .replace(/\D/g, "")
+        .slice(-10);
+
+
+      const senderName =
+        String(
+          data[i][3] || ""
+        ).trim();
+
+
+      const senderType =
+        String(
+          data[i][5] || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+      const senderId =
+        String(
+          data[i][6] || ""
+        ).trim();
+
+
+      // H = Receiver Mobile
       const receiverMobile =
         String(
           data[i][7] || ""
@@ -127,24 +188,24 @@ function updateInterestStatus(
         .slice(-10);
 
 
-      // ======================================
-      // SECURITY CHECK
-      // Only receiver can Accept / Decline
-      // ======================================
+      const receiverName =
+        String(
+          data[i][8] || ""
+        ).trim();
 
-      if (
-        receiverMobile !==
-        userMobile
-      ) {
 
-        return {
-          success: false,
-          code: "NOT_AUTHORIZED",
-          message:
-            "You are not authorized to update this Interest."
-        };
+      const receiverType =
+        String(
+          data[i][10] || ""
+        )
+        .trim()
+        .toLowerCase();
 
-      }
+
+      const receiverId =
+        String(
+          data[i][11] || ""
+        ).trim();
 
 
       const currentStatus =
@@ -156,7 +217,87 @@ function updateInterestStatus(
 
 
       // ======================================
-      // ALREADY ACCEPTED / DECLINED
+      // IMPORTANT DEBUG LOG
+      // ======================================
+
+      console.log(
+        "INTEREST AUTH CHECK:",
+        {
+          rowNumber: i + 1,
+
+          interestId:
+            rowInterestId,
+
+          loggedInMobile:
+            userMobile,
+
+          senderMobile:
+            senderMobile,
+
+          senderId:
+            senderId,
+
+          receiverMobile:
+            receiverMobile,
+
+          receiverId:
+            receiverId,
+
+          currentStatus:
+            currentStatus,
+
+          authorized:
+            receiverMobile === userMobile
+        }
+      );
+
+
+      // ======================================
+      // 5. SECURITY CHECK
+      //
+      // ONLY RECEIVER CAN ACCEPT / DECLINE
+      // ======================================
+
+      if (
+        receiverMobile !==
+        userMobile
+      ) {
+
+        console.error(
+          "INTEREST AUTHORIZATION FAILED:",
+          {
+            interestId:
+              interestId,
+
+            loggedInMobile:
+              userMobile,
+
+            expectedReceiverMobile:
+              receiverMobile,
+
+            receiverId:
+              receiverId
+          }
+        );
+
+
+        return {
+
+          success: false,
+
+          code:
+            "NOT_AUTHORIZED",
+
+          message:
+            "You are not authorized to update this Interest."
+
+        };
+
+      }
+
+
+      // ======================================
+      // 6. ALREADY UPDATED
       // ======================================
 
       if (
@@ -168,9 +309,14 @@ function updateInterestStatus(
 
           success: false,
 
-          code: "STATUS_ALREADY_UPDATED",
+          code:
+            "STATUS_ALREADY_UPDATED",
 
-          status: currentStatus,
+          interestId:
+            interestId,
+
+          status:
+            currentStatus,
 
           message:
             "This Interest has already been updated."
@@ -181,17 +327,43 @@ function updateInterestStatus(
 
 
       // ======================================
-      // UPDATE STATUS
-      //
-      // M = Status = column 13
-      // N = Receiver Seen = column 14
-      // P = Updated At = column 16
+      // 7. ONLY PENDING CAN BE UPDATED
+      // ======================================
+
+      if (
+        currentStatus !== "PENDING"
+      ) {
+
+        return {
+
+          success: false,
+
+          code:
+            "INVALID_CURRENT_STATUS",
+
+          interestId:
+            interestId,
+
+          status:
+            currentStatus,
+
+          message:
+            "This Interest cannot be updated."
+
+        };
+
+      }
+
+
+      // ======================================
+      // 8. UPDATE STATUS
       // ======================================
 
       const now =
         new Date();
 
 
+      // M = Status
       sheet
         .getRange(
           i + 1,
@@ -202,6 +374,7 @@ function updateInterestStatus(
         );
 
 
+      // N = Receiver Seen
       sheet
         .getRange(
           i + 1,
@@ -212,6 +385,24 @@ function updateInterestStatus(
         );
 
 
+      // ======================================
+      // IMPORTANT:
+      // Sender now has a NEW response to see.
+      //
+      // O = Sender Seen
+      // ======================================
+
+      sheet
+        .getRange(
+          i + 1,
+          15
+        )
+        .setValue(
+          "NO"
+        );
+
+
+      // P = Updated At
       sheet
         .getRange(
           i + 1,
@@ -223,7 +414,84 @@ function updateInterestStatus(
 
 
       // ======================================
-      // SUCCESS
+      // 9. ACTIVITY LOG
+      // Only if logger already exists
+      // ======================================
+
+      try {
+
+        if (
+          typeof logInterestActivity ===
+          "function"
+        ) {
+
+          logInterestActivity(
+
+            userMobile,
+
+            newStatus === "ACCEPTED"
+              ? "INTEREST_ACCEPTED"
+              : "INTEREST_DECLINED",
+
+            senderType,
+
+            senderId,
+
+            interestId,
+
+            currentStatus,
+
+            newStatus,
+
+            "ReceivedInterest",
+
+            newStatus === "ACCEPTED"
+              ? "Receiver accepted Interest Request."
+              : "Receiver declined Interest Request."
+
+          );
+
+        }
+
+      }
+
+      catch (logError) {
+
+        console.error(
+          "Interest Activity Log Error:",
+          logError
+        );
+
+      }
+
+
+      // ======================================
+      // 10. SUCCESS LOG
+      // ======================================
+
+      console.log(
+        "INTEREST STATUS UPDATED:",
+        {
+          interestId:
+            interestId,
+
+          senderId:
+            senderId,
+
+          receiverId:
+            receiverId,
+
+          oldStatus:
+            currentStatus,
+
+          newStatus:
+            newStatus
+        }
+      );
+
+
+      // ======================================
+      // 11. SUCCESS RESPONSE
       // ======================================
 
       return {
@@ -241,31 +509,40 @@ function updateInterestStatus(
         status:
           newStatus,
 
+
         sender: {
 
           mobile:
-            String(
-              data[i][2] || ""
-            ).trim(),
+            senderMobile,
 
           name:
-            String(
-              data[i][3] || ""
-            ).trim(),
+            senderName,
 
           type:
-            String(
-              data[i][5] || ""
-            )
-            .trim()
-            .toLowerCase(),
+            senderType,
 
           id:
-            String(
-              data[i][6] || ""
-            ).trim()
+            senderId
 
         },
+
+
+        receiver: {
+
+          mobile:
+            receiverMobile,
+
+          name:
+            receiverName,
+
+          type:
+            receiverType,
+
+          id:
+            receiverId
+
+        },
+
 
         message:
           newStatus === "ACCEPTED"
@@ -278,8 +555,14 @@ function updateInterestStatus(
 
 
     // ========================================
-    // INTEREST NOT FOUND
+    // 12. INTEREST NOT FOUND
     // ========================================
+
+    console.error(
+      "INTEREST NOT FOUND:",
+      interestId
+    );
+
 
     return {
 
@@ -320,7 +603,6 @@ function updateInterestStatus(
   }
 
 }
-
 
 function testUpdateInterestStatus() {
 

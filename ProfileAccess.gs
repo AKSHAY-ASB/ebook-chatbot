@@ -266,7 +266,10 @@ function logProfileSearch(details) {
       );
 
 
-    // Create sheet automatically
+    // ========================================
+    // CREATE SHEET IF NOT EXISTS
+    // ========================================
+
     if (!sheet) {
 
       sheet =
@@ -286,12 +289,16 @@ function logProfileSearch(details) {
         "Education",
         "Monthly Income",
         "Results Found",
-        "Page"
+        "Total Pages"
 
       ]);
 
     }
 
+
+    // ========================================
+    // SAVE SEARCH LOG
+    // ========================================
 
     sheet.appendRow([
 
@@ -311,16 +318,33 @@ function logProfileSearch(details) {
 
       details.income || "",
 
-      details.totalCount || 0,
+      Number(
+        details.totalCount || 0
+      ),
 
-      details.page || 1
+      Number(
+        details.totalPages || 1
+      )
 
     ]);
+
+
+    console.log(
+      "PROFILE SEARCH LOG SAVED:",
+      {
+        totalCount:
+          details.totalCount,
+
+        totalPages:
+          details.totalPages
+      }
+    );
 
 
     return true;
 
   }
+
 
   catch (error) {
 
@@ -328,6 +352,7 @@ function logProfileSearch(details) {
       "Profile Search Log Error:",
       error
     );
+
 
     return false;
 

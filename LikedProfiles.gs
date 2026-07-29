@@ -142,12 +142,19 @@ function getLikedProfileIds(userMobile) {
 
 }
 
+
 function getLikedProfiles(userMobile) {
 
   try {
 
+    // ========================================
+    // NORMALIZE USER MOBILE
+    // ========================================
+
     userMobile =
-      String(userMobile || "").trim();
+      String(userMobile || "")
+        .replace(/\D/g, "")
+        .slice(-10);
 
 
     if (!userMobile) {
@@ -410,6 +417,43 @@ function getLikedProfiles(userMobile) {
 
 
           // ======================================
+          // GET INTEREST RELATIONSHIP
+          // ======================================
+
+          const interestRelationship =
+            getInterestRelationship(
+              userMobile,
+              profileType,
+              rowId
+            );
+
+
+          console.log(
+            "LIKED PROFILE BACKEND RELATIONSHIP:",
+            {
+              userMobile:
+                userMobile,
+
+              profileType:
+                profileType,
+
+              profileId:
+                rowId,
+
+              status:
+                interestRelationship
+                  ? interestRelationship.status
+                  : "NONE",
+
+              canViewContact:
+                interestRelationship
+                  ? interestRelationship.canViewContact
+                  : false
+            }
+          );
+
+
+          // ======================================
           // PROFILE FOUND
           // ======================================
 
@@ -478,7 +522,16 @@ function getLikedProfiles(userMobile) {
               ),
 
             reaction:
-              "LIKE"
+              "LIKE",
+
+
+            // ====================================
+            // IMPORTANT
+            // SEND RELATIONSHIP TO FRONTEND
+            // ====================================
+
+            interestRelationship:
+              interestRelationship
 
           });
 
@@ -533,6 +586,7 @@ function getLikedProfiles(userMobile) {
   }
 
 }
+
 
 function testLikedIds() {
 

@@ -355,6 +355,10 @@ function respondToReceivedInterest(
   button
 ) {
 
+  // ========================================
+  // 1. NORMALIZE VALUES
+  // ========================================
+
   interestId =
     String(
       interestId || ""
@@ -368,6 +372,10 @@ function respondToReceivedInterest(
     .trim()
     .toUpperCase();
 
+
+  // ========================================
+  // 2. VALIDATE INTEREST DATA
+  // ========================================
 
   if (
     !interestId ||
@@ -387,7 +395,7 @@ function respondToReceivedInterest(
 
 
   // ========================================
-  // VERIFIED USER REQUIRED
+  // 3. VERIFIED USER REQUIRED
   // ========================================
 
   if (
@@ -405,7 +413,36 @@ function respondToReceivedInterest(
 
 
   // ========================================
-  // DOUBLE CLICK PROTECTION
+  // 4. DEBUG CURRENT VERIFIED USER
+  // IMPORTANT FOR AUTHORIZATION TEST
+  // ========================================
+
+  console.log(
+    "ACCEPT/DECLINE FRONTEND DEBUG:",
+    {
+      profileAccessVerified:
+        profileAccessVerified,
+
+      profileUserMobile:
+        profileUserMobile,
+
+      profileUserName:
+        profileUserName,
+
+      profileUserRegisteredSheet:
+        profileUserRegisteredSheet,
+
+      interestId:
+        interestId,
+
+      newStatus:
+        newStatus
+    }
+  );
+
+
+  // ========================================
+  // 5. DOUBLE CLICK PROTECTION
   // ========================================
 
   if (
@@ -436,8 +473,16 @@ function respondToReceivedInterest(
   }
 
 
+  // ========================================
+  // 6. SHOW TYPING
+  // ========================================
+
   showTyping();
 
+
+  // ========================================
+  // 7. CALL BACKEND
+  // ========================================
 
   google.script.run
 
@@ -452,6 +497,10 @@ function respondToReceivedInterest(
           result
         );
 
+
+        // ==================================
+        // NO RESPONSE
+        // ==================================
 
         if (!result) {
 
@@ -500,6 +549,7 @@ function respondToReceivedInterest(
 
           }
 
+
           else {
 
             botMessage(`
@@ -516,7 +566,10 @@ function respondToReceivedInterest(
           }
 
 
-          // Reload received interests
+          // ==================================
+          // RELOAD RECEIVED INTERESTS
+          // ==================================
+
           showReceivedInterests();
 
 
@@ -542,6 +595,7 @@ function respondToReceivedInterest(
             <br><br>
 
             Status:
+
             <b>
               ${escapeHtml(
                 result.status || ""
@@ -560,7 +614,51 @@ function respondToReceivedInterest(
 
 
         // ==================================
-        // ERROR
+        // NOT AUTHORIZED
+        // ==================================
+
+        if (
+          result.code ===
+          "NOT_AUTHORIZED"
+        ) {
+
+          resetReceivedInterestButton(
+            button,
+            newStatus
+          );
+
+
+          console.error(
+            "INTEREST NOT AUTHORIZED:",
+            {
+              profileUserMobile:
+                profileUserMobile,
+
+              profileUserName:
+                profileUserName,
+
+              interestId:
+                interestId
+            }
+          );
+
+
+          botMessage(
+            "⚠️ " +
+            (
+              result.message ||
+              "You are not authorized to update this Interest."
+            )
+          );
+
+
+          return;
+
+        }
+
+
+        // ==================================
+        // OTHER ERROR
         // ==================================
 
         resetReceivedInterestButton(
@@ -582,6 +680,10 @@ function respondToReceivedInterest(
       }
     )
 
+
+    // ========================================
+    // FAILURE HANDLER
+    // ========================================
 
     .withFailureHandler(
       function(error) {
@@ -608,6 +710,10 @@ function respondToReceivedInterest(
       }
     )
 
+
+    // ========================================
+    // BACKEND FUNCTION
+    // ========================================
 
     .updateInterestStatus(
       profileUserMobile,

@@ -907,3 +907,370 @@ function findInterestTargetProfile(
 
 
 
+// ==========================================
+// GET INTEREST RELATIONSHIP
+// ==========================================
+
+function getInterestRelationship(
+  userMobile,
+  targetProfileType,
+  targetProfileId
+) {
+
+  try {
+
+    // ========================================
+    // NORMALIZE INPUT
+    // ========================================
+
+    userMobile =
+      String(userMobile || "")
+        .replace(/\D/g, "")
+        .slice(-10);
+
+
+    targetProfileType =
+      String(targetProfileType || "")
+        .trim()
+        .toLowerCase();
+
+
+    targetProfileId =
+      String(targetProfileId || "")
+        .trim();
+
+
+    // ========================================
+    // DEFAULT RESPONSE
+    // ========================================
+
+    const noRelationship = {
+
+      exists: false,
+
+      status: "NONE",
+
+      direction: "NONE",
+
+      interestId: "",
+
+      canSendInterest: true,
+
+      canViewContact: false
+
+    };
+
+
+    if (
+      !userMobile ||
+      !targetProfileType ||
+      !targetProfileId
+    ) {
+
+      return noRelationship;
+
+    }
+
+
+    // ========================================
+    // GET INTEREST SHEET
+    // ========================================
+
+    const sheet =
+      getProfileInterestSheet();
+
+
+    if (!sheet) {
+
+      return noRelationship;
+
+    }
+
+
+    const data =
+      sheet
+        .getDataRange()
+        .getDisplayValues();
+
+
+    // ========================================
+    // FIND RELATIONSHIP
+    // ========================================
+
+    for (
+      let i = 1;
+      i < data.length;
+      i++
+    ) {
+
+      // Sender
+      const senderMobile =
+        String(
+          data[i][2] || ""
+        )
+        .replace(/\D/g, "")
+        .slice(-10);
+
+
+      const senderType =
+        String(
+          data[i][5] || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+      const senderId =
+        String(
+          data[i][6] || ""
+        ).trim();
+
+
+      // Receiver
+      const receiverMobile =
+        String(
+          data[i][7] || ""
+        )
+        .replace(/\D/g, "")
+        .slice(-10);
+
+
+      const receiverType =
+        String(
+          data[i][10] || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+      const receiverId =
+        String(
+          data[i][11] || ""
+        ).trim();
+
+
+      // Status
+      const status =
+        String(
+          data[i][12] || ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+      const interestId =
+        String(
+          data[i][1] || ""
+        ).trim();
+
+
+      // ======================================
+      // CURRENT USER SENT TO TARGET
+      // ======================================
+
+      if (
+        senderMobile === userMobile &&
+        receiverType === targetProfileType &&
+        receiverId === targetProfileId
+      ) {
+
+        if (status === "PENDING") {
+
+          return {
+
+            exists: true,
+
+            status: "PENDING_SENT",
+
+            direction: "SENT",
+
+            interestId:
+              interestId,
+
+            canSendInterest: false,
+
+            canViewContact: false
+
+          };
+
+        }
+
+
+        if (status === "ACCEPTED") {
+
+          return {
+
+            exists: true,
+
+            status: "ACCEPTED",
+
+            direction: "SENT",
+
+            interestId:
+              interestId,
+
+            canSendInterest: false,
+
+            canViewContact: true
+
+          };
+
+        }
+
+
+        if (status === "DECLINED") {
+
+          return {
+
+            exists: true,
+
+            status: "DECLINED",
+
+            direction: "SENT",
+
+            interestId:
+              interestId,
+
+            canSendInterest: false,
+
+            canViewContact: false
+
+          };
+
+        }
+
+      }
+
+
+      // ======================================
+      // TARGET SENT TO CURRENT USER
+      // ======================================
+
+      if (
+        receiverMobile === userMobile &&
+        senderType === targetProfileType &&
+        senderId === targetProfileId
+      ) {
+
+        if (status === "PENDING") {
+
+          return {
+
+            exists: true,
+
+            status: "PENDING_RECEIVED",
+
+            direction: "RECEIVED",
+
+            interestId:
+              interestId,
+
+            canSendInterest: false,
+
+            canViewContact: false
+
+          };
+
+        }
+
+
+        if (status === "ACCEPTED") {
+
+          return {
+
+            exists: true,
+
+            status: "ACCEPTED",
+
+            direction: "RECEIVED",
+
+            interestId:
+              interestId,
+
+            canSendInterest: false,
+
+            canViewContact: true
+
+          };
+
+        }
+
+
+        if (status === "DECLINED") {
+
+          return {
+
+            exists: true,
+
+            status: "DECLINED",
+
+            direction: "RECEIVED",
+
+            interestId:
+              interestId,
+
+            canSendInterest: false,
+
+            canViewContact: false
+
+          };
+
+        }
+
+      }
+
+    }
+
+
+    return noRelationship;
+
+  }
+
+
+  catch (error) {
+
+    console.error(
+      "getInterestRelationship Error:",
+      error
+    );
+
+
+    return {
+
+      exists: false,
+
+      status: "NONE",
+
+      direction: "NONE",
+
+      interestId: "",
+
+      canSendInterest: true,
+
+      canViewContact: false
+
+    };
+
+  }
+
+}
+
+function testGetInterestRelationship() {
+
+  const result =
+    getInterestRelationship(
+      "8975593689",
+      "bride",
+      "ID005"
+    );
+
+
+  Logger.log(
+    JSON.stringify(
+      result,
+      null,
+      2
+    )
+  );
+
+}
