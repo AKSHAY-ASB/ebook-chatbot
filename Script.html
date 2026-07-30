@@ -3633,6 +3633,8 @@ function viewFullProfile(
         displayFullProfile(
           result.profile
         );
+        
+        showSearchAgainButton();
 
       }
     )
@@ -3998,40 +4000,6 @@ function displayFullProfile(profile) {
         )}
 
       </div>
-
-
-        <!-- ======================================
-            INTEREST STATUS
-        ======================================= -->
-
-        ${
-          interestUI.statusHtml
-            ? `
-                <div class="interest-profile-action">
-
-                  ${interestUI.statusHtml}
-
-                </div>
-              `
-            : ""
-        }
-
-
-        <!-- ======================================
-            INTEREST ACTION
-        ======================================= -->
-
-        ${
-          interestUI.actionHtml
-            ? `
-                <div class="interest-profile-action">
-
-                  ${interestUI.actionHtml}
-
-                </div>
-              `
-            : ""
-        }
 
 
     </div>

@@ -891,20 +891,31 @@ function searchProfiles(type, district, education, income, page, userMobile) {
     }
 
       // ==========================================
+      // LOAD USER REACTIONS
+      // ONE SHEET READ ONLY
+      // ==========================================
+
+      const userReactions =
+        getUserProfileReactions(
+          userMobile
+        );
+
+
+      // ==========================================
       // REMOVE DISLIKED PROFILES
-      // MUST HAPPEN BEFORE PAGINATION
+      // USING PRELOADED DATA
       // ==========================================
 
       const visibleProfiles =
-        excludeDislikedProfiles(
+        excludeDislikedProfilesFromData(
           allProfiles,
-          userMobile,
+          userReactions.disliked,
           type
         );
 
 
       // ==========================================
-      // TOTAL COUNT AFTER DISLIKE EXCLUSION
+      // TOTAL COUNT / TOTAL PAGES
       // ==========================================
 
       const totalProfiles =
@@ -917,42 +928,42 @@ function searchProfiles(type, district, education, income, page, userMobile) {
         );
 
 
-        // ==========================================
-        // CURRENT PAGE ONLY
-        // ==========================================
+      // ==========================================
+      // CURRENT PAGE ONLY
+      // ==========================================
 
-        const profiles =
-          visibleProfiles.slice(
-            startIndex,
-            endIndex
-          );
-
-
-        // ==========================================
-        // ADD LIKE STATUS
-        // CURRENT 10 PROFILES ONLY
-        // ==========================================
-
-        const profilesWithReactions =
-          addProfileReactions(
-            profiles,
-            userMobile,
-            type
-          );
+      const profiles =
+        visibleProfiles.slice(
+          startIndex,
+          endIndex
+        );
 
 
-        // ==========================================
-        // ADD INTEREST RELATIONSHIPS
-        // CURRENT 10 PROFILES ONLY BULK / FAST
-        // ==========================================
+      // ==========================================
+      // ADD LIKE STATUS
+      // CURRENT PAGE ONLY
+      // NO ADDITIONAL SHEET READ
+      // ==========================================
 
-        const profilesWithInterest =
-          addInterestRelationshipsToProfiles(
-            profilesWithReactions,
-            userMobile,
-            type
-          );
+      const profilesWithReactions =
+        addProfileReactionsFromData(
+          profiles,
+          userReactions.liked,
+          type
+        );
 
+
+      // ==========================================
+      // ADD INTEREST STATUS
+      // CURRENT PAGE ONLY
+      // ==========================================
+
+      const profilesWithInterest =
+        addInterestRelationshipsToProfiles(
+          profilesWithReactions,
+          userMobile,
+          type
+        );
 
     const hasNext =
       page < totalPages;

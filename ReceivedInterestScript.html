@@ -251,6 +251,30 @@ function displayReceivedInterests(
         .trim()
         .toUpperCase();
 
+        let contactButtonHtml = "";
+
+        if (currentStatus === "ACCEPTED") {
+
+          contactButtonHtml = `
+
+            <button
+              type="button"
+              class="received-view-profile-btn"
+              onclick="viewProfileContact(
+                '${safeType}',
+                '${safeId}'
+              )"
+            >
+
+              ☎ View Contact Details
+
+            </button>
+
+          `;
+
+        }
+      
+
     let statusHtml = "⏳ Pending";
 
     if (currentStatus === "ACCEPTED") {
@@ -337,6 +361,12 @@ function displayReceivedInterests(
           </button>
 
         </div>
+
+        <div class="sent-interest-actions">
+
+            ${contactButtonHtml}
+
+          </div>
 
         ${decisionButtons}
 

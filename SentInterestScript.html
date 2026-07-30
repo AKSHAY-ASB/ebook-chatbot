@@ -277,6 +277,30 @@ function displaySentInterests(
         .toUpperCase();
 
 
+        let contactButtonHtml = "";
+
+        if (currentStatus === "ACCEPTED") {
+
+          contactButtonHtml = `
+
+            <button
+              type="button"
+              class="sent-view-profile-btn"
+              onclick="viewProfileContact(
+                '${safeType}',
+                '${safeId}'
+              )"
+            >
+
+              ☎ View Contact Details
+
+            </button>
+
+          `;
+
+        }
+
+
       // ========================================
       // STATUS
       // ========================================
@@ -366,18 +390,22 @@ function displaySentInterests(
 
           <div class="sent-interest-actions">
 
-            <button
-              type="button"
-              class="sent-view-profile-btn"
-              onclick="viewFullProfile(
-                '${safeType}',
-                '${safeId}'
-              )"
-            >
+          <button
+            type="button"
+            class="sent-view-profile-btn"
+            onclick="viewFullProfile(
+              '${safeType}',
+              '${safeId}'
+            )"
+          >
 
-              👤 View Full Profile
+            👤 View Full Profile
 
-            </button>
+          </button>
+
+          <div class="sent-interest-actions">
+
+            ${contactButtonHtml}
 
           </div>
 
