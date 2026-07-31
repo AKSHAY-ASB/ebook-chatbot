@@ -1,3 +1,52 @@
+
+
+function createDefaultInterestRelationship(error = false) {
+  return {
+    exists: false,
+    interestId: "",
+    status: "NONE",
+    direction: "",
+    canSendInterest: true,
+    canViewContact: false,
+    hideFromSearch: false,
+    isMatched: false,
+    isClosed: false,
+    ...(error ? { error: true } : {})
+  };
+}
+
+
+// ==========================================
+// GET INTEREST DATA
+// ==========================================
+function getInterestData() {
+
+  let data = getCache(CACHE_KEYS.PROFILE_INTEREST);
+
+  if (data) {
+    console.log("INTEREST CACHE HIT");
+    return data;
+  }
+
+  const sheet = getProfileInterestSheet();
+
+  if (!sheet) {
+    return null;
+  }
+
+  data = sheet.getDataRange().getDisplayValues();
+
+  setCache(
+    CACHE_KEYS.PROFILE_INTEREST,
+    data,
+    CACHE_TIME.INTEREST
+  );
+
+  console.log("INTEREST CACHE MISS");
+
+  return data;
+}
+
 // ==========================================
 // INTEREST RELATIONSHIP ENGINE
 // ==========================================
@@ -32,27 +81,8 @@ function getInterestRelationship(
     // DEFAULT RELATIONSHIP
     // ========================================
 
-    const defaultRelationship = {
-
-      exists: false,
-
-      interestId: "",
-
-      status: "NONE",
-
-      direction: "",
-
-      canSendInterest: true,
-
-      canViewContact: false,
-
-      hideFromSearch: false,
-
-      isMatched: false,
-
-      isClosed: false
-
-    };
+   const defaultRelationship =
+    createDefaultInterestRelationship();
 
 
     if (
@@ -86,25 +116,21 @@ function getInterestRelationship(
     }
 
 
-    // ========================================
-    // GET INTEREST SHEET
-    // ========================================
+      // ========================================
+      // LOAD INTEREST DATA FROM CACHE
+      // ========================================
 
-    const sheet =
-      getProfileInterestSheet();
+        const data = getInterestData();
 
+        if (!data) {
 
-    if (!sheet) {
+            profiles.forEach(function(profile) {
+                profile.interestRelationship =
+                    createDefaultInterestRelationship();
+            });
 
-      return defaultRelationship;
-
-    }
-
-
-    const data =
-      sheet
-        .getDataRange()
-        .getDisplayValues();
+            return profiles;
+        }
 
 
     // ========================================
@@ -416,31 +442,7 @@ function addInterestRelationshipsToProfiles(
     // DEFAULT RELATIONSHIP
     // ========================================
 
-    function createDefaultRelationship() {
-
-      return {
-
-        exists: false,
-
-        interestId: "",
-
-        status: "NONE",
-
-        direction: "",
-
-        canSendInterest: true,
-
-        canViewContact: false,
-
-        hideFromSearch: false,
-
-        isMatched: false,
-
-        isClosed: false
-
-      };
-
-    }
+      
 
 
     // ========================================
@@ -476,7 +478,7 @@ function addInterestRelationshipsToProfiles(
         function(profile) {
 
           profile.interestRelationship =
-            createDefaultRelationship();
+            createDefaultInterestRelationship();
 
         }
       );
@@ -507,7 +509,7 @@ function addInterestRelationshipsToProfiles(
         function(profile) {
 
           profile.interestRelationship =
-            createDefaultRelationship();
+            createDefaultInterestRelationship();
 
         }
       );
@@ -518,41 +520,65 @@ function addInterestRelationshipsToProfiles(
     }
 
 
-    // ========================================
-    // GET INTEREST SHEET
-    // ONLY ONCE
-    // ========================================
+      // ========================================
+      // LOAD INTEREST DATA FROM CACHE
+      // ========================================
 
-    const sheet =
-      getProfileInterestSheet();
+      let data =
+        getCache(
+          CACHE_KEYS.PROFILE_INTEREST
+        );
 
 
-    if (!sheet) {
+      // ========================================
+      // CACHE MISS
+      // ========================================
 
-      profiles.forEach(
-        function(profile) {
+      if (!data) {
 
-          profile.interestRelationship =
-            createDefaultRelationship();
+        const sheet =
+          getProfileInterestSheet();
+
+        if (!sheet) {
+
+          profiles.forEach(function(profile) {
+
+            profile.interestRelationship =
+              createDefaultInterestRelationship();
+
+          });
+
+          return profiles;
 
         }
-      );
 
+        data =
+          sheet
+            .getDataRange()
+            .getDisplayValues();
 
-      return profiles;
+        setCache(
 
-    }
+          CACHE_KEYS.PROFILE_INTEREST,
 
+          data,
 
-    // ========================================
-    // READ INTEREST SHEET
-    // ONLY ONCE
-    // ========================================
+          CACHE_TIME.INTEREST
 
-    const data =
-      sheet
-        .getDataRange()
-        .getDisplayValues();
+        );
+
+        console.log(
+          "INTEREST CACHE MISS"
+        );
+
+      }
+      else {
+
+        console.log(
+          "INTEREST CACHE HIT"
+        );
+
+}
 
 
     // ========================================
@@ -901,7 +927,7 @@ function addInterestRelationshipsToProfiles(
             profileId
           ] ||
 
-          createDefaultRelationship();
+          createDefaultInterestRelationship();
 
       }
     );
@@ -941,29 +967,8 @@ function addInterestRelationshipsToProfiles(
     profiles.forEach(
       function(profile) {
 
-        profile.interestRelationship = {
-
-          exists: false,
-
-          interestId: "",
-
-          status: "NONE",
-
-          direction: "",
-
-          canSendInterest: true,
-
-          canViewContact: false,
-
-          hideFromSearch: false,
-
-          isMatched: false,
-
-          isClosed: false,
-
-          error: true
-
-        };
+      profile.interestRelationship =
+        createDefaultInterestRelationship(true);
 
       }
     );

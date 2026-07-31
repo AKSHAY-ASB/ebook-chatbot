@@ -387,59 +387,68 @@ if (
     // 10. SAVE INTEREST
     // ========================================
 
-    sheet.appendRow([
+        sheet.appendRow([
 
-      // A
-      now,
+          // A
+          now,
 
-      // B
-      interestId,
+          // B
+          interestId,
 
-      // C
-      sender.mobile,
+          // C
+          sender.mobile,
 
-      // D
-      sender.name,
+          // D
+          sender.name,
 
-      // E
-      sender.sheetName,
+          // E
+          sender.sheetName,
 
-      // F
-      sender.type,
+          // F
+          sender.type,
 
-      // G
-      sender.id,
+          // G
+          sender.id,
 
-      // H
-      receiver.mobile,
+          // H
+          receiver.mobile,
 
-      // I
-      receiver.name,
+          // I
+          receiver.name,
 
-      // J
-      receiver.sheetName,
+          // J
+          receiver.sheetName,
 
-      // K
-      receiver.type,
+          // K
+          receiver.type,
 
-      // L
-      receiver.id,
+          // L
+          receiver.id,
 
-      // M
-      INTEREST_CONFIG
-        .STATUS
-        .PENDING,
+          // M
+          INTEREST_CONFIG
+            .STATUS
+            .PENDING,
 
-      // N
-      "NO",
+          // N
+          "NO",
 
-      // O
-      "YES",
+          // O
+          "YES",
 
-      // P
-      now
+          // P
+          now
 
-    ]);
+        ]);
+
+
+        // ========================================
+        // CLEAR INTEREST CACHE
+        // ========================================
+
+        removeCache(
+          CACHE_KEYS.PROFILE_INTEREST
+        );
 
           try {
 

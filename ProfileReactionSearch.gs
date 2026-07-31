@@ -21,6 +21,28 @@ function getUserProfileReactions(
         userMobile || ""
       ).trim();
 
+      // ========================================
+      // CHECK CACHE
+      // ========================================
+
+      const cacheKey =
+        CACHE_KEYS.PROFILE_REACTION +
+        userMobile;
+
+      const cachedData =
+        getCache(cacheKey);
+
+      if (cachedData) {
+
+        console.log(
+          "PROFILE REACTIONS CACHE HIT:",
+          userMobile
+        );
+
+        return cachedData;
+
+      }
+
 
     if (!userMobile) {
 
@@ -237,15 +259,32 @@ function getUserProfileReactions(
     );
 
 
-    return {
+      const result = {
 
-      liked:
-        liked,
+          liked:
+            liked,
 
-      disliked:
-        disliked
+          disliked:
+            disliked
 
-    };
+        };
+
+
+        // ========================================
+        // SAVE CACHE
+        // ========================================
+
+        setCache(
+
+          cacheKey,
+
+          result,
+
+          CACHE_TIME.REACTION
+
+        );
+
+        return result;
 
   }
 

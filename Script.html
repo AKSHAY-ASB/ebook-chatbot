@@ -229,10 +229,6 @@ if (
             `);
 
 
-            // Show main chatbot menu again
-            showMenu();
-
-
             // Scroll specifically to invalid message
             setTimeout(
               function() {
@@ -1039,9 +1035,9 @@ function verifyProfileMobile(mobile) {
 
 
         if (
-  result &&
-  result.verified
-) {
+          result &&
+          result.verified
+        ) {
 
   profileAccessVerified =
     true;
@@ -1189,7 +1185,7 @@ function verifyProfileMobile(mobile) {
 
   `);
 
-}else {
+  }else {
 
   // ========================================
   // MOBILE NOT REGISTERED
@@ -1301,7 +1297,7 @@ function verifyProfileMobile(mobile) {
 
     .getChatLinks();
 
-}
+  }
 
 
 
@@ -4451,6 +4447,7 @@ function reactToProfile(
       reaction
 
     );
+    
 
 }
 

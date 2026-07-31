@@ -112,254 +112,13 @@ function generateInterestId() {
 }
 
 
-// ==========================================
-// FIND REGISTERED PROFILE BY MOBILE
-// ==========================================
 
-function findInterestUserProfile(
-  userMobile
-) {
-
-  userMobile =
-    String(userMobile || "")
-      .replace(/\D/g, "")
-      .slice(-10);
-
-
-  if (!userMobile) {
-
-    return null;
-
-  }
-
-
-  const ss =
-    SpreadsheetApp
-      .getActiveSpreadsheet();
-
-
-  const profileSheets = [
-
-    {
-      type: "bride",
-      sheetName: "वधू"
-    },
-
-    {
-      type: "groom",
-      sheetName: "वर"
-    },
-
-    {
-      type: "other",
-      sheetName: "इतर"
-    }
-
-  ];
-
-
-  for (
-    let s = 0;
-    s < profileSheets.length;
-    s++
-  ) {
-
-    const config =
-      profileSheets[s];
-
-
-    const sheet =
-      ss.getSheetByName(
-        config.sheetName
-      );
-
-
-    if (!sheet) {
-
-      continue;
-
-    }
-
-
-    const data =
-      sheet
-        .getDataRange()
-        .getDisplayValues();
-
-
-    if (data.length < 2) {
-
-      continue;
-
-    }
-
-
-    const headers =
-      data[0].map(
-        function(header) {
-
-          return normalizeHeader(
-            header
-          );
-
-        }
-      );
-
-
-    const idIndex =
-      findProfileHeader(
-        headers,
-        "ID"
-      );
-
-
-    const nameIndex =
-      findProfileHeader(
-        headers,
-        "नाव :"
-      );
-
-
-    // ======================================
-    // FIND MOBILE COLUMN
-    // ======================================
-
-    let mobileIndex = -1;
-
-
-    const possibleMobileHeaders = [
-
-      "मोबाईल नंबर :",
-
-      "मोबाईल नंबर",
-
-      "Mobile Number",
-
-      "Mobile",
-
-      "संपर्क क्रमांक",
-
-      "संपर्क क्रमांक :"
-
-    ];
-
-
-    for (
-      let h = 0;
-      h < possibleMobileHeaders.length;
-      h++
-    ) {
-
-      mobileIndex =
-        findProfileHeader(
-          headers,
-          possibleMobileHeaders[h]
-        );
-
-
-      if (
-        mobileIndex !== -1
-      ) {
-
-        break;
-
-      }
-
-    }
-
-
-    if (
-      idIndex === -1 ||
-      mobileIndex === -1
-    ) {
-
-      continue;
-
-    }
-
-
-    // ======================================
-    // SEARCH USER
-    // ======================================
-
-    for (
-      let i = 1;
-      i < data.length;
-      i++
-    ) {
-
-      const row =
-        data[i];
-
-
-      const rowMobile =
-        String(
-          getProfileCell(
-            row,
-            mobileIndex
-          ) || ""
-        )
-        .replace(/\D/g, "")
-        .slice(-10);
-
-
-      if (
-        rowMobile !== userMobile
-      ) {
-
-        continue;
-
-      }
-
-
-      return {
-
-        found:
-          true,
-
-        type:
-          config.type,
-
-        sheetName:
-          config.sheetName,
-
-        id:
-          String(
-            getProfileCell(
-              row,
-              idIndex
-            ) || ""
-          ).trim(),
-
-        name:
-          String(
-            getProfileCell(
-              row,
-              nameIndex
-            ) || ""
-          ).trim(),
-
-        mobile:
-          userMobile
-
-      };
-
-    }
-
-  }
-
-
-  return null;
-
-}
 
 // ==========================================
 // FIND REGISTERED PROFILE BY MOBILE
 // ==========================================
 
-function findInterestUserProfile(
-  userMobile
-) {
+function findInterestUserProfile(userMobile) {
 
   // ========================================
   // NORMALIZE MOBILE
@@ -370,17 +129,37 @@ function findInterestUserProfile(
       .replace(/\D/g, "")
       .slice(-10);
 
-
   if (!userMobile) {
 
     return null;
 
   }
 
+  // ========================================
+  // CHECK CACHE
+  // ========================================
 
-  const ss =
-    SpreadsheetApp
-      .getActiveSpreadsheet();
+  const cacheKey =
+    CACHE_KEYS.USER_PROFILE + userMobile;
+
+  const cachedUser =
+    getCache(cacheKey);
+
+  if (cachedUser) {
+
+    console.log(
+      "USER PROFILE CACHE HIT:",
+      userMobile
+    );
+
+    return cachedUser;
+
+  }
+
+  console.log(
+    "USER PROFILE CACHE MISS:",
+    userMobile
+  );
 
 
   // ========================================
@@ -406,165 +185,71 @@ function findInterestUserProfile(
 
   ];
 
-
   // ========================================
   // LOOP SHEETS
   // ========================================
 
-  for (
-    let s = 0;
-    s < profileSheets.length;
-    s++
-  ) {
+  for (let s = 0; s < profileSheets.length; s++) {
 
     const config =
       profileSheets[s];
 
-
-    const sheet =
-      ss.getSheetByName(
+    const data =
+      getProfileSheetData(
         config.sheetName
       );
 
+      if (
+        !data ||
+        data.length < 2
+      ) {
 
-    if (!sheet) {
+        continue;
 
-      continue;
-
-    }
-
-
-    const data =
-      sheet
-        .getDataRange()
-        .getDisplayValues();
-
-
-    if (
-      !data ||
-      data.length < 2
-    ) {
-
-      continue;
-
-    }
-
+      }
 
     // ======================================
     // HEADERS
     // ======================================
 
     const headers =
-      data[0].map(
-        function(header) {
+        getProfileHeaders(
+            config.sheetName
+        );
 
-          return normalizeHeader(
-            header
-          );
-
-        }
-      );
-
-
-    // ======================================
-    // PROFILE ID
-    // ======================================
-
-    const idIndex =
-      findProfileHeader(
-        headers,
-        "ID"
-      );
-
-
-    // ======================================
-    // PROFILE NAME
-    // ======================================
-
-    const nameIndex =
-      findProfileHeader(
-        headers,
-        "नाव :"
-      );
-
-
-    // ======================================
-    // CONTACT NUMBER 1
-    // ======================================
-
-    const mobile1Index =
-      findProfileHeader(
-        headers,
-        "संपर्क क्रमांक १ :"
-      );
-
-
-    // ======================================
-    // CONTACT NUMBER 2
-    // ======================================
-
-    const mobile2Index =
-      findProfileHeader(
-        headers,
-        "संपर्क क्रमांक २ :"
-      );
-
-
-    console.log(
-      "INTEREST PROFILE COLUMNS:",
-      {
-        sheet:
-          config.sheetName,
-
-        idIndex:
-          idIndex,
-
-        nameIndex:
-          nameIndex,
-
-        mobile1Index:
-          mobile1Index,
-
-        mobile2Index:
-          mobile2Index
-      }
-    );
-
-
-    // ======================================
-    // REQUIRED COLUMN CHECK
-    // ======================================
+      const {
+            idIndex,
+            nameIndex,
+            mobile1Index,
+            mobile2Index
+        } =
+            getProfileHeaderIndexes(
+                config.sheetName
+            );
 
     if (
+
       idIndex === -1 ||
+
       (
         mobile1Index === -1 &&
         mobile2Index === -1
       )
+
     ) {
 
       continue;
 
     }
 
-
     // ======================================
     // SEARCH ROWS
     // ======================================
 
-    for (
-      let i = 1;
-      i < data.length;
-      i++
-    ) {
+    for (let i = 1; i < data.length; i++) {
 
       const row =
         data[i];
-
-
-      // ====================================
-      // MOBILE NUMBER 1
-      // ====================================
 
       const mobile1 =
         mobile1Index !== -1
@@ -580,11 +265,6 @@ function findInterestUserProfile(
 
           : "";
 
-
-      // ====================================
-      // MOBILE NUMBER 2
-      // ====================================
-
       const mobile2 =
         mobile2Index !== -1
 
@@ -599,29 +279,24 @@ function findInterestUserProfile(
 
           : "";
 
-
-      // ====================================
-      // CHECK BOTH MOBILE NUMBERS
-      // ====================================
-
       if (
+
         mobile1 !== userMobile &&
         mobile2 !== userMobile
+
       ) {
 
         continue;
 
       }
 
-
-      // ====================================
+      // ======================================
       // PROFILE FOUND
-      // ====================================
+      // ======================================
 
-      return {
+      const result = {
 
-        found:
-          true,
+        found: true,
 
         type:
           config.type,
@@ -655,10 +330,25 @@ function findInterestUserProfile(
 
       };
 
+      // ======================================
+      // SAVE CACHE
+      // ======================================
+
+      setCache(
+
+        cacheKey,
+
+        result,
+
+        CACHE_TIME.PROFILE
+
+      );
+
+      return result;
+
     }
 
   }
-
 
   // ========================================
   // PROFILE NOT FOUND
@@ -667,6 +357,7 @@ function findInterestUserProfile(
   return null;
 
 }
+
 
 // ==========================================
 // FIND INTEREST TARGET PROFILE
@@ -699,52 +390,31 @@ function findInterestTargetProfile(
   }
 
 
-  const ss =
-    SpreadsheetApp
-      .getActiveSpreadsheet();
+      const sheetName =
+          INTEREST_CONFIG
+            .PROFILE_SHEETS[
+              profileType
+            ];
 
+      if (!sheetName) {
 
-  const sheetName =
-    INTEREST_CONFIG
-      .PROFILE_SHEETS[
-        profileType
-      ];
+          return null;
 
+      }
 
-  if (!sheetName) {
+      const data =
+          getProfileSheetData(
+              sheetName
+          );
 
-    return null;
+      if (
+          !data ||
+          data.length < 2
+      ) {
 
-  }
+          return null;
 
-
-  const sheet =
-    ss.getSheetByName(
-      sheetName
-    );
-
-
-  if (!sheet) {
-
-    return null;
-
-  }
-
-
-  const data =
-    sheet
-      .getDataRange()
-      .getDisplayValues();
-
-
-  if (
-    !data ||
-    data.length < 2
-  ) {
-
-    return null;
-
-  }
+      }
 
 
   // ========================================
@@ -752,52 +422,30 @@ function findInterestTargetProfile(
   // ========================================
 
   const headers =
-    data[0].map(
-      function(header) {
-
-        return normalizeHeader(
-          header
-        );
-
-      }
-    );
+      getProfileHeaders(
+          sheetName
+      );
 
 
-  const idIndex =
-    findProfileHeader(
-      headers,
-      "ID"
-    );
+    const {
+            idIndex,
+            nameIndex,
+            mobile1Index,
+            mobile2Index
+        } =
+            getProfileHeaderIndexes(
+                sheetName
+            );
 
 
-  const nameIndex =
-    findProfileHeader(
-      headers,
-      "नाव :"
-    );
 
+          if (
+            idIndex === -1
+          ) {
 
-  const mobile1Index =
-    findProfileHeader(
-      headers,
-      "संपर्क क्रमांक १ :"
-    );
+            return null;
 
-
-  const mobile2Index =
-    findProfileHeader(
-      headers,
-      "संपर्क क्रमांक २ :"
-    );
-
-
-  if (
-    idIndex === -1
-  ) {
-
-    return null;
-
-  }
+          }
 
 
   // ========================================
@@ -1252,25 +900,5 @@ function getInterestRelationship(
     };
 
   }
-
-}
-
-function testGetInterestRelationship() {
-
-  const result =
-    getInterestRelationship(
-      "8975593689",
-      "bride",
-      "ID005"
-    );
-
-
-  Logger.log(
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
-  );
 
 }
