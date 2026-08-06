@@ -21,14 +21,8 @@ function createDefaultInterestRelationship(error = false) {
 // ==========================================
 function getInterestData() {
 
-  let data = getCache(CACHE_KEYS.PROFILE_INTEREST);
-
-  if (data) {
-    console.log("INTEREST CACHE HIT");
-    return data;
-  }
-
-  const sheet = getProfileInterestSheet();
+    const sheet =
+    getProfileInterestSheet();
 
   if (!sheet) {
     return null;
@@ -36,13 +30,10 @@ function getInterestData() {
 
   data = sheet.getDataRange().getDisplayValues();
 
-  setCache(
-    CACHE_KEYS.PROFILE_INTEREST,
-    data,
-    CACHE_TIME.INTEREST
-  );
+  console.log(
+      "INTEREST DATA LOADED"
+    );
 
-  console.log("INTEREST CACHE MISS");
 
   return data;
 }
@@ -557,15 +548,9 @@ function addInterestRelationshipsToProfiles(
             .getDataRange()
             .getDisplayValues();
 
-        setCache(
-
-          CACHE_KEYS.PROFILE_INTEREST,
-
-          data,
-
-          CACHE_TIME.INTEREST
-
-        );
+          console.log(
+              "INTEREST DATA LOADED"
+            );
 
         console.log(
           "INTEREST CACHE MISS"

@@ -29,26 +29,23 @@ body {
    ========================================== */
 
 .chat-container {
-  width: min(420px, calc(100% - 24px));
+    position: fixed;
 
-  height: min(750px, calc(100dvh - 40px));
+    inset: 0;
 
-  margin: 20px auto;
+    width: 100%;
 
-  background: #ffffff;
+    height: 100dvh;
 
-  border-radius: 16px;
+    margin: 0;
 
-  overflow: hidden;
+    border-radius: 0;
 
-  box-shadow:
-    0 10px 30px
-    rgba(0, 0, 0, 0.15);
+    display: flex;
 
-  display: flex;
-  flex-direction: column;
+    flex-direction: column;
 
-  position: relative;
+    background: #fff;
 }
 
 
@@ -67,7 +64,7 @@ body {
     16px
     14px;
 
-  font-size: 20px;
+  font-size: 50px;
 
   line-height: 1.3;
 
@@ -93,29 +90,26 @@ body {
 
 
   .chat-container {
-    width: 100%;
-
-    max-width: none;
-
-    height: 100vh;
-    height: 100dvh;
-
-    margin: 0;
-
-    border-radius: 0;
-
-    box-shadow: none;
+      width: 100%;
+      height: 100dvh;
+      margin: 0;
+      border-radius: 0;
+      box-shadow: none;
   }
 
 
-  .header {
-    padding:
-      calc(14px + env(safe-area-inset-top))
-      12px
-      14px;
+.header{
 
-    font-size: 18px;
-  }
+    font-size: 50px;
+
+    position: sticky;
+
+    top:0;
+
+    z-index:50;
+
+    background:#0057B8;
+}
 
 }
 
@@ -128,7 +122,7 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
 
-  padding: 14px;
+  padding: 16px;
 
   scroll-behavior: smooth;
 
@@ -143,7 +137,7 @@ body {
   button {
     min-height: 44px;
 
-    font-size: 15px;
+    font-size: 35px;
 
     touch-action: manipulation;
   }
@@ -183,7 +177,7 @@ select,
 textarea {
   max-width: 100%;
 
-  font-size: 16px;
+  font-size: 35px;
 }
 
 .chat-input,
@@ -210,36 +204,55 @@ margin-bottom:10px;
 
 width:80%;
 
+font-size:35px;
+
 }
 
 .user{
 
-margin-top:10px;
+  font-size:35px;
 
-background:#0057B8;
+  margin-top:10px;
 
-color:white;
+  background:#0057B8;
 
-padding:12px;
+  color:white;
 
-border-radius:15px;
+  padding:12px;
 
-margin-bottom:10px;
+  border-radius:15px;
 
-margin-left:auto;
+  margin-bottom:10px;
 
-width:80%;
+  margin-left:auto;
+
+  width:80%;
 
 }
 
 .bottom{
 
-display:flex;
+    position: sticky;
 
-padding:10px;
+    bottom: 0;
 
-border-top:1px solid #ddd;
+    left: 0;
 
+    right: 0;
+
+    background:#fff;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:12px;
+
+    border-top:1px solid #ddd;
+
+    z-index:50;
 }
 
 .bottom input{
@@ -248,13 +261,15 @@ flex:1;
 
 padding:12px;
 
-font-size:16px;
+font-size:35px;
 
 border:1px solid #ccc;
 
 border-radius:8px;
 
 outline:none;
+
+font-size:35px;
 
 }
 
@@ -273,6 +288,8 @@ border:none;
 border-radius:8px;
 
 cursor:pointer;
+
+font-size:35px;
 
 }
 
@@ -300,7 +317,7 @@ background:white;
 
 cursor:pointer;
 
-font-size:15px;
+font-size:35px;
 
 }
 
@@ -364,7 +381,7 @@ color:white;
 
 .profile-card-title {
 
-  font-size: 13px;
+  font-size: 35px;
 
   font-weight: 600;
 
@@ -377,7 +394,7 @@ color:white;
 
 .profile-name {
 
-  font-size: 17px;
+  font-size: 35px;
 
   font-weight: 700;
 
@@ -390,7 +407,7 @@ color:white;
 
   line-height: 1.7;
 
-  font-size: 14px;
+  font-size: 35px;
 
 }
 
@@ -494,7 +511,7 @@ color:white;
 
 .selected-filters-title {
 
-  font-size: 15px;
+  font-size: 35px;
 
   margin-bottom: 10px;
 
@@ -507,7 +524,7 @@ color:white;
 
 .selected-filter-row {
 
-  font-size: 14px;
+  font-size: 35px;
 
   line-height: 1.7;
 
@@ -516,7 +533,7 @@ color:white;
 
 .result-count {
 
-  font-size: 14px;
+  font-size: 35px;
 
   line-height: 1.6;
 
@@ -527,6 +544,8 @@ color:white;
 ========================================= */
 
 .profile-actions {
+
+  font-size: 35px;
 
   margin-top: 15px;
 
@@ -549,7 +568,7 @@ color:white;
 
   cursor: pointer;
 
-  font-size: 14px;
+  font-size: 35px;
 
   font-weight: 600;
 
@@ -579,7 +598,7 @@ color:white;
 }
 
 .full-profile-title {
-  font-size: 18px;
+  font-size: 35px;
   margin-bottom: 15px;
   text-align: center;
 }
@@ -608,7 +627,7 @@ color:white;
 }
 
 .full-profile-section-title {
-  font-size: 15px;
+  font-size: 35px;
   font-weight: 700;
   margin-bottom: 10px;
 }
@@ -619,12 +638,12 @@ color:white;
 }
 
 .full-profile-label {
-  font-size: 13px;
+  font-size: 35px;
   margin-bottom: 2px;
 }
 
 .full-profile-value {
-  font-size: 14px;
+  font-size: 35px;
   word-break: break-word;
 }
 
@@ -643,7 +662,7 @@ color:white;
 
 .profile-contact-name {
 
-  font-size: 16px;
+  font-size: 35px;
 
   font-weight: 600;
 
@@ -681,6 +700,7 @@ color:white;
   cursor: pointer;
   font-weight: 600;
   background: #fff;
+  font-size:35px;
 }
 
 .profile-reaction-btn:disabled {
@@ -725,6 +745,54 @@ color:white;
 
 .profile-list-section {
   scroll-margin-top: 10px;
+}
+
+.sent-view-profile-btn , 
+  option-btn{
+    font-size: 35px;
+}
+
+.profile-reaction-btn.liked{
+    background:#1976d2;
+    color:#fff;
+    border-color:#1976d2;
+}
+
+.profile-reaction-btn.mutual{
+    background:#28a745;
+    color:#fff;
+    border-color:#28a745;
+    font-weight:bold;
+}
+
+.liked-active{
+
+    background:#1976d2;
+
+    color:#fff;
+
+}
+
+.matched-active{
+
+    background:#2e7d32;
+
+    color:#fff;
+
+    font-weight:600;
+
+}
+
+.disliked-active{
+
+    background:#d32f2f;
+
+    color:#fff;
+
+    border-color:#d32f2f;
+
+    font-weight:600;
+
 }
 
 </style>

@@ -82,6 +82,16 @@ function verifyProfileSearchAccess(mobile) {
 
         });
 
+      // ==========================================
+      // PROFILE TYPE & PROFILE ID
+      // ==========================================
+
+      const idIndex =
+        findProfileHeader(
+          headers,
+          "ID"
+        );  
+
 
       const nameIndex =
         findProfileHeader(
@@ -139,23 +149,40 @@ function verifyProfileSearchAccess(mobile) {
 
           return {
 
-            success: true,
+              success: true,
 
-            verified: true,
+              verified: true,
 
-            mobile: mobile,
+              mobile: mobile,
 
-            name:
-              getProfileCell(
-                row,
-                nameIndex
-              ),
+              name:
+                getProfileCell(
+                  row,
+                  nameIndex
+                ),
 
-            registeredSheet:
-              sheetName,
+              registeredSheet:
+                sheetName,
 
-            message:
-              "Registration verified successfully."
+              // ==========================================
+              // NEW
+              // ==========================================
+
+              profileType:
+                sheetName === "वधू"
+                  ? "bride"
+                  : sheetName === "वर"
+                  ? "groom"
+                  : "other",
+
+              profileId:
+                getProfileCell(
+                  row,
+                  idIndex
+                ),
+
+              message:
+                "Registration verified successfully."
 
           };
 

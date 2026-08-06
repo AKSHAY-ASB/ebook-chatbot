@@ -421,35 +421,6 @@ function logCacheInfo(key) {
 
 function getProfileSheetData(sheetName) {
 
-  let cacheKey = "";
-
-  switch (sheetName) {
-
-    case "वधू":
-      cacheKey = CACHE_KEYS.PROFILE_BRIDE;
-      break;
-
-    case "वर":
-      cacheKey = CACHE_KEYS.PROFILE_GROOM;
-      break;
-
-    case "इतर":
-      cacheKey = CACHE_KEYS.PROFILE_OTHER;
-      break;
-
-    default:
-      return null;
-
-  }
-
-  let data = getCache(cacheKey);
-
-  if (data) {
-
-    return data;
-
-  }
-
   const sheet =
     SpreadsheetApp
       .getActiveSpreadsheet()
@@ -461,22 +432,9 @@ function getProfileSheetData(sheetName) {
 
   }
 
-  data =
-    sheet
-      .getDataRange()
-      .getDisplayValues();
-
-  setCache(
-
-    cacheKey,
-
-    data,
-
-    CACHE_TIME.PROFILE
-
-  );
-
-  return data;
+  return sheet
+    .getDataRange()
+    .getDisplayValues();
 
 }
 

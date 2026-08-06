@@ -22,6 +22,12 @@ let pendingProfileSearchType = "";
 
 let pendingProfileCategory = "";
 
+let currentProfileScreen = "";
+
+let lastSearchProfiles = [];
+let lastSearchPage = 1;
+let lastSearchPageSize = 10;
+
 
 window.onload = function () {
 
@@ -526,6 +532,19 @@ function showMenu() {
         📤 Sent Interests
       </button>
 
+      <button
+        type="button"
+        id="likesReceivedBtn"
+        class="option-btn"
+        onclick="showLikesReceived()"
+      >
+
+        ❤️ Likes Received
+
+      </button>
+
+      
+
     </div>
 
   `;
@@ -533,6 +552,134 @@ function showMenu() {
   scrollChat();
 
 }
+
+
+    function showLikesReceived() {
+
+      if (!profileAccessVerified) {
+
+        botMessage(`
+
+          🔐 <b>Verification Required</b>
+
+          <br><br>
+
+          Likes पाहण्यासाठी
+          प्रथम Registered Mobile Number Verify करा.
+
+        `);
+
+        return;
+
+      }
+
+          botMessage("⏳ Loading Likes...");
+
+              google.script.run
+
+                .withSuccessHandler(function(result){
+
+                    console.log(result);
+
+                    if (!result.success) {
+
+                        botMessage("तुम्हाला अद्याप कोणतीही Like मिळालेली नाही.");
+
+                        return;
+
+                    }
+
+                    renderLikesReceived(result);
+
+                })
+
+            .withFailureHandler(function(error){
+
+                console.error(error);
+
+                botMessage(
+                    "❌ Likes load करण्यात अडचण आली."
+                );
+
+            })
+
+            .getLikedReceivedProfiles(
+                profileUserMobile
+            );
+
+    }
+
+
+  function renderLikesReceived(result) {
+
+    let html = `
+
+    <div class="profile-card">
+
+        <div class="profile-name">
+
+            ❤️ Likes Received (${result.totalLikes})
+
+        </div>
+
+    `;
+
+    window.lastRenderedProfiles =
+    result.profiles;
+
+    result.profiles.forEach(function(profile){
+
+        const actionButtons =
+            buildProfileActionButtons(
+
+                profile,
+
+                profile.relationship
+
+            );
+
+        html += `
+
+        <div class="full-profile-row">
+
+            👤 <b>${profile.viewerName}</b><br>
+
+            📅 ${profile.likedAt}
+
+            <br><br>
+
+            ${actionButtons}
+
+            <hr>
+
+        </div>
+
+        `;
+
+    });
+
+        html += `</div>`;
+
+        botMessage(html);
+
+  }
+
+
+    function showFullProfileFromReaction(
+          profileType,
+          profileId
+      ){
+        console.log("Reaction View:", {
+              profileType,
+              profileId
+          });
+          viewFullProfile(
+              profileType,
+              profileId
+          );
+
+        }
+
 
 function loadVerifiedEbook() {
 
@@ -1055,6 +1202,31 @@ function verifyProfileMobile(mobile) {
 
    profileUserRegisteredSheet =
     result.registeredSheet || "";
+
+    // ==========================================
+    // VERIFIED USER PROFILE
+    // ==========================================
+
+    profileUserType =
+        result.profileType || "";
+
+    profileUserId =
+        result.profileId || "";
+
+
+        console.log({
+
+            profileUserMobile,
+
+            profileUserName,
+
+            profileUserRegisteredSheet,
+
+            profileUserType,
+
+            profileUserId
+
+        });
 
 
   chatbotState =
@@ -2432,6 +2604,12 @@ function displayProfileResults(
   pageSize
 ) {
 
+  lastSearchProfiles = profiles;
+
+  lastSearchPage = page;
+
+  lastSearchPageSize = pageSize;
+
   console.log(
     "CURRENT PROFILE SEARCH TYPE:",
     profileSearchType
@@ -2452,6 +2630,11 @@ function displayProfileResults(
     profileSearchType
   );
 
+
+  window.lastRenderedProfiles = profiles;
+
+
+  let cardsHtml = "";
 
   profiles.forEach(
     function(profile, index) {
@@ -2495,19 +2678,12 @@ function displayProfileResults(
           currentProfileName
         );
 
-      
+      const profileActions =
+        buildProfileActionButtons(
+            profile,
+            profile.relationship
+        );
 
-
-      // ========================================
-      // CURRENT SAVED REACTION
-      // ========================================
-
-      const currentReaction =
-        String(
-          profile.reaction || ""
-        )
-        .trim()
-        .toUpperCase();
 
 
 
@@ -2676,260 +2852,182 @@ function displayProfileResults(
 
       }
 
-
-      // ========================================
-      // LIKE BUTTON
-      // ========================================
-
-      let likeButtonHtml = "";
-
-
-      if (
-        currentReaction === "LIKE"
-      ) {
-
-        // Already liked
-        likeButtonHtml = `
-
-          <button
-            type="button"
-            class="profile-reaction-btn liked-active"
-            data-like="${currentProfileType}_${currentProfileId}"
-            disabled
-          >
-
-            ❤️ Liked
-
-          </button>
-
-        `;
-
-      }
-
-      else {
-
-        // Not liked yet
-        likeButtonHtml = `
-
-          <button
-            type="button"
-            class="profile-reaction-btn"
-            data-like="${currentProfileType}_${currentProfileId}"
-            onclick="reactToProfile(
-              '${safeType}',
-              '${safeId}',
-              '${safeName}',
-              'LIKE',
-              this
-            )"
-          >
-
-            ♡ Like
-
-          </button>
-
-        `;
-
-      }
-
-
       // ========================================
       // PROFILE CARD
       // ========================================
 
-      botMessage(`
+    cardsHtml += `
 
-        <div class="profile-card">
-
-
-          ${photoHtml}
+            <div class="profile-card">
 
 
-          <div class="profile-card-title">
-
-            ${profileIcon}
-
-            Profile ${
-              ((page - 1) * pageSize) +
-              index +
-              1
-            }
-
-          </div>
+              ${photoHtml}
 
 
-          <div class="profile-name">
+              <div class="profile-card-title">
 
-            ${name}
+                ${profileIcon}
 
-          </div>
+                Profile ${
+                  ((page - 1) * pageSize) +
+                  index +
+                  1
+                }
+
+              </div>
 
 
-          <div class="profile-details">
+              <div class="profile-name">
+
+                ${name}
+
+              </div>
 
 
-            <div>
+              <div class="profile-details">
 
-              <b>📍 जिल्हा:</b>
 
-              ${district}
+                <div>
+
+                  <b>📍 जिल्हा:</b>
+
+                  ${district}
+
+                </div>
+
+
+                <div>
+
+                  <b>🎓 शिक्षण:</b>
+
+                  ${education}
+
+                </div>
+
+
+                <div>
+
+                  <b>🎂 वय:</b>
+
+                  ${age}
+
+                </div>
+
+
+                <div>
+
+                  <b>📏 उंची:</b>
+
+                  ${height}
+
+                </div>
+
+
+                <div>
+
+                  <b>👥 पोट जात:</b>
+
+                  ${caste}
+
+                </div>
+
+
+                <div>
+
+                  <b>💼 नोकरी / व्यवसाय:</b>
+
+                  ${job}
+
+                </div>
+
+
+                <div>
+
+                  <b>💰 मासिक उत्पन्न:</b>
+
+                  ${income}
+
+                </div>
+
+
+              </div>
+
+
+              <!-- VIEW FULL PROFILE -->
+
+              <div class="profile-actions">
+
+                <button
+                  type="button"
+                  class="view-profile-btn"
+                  onclick="viewFullProfile(
+                    '${safeType}',
+                    '${safeId}'
+                  )"
+                >
+
+                  👤 View Full Profile
+
+                </button>
+
+              </div>
+
+
+              <!-- INTEREST STATUS -->
+
+                ${
+                  interestUI.statusHtml
+                    ? `
+                        <div class="interest-profile-action">
+
+                          ${interestUI.statusHtml}
+
+                        </div>
+                      `
+                    : ""
+                }
+
+              
+              <!-- INTEREST ACTION -->
+
+              ${
+                interestUI.actionHtml
+                  ? `
+                      <div class="interest-profile-action">
+
+                        ${interestUI.actionHtml}
+
+                      </div>
+                    `
+                  : ""
+              }
+
+
+
+              <!-- Commom button for LIKE / DISLIKE -->
+
+                <div class="profile-reaction-actions">
+
+                    ${profileActions}
+
+                </div>
 
             </div>
 
+          `;
 
-            <div>
+        }
+      );
 
-              <b>🎓 शिक्षण:</b>
+        botMessage(cardsHtml);
 
-              ${education}
+        // ========================================
+        // SCROLL TO FIRST PROFILE OF THIS PAGE
+        // ========================================
 
-            </div>
-
-
-            <div>
-
-              <b>🎂 वय:</b>
-
-              ${age}
-
-            </div>
-
-
-            <div>
-
-              <b>📏 उंची:</b>
-
-              ${height}
-
-            </div>
-
-
-            <div>
-
-              <b>👥 पोट जात:</b>
-
-              ${caste}
-
-            </div>
-
-
-            <div>
-
-              <b>💼 नोकरी / व्यवसाय:</b>
-
-              ${job}
-
-            </div>
-
-
-            <div>
-
-              <b>💰 मासिक उत्पन्न:</b>
-
-              ${income}
-
-            </div>
-
-
-          </div>
-
-
-          <!-- VIEW FULL PROFILE -->
-
-          <div class="profile-actions">
-
-            <button
-              type="button"
-              class="view-profile-btn"
-              onclick="viewFullProfile(
-                '${safeType}',
-                '${safeId}'
-              )"
-            >
-
-              👤 View Full Profile
-
-            </button>
-
-          </div>
-
-
-          <!-- INTEREST STATUS -->
-
-            ${
-              interestUI.statusHtml
-                ? `
-                    <div class="interest-profile-action">
-
-                      ${interestUI.statusHtml}
-
-                    </div>
-                  `
-                : ""
-            }
-
-          
-          <!-- INTEREST ACTION -->
-
-          ${
-            interestUI.actionHtml
-              ? `
-                  <div class="interest-profile-action">
-
-                    ${interestUI.actionHtml}
-
-                  </div>
-                `
-              : ""
-          }
-
-
-
-          <!-- LIKE / DISLIKE -->
-
-          <div class="profile-reaction-actions">
-
-
-            ${likeButtonHtml}
-
-
-            <button
-              type="button"
-              class="profile-reaction-btn"
-              data-dislike="${currentProfileType}_${currentProfileId}"
-              onclick="reactToProfile(
-                '${safeType}',
-                '${safeId}',
-                '${safeName}',
-                'DISLIKE',
-                this
-              )"
-            >
-
-              👎 Dislike
-
-            </button>
-
-
-          </div>
-
-          
-
-
-        </div>
-
-      `);
-
-    }
-  );
-
-  // ========================================
-  // SCROLL TO FIRST PROFILE OF THIS PAGE
-  // ========================================
-
-  scrollToCurrentProfilePage(
-    pageScrollMarkerId
-  );
+        scrollToCurrentProfilePage(
+          pageScrollMarkerId
+        );
 
 }
 
@@ -3516,6 +3614,172 @@ function escapeHtml(text) {
 
 }
 
+
+// ==========================================
+// COMMON PROFILE ACTION BUTTONS
+// ==========================================
+
+// function buildProfileActionButtons(
+//     profile,
+//     source,
+//     reactionStatus,
+//     interestStatus
+
+// ) {
+
+//     // ======================================
+//     // MAP PROFILE DATA
+//     // ======================================
+
+//     let type = "";
+//     let id = "";
+//     let name = "";
+//     let mobile = "";
+
+//     switch (source) {
+
+//         // ==================================
+//         // SEARCH RESULT
+//         // ==================================
+
+//         case "search":
+
+//             type = profile.type;
+//             id = profile.id;
+//             name = profile.name;
+//             mobile = profile.ownerMobile;
+
+//             break;
+
+//         // ==================================
+//         // LIKES RECEIVED
+//         // ==================================
+
+//         case "likesReceived":
+
+//             type = profile.viewerProfileType;
+//             id = profile.viewerProfileId;
+//             name = profile.viewerName;
+//             mobile = profile.viewerMobile;
+
+//             break;
+
+//         default:
+
+//             return "";
+
+//     }
+
+
+//     // ======================================
+//     // BUTTON STATES
+//     // ======================================
+
+//     let likeText = "♡ Like";
+//     let dislikeText = "👎 Dislike";
+
+//     let likeDisabled = "";
+//     let dislikeDisabled = "";
+
+//     let likeClass = "profile-reaction-btn";
+//     let dislikeClass = "profile-reaction-btn";
+
+//     let likeButton = "";
+//     let dislikeButton = "";
+//     let interestButton = "";
+
+
+//     // ======================================
+//     // REACTION STATUS
+//     // ======================================
+
+//     if (reactionStatus === "LIKE") {
+
+//         likeText = "❤️ Liked TEST";
+
+//         likeDisabled = "disabled";
+
+//         likeClass =
+//             "profile-reaction-btn liked-btn";
+
+//     }
+
+//     else if (reactionStatus === "DISLIKE") {
+
+//         dislikeText = "👎 Disliked";
+
+//         dislikeDisabled = "disabled";
+
+//         dislikeClass =
+//             "profile-reaction-btn disliked-btn";
+
+//     }
+
+//     // ======================================
+//     // RETURN BUTTONS
+//     // ======================================
+
+//     return `
+
+//     <div class="profile-action-group">
+
+//        <button
+//             type="button"
+//             class="${likeClass}"
+
+//             ${likeDisabled}
+
+//             onclick="reactToProfile(
+
+//                 '${type}',
+
+//                 '${id}',
+
+//                 '${name}',
+
+//                 '${mobile}',
+
+//                 'LIKE',
+
+//                 this
+
+//             )">
+
+//             ${likeText} TEST
+
+//         </button>
+
+//         <button
+//             type="button"
+//             class="${dislikeClass}"
+
+//             ${dislikeDisabled}
+
+//             onclick="reactToProfile(
+
+//                 '${type}',
+
+//                 '${id}',
+
+//                 '${name}',
+
+//                 '${mobile}',
+
+//                 'DISLIKE',
+
+//                 this
+
+//             )">
+
+//             ${dislikeText}
+
+//         </button>
+
+//     </div>
+
+//     `;
+
+// }
 
 function viewFullProfile(
   type,
@@ -4298,10 +4562,12 @@ function reactToProfile(
   type,
   profileId,
   profileName,
+  ownerMobile,
   reaction,
   button,
 ) {
 
+document.querySelectorAll(".profile-card").length
   // ==========================================
   // VERIFIED USER ONLY
   // ==========================================
@@ -4345,6 +4611,12 @@ function reactToProfile(
 
     .withSuccessHandler(
       function(result) {
+        console.log("SAVE RESULT:", result);
+
+        console.log(
+          "SAVE PROFILE REACTION RESULT:",
+          result
+        );
 
         if (button) {
           button.disabled = false;
@@ -4356,14 +4628,23 @@ function reactToProfile(
           !result.success
         ) {
 
+          console.error(
+            "SAVE REACTION FAILED:",
+            result
+          );
+
           if (button) {
             button.innerHTML =
               originalText;
           }
 
-
           botMessage(
-            "⚠️ Reaction save झाली नाही. कृपया पुन्हा प्रयत्न करा."
+            "⚠️ " +
+            (
+              result && result.message
+                ? result.message
+                : "Reaction save झाली नाही."
+            )
           );
 
           return;
@@ -4379,11 +4660,15 @@ function reactToProfile(
           result.reaction === "LIKE"
         ) {
 
-          updateReactionButtons(
-            type,
-            profileId,
-            "LIKE"
+        console.log("lastSearchProfiles", lastSearchProfiles);
+
+         updateReactionButtons(
+              type,
+              profileId,
+              result.relationship
           );
+
+          // refreshCurrentProfileScreen();
 
         }
 
@@ -4396,11 +4681,16 @@ function reactToProfile(
           result.reaction === "DISLIKE"
         ) {
 
-          updateReactionButtons(
+        console.log("lastSearchProfiles DDDDD", lastSearchProfiles);
+        
+
+       updateReactionButtons(
             type,
             profileId,
-            "DISLIKE"
-          );
+            result.relationship
+        );
+
+        // refreshCurrentProfileScreen();
 
         }
 
@@ -4430,94 +4720,210 @@ function reactToProfile(
     )
 
 
-    .saveProfileReaction(
+.saveProfileReaction(
 
-      profileUserMobile,
+    profileUserMobile,
 
-      profileUserName,
+    profileUserName,
 
-      profileUserRegisteredSheet,
+    profileUserRegisteredSheet,
 
-      type,
+    profileUserType,
 
-      profileId,
+    profileUserId,
 
-      profileName,
+    type,
 
-      reaction
+    profileId,
 
-    );
+    profileName,
+
+    ownerMobile,
+
+    reaction
+
+);
     
 
 }
 
+
+
+// ==========================================
+// REFRESH PROFILE ACTIONS
+// ==========================================
+
 function updateReactionButtons(
-  type,
-  profileId,
-  reaction
+    type,
+    profileId,
+    relationship
 ) {
 
-  const key =
-    type + "_" + profileId;
+    // ========================================
+    // VALIDATION
+    // ========================================
 
+    if (!relationship) {
 
-  const likeButton =
-    document.querySelector(
-      `[data-like="${key}"]`
+        console.warn(
+            "Relationship missing."
+        );
+
+        return;
+
+    }
+
+    // ========================================
+    // KEY
+    // ========================================
+
+    const key =
+        String(type).toLowerCase() +
+        "_" +
+        String(profileId);
+
+    console.log("Updating:", key);
+
+    // ========================================
+    // FIND ACTION CONTAINER
+    // ========================================
+
+      const containers =
+          document.querySelectorAll(
+              `[data-actions="${key}"]`
+          );
+
+      if (!containers.length) {
+
+          console.warn(
+              "Action container not found:",
+              key
+          );
+
+          return;
+
+      }
+
+    // ========================================
+    // FIND PROFILE OBJECT
+    // ========================================
+
+    let profile = null;
+
+    if (
+        Array.isArray(
+            window.lastRenderedProfiles
+        )
+    ) {
+
+        profile =
+            window.lastRenderedProfiles.find(function(p){
+
+                return (
+
+                    String(
+                        p.viewerProfileType || p.type
+                    ).toLowerCase() ===
+                    String(type).toLowerCase()
+
+                    &&
+
+                    String(
+                        p.viewerProfileId || p.id
+                    ) ===
+                    String(profileId)
+
+                );
+
+            });
+
+    }
+
+    console.log(
+        "Matched Profile:",
+        profile
     );
 
+    if (!profile) {
 
-  const dislikeButton =
-    document.querySelector(
-      `[data-dislike="${key}"]`
+        console.warn(
+            "Profile not found."
+        );
+
+        return;
+
+    }
+
+    // ========================================
+    // UPDATE LOCAL STATE
+    // ========================================
+
+    profile.relationship =
+        relationship;
+
+    profile.reaction =
+        relationship.canLike
+            ? ""
+            : "LIKE";
+
+    console.log(
+        "Relationship:",
+        relationship
     );
 
+    // ========================================
+    // BUILD NEW HTML
+    // ========================================
 
-  if (likeButton) {
+        const html =
+        buildProfileActionButtons(
+            profile,
+            relationship
+        );
 
-  if (
-    reaction === "LIKE"
-  ) {
+        containers.forEach(function(container){
 
-    likeButton.innerHTML =
-      "❤️ Liked";
+            container.outerHTML = html;
 
-    likeButton.disabled =
-      true;
+        });
 
-    likeButton.classList.add(
-      "liked-active"
-    );
 
-  }
 
-  else {
+    // ========================================
+    // REPLACE DOM
+    // ========================================
 
-    likeButton.innerHTML =
-      "♡ Like";
 
-    likeButton.disabled =
-      false;
 
-    likeButton.classList.remove(
-      "liked-active"
-    );
+    // ========================================
+    // VERIFY DOM
+    // ========================================
 
-  }
+    setTimeout(function(){
+
+        const updated =
+
+            document.querySelector(
+                `[data-actions="${key}"]`
+            );
+
+        console.log(
+            "UPDATED DOM:",
+            updated
+        );
+
+        if (updated) {
+
+            console.log(
+                updated.outerHTML
+            );
+
+        }
+
+    },100);
 
 }
 
-
-  if (dislikeButton) {
-
-    dislikeButton.innerHTML =
-      reaction === "DISLIKE"
-        ? "👎 Disliked"
-        : "👎 Dislike";
-
-  }
-
-}
 
 function showLikedProfiles() {
 
@@ -4664,28 +5070,28 @@ function showLikedProfiles() {
         // LIKED PROFILES FOUND
         // ======================================
 
-const likedSectionId =
-  "liked-profiles-" + Date.now();
+        const likedSectionId =
+          "liked-profiles-" + Date.now();
 
 
-botMessage(`
+        botMessage(`
 
-  <div
-    id="${likedSectionId}"
-    class="profile-list-section"
-  >
+          <div
+            id="${likedSectionId}"
+            class="profile-list-section"
+          >
 
-    ❤️ <b>Liked Profiles</b>
+            ❤️ <b>Liked Profiles</b>
 
-    <br><br>
+            <br><br>
 
-    तुम्ही एकूण
-    <b>${result.totalCount}</b>
-    Profile Like केले आहेत.
+            तुम्ही एकूण
+            <b>${result.totalCount}</b>
+            Profile Like केले आहेत.
 
-  </div>
+          </div>
 
-`);
+        `);
 
 
         // IMPORTANT
@@ -4903,6 +5309,9 @@ function displayLikedProfileCard(
     escapeJsValue(
       currentProfileName
     );
+
+    const safeOwnerMobile =
+    escapeJsValue(profile.ownerMobile || "");
 
 
   // ==========================================
@@ -5217,15 +5626,16 @@ function displayLikedProfileCard(
           type="button"
           class="profile-reaction-btn"
           onclick="
-            changeLikedProfileToDislike(
-              '${safeType}',
-              '${safeId}',
-              '${safeName}',
-              this
-            )
+        changeLikedProfileToDislike(
+            '${safeType}',
+            '${safeId}',
+            '${safeName}',
+            '${safeOwnerMobile}',
+            this
+        )
           "
         >
-          👎 Dislike
+          👎 Dislike LP
         </button>
 
       </div>
@@ -5242,8 +5652,13 @@ function changeLikedProfileToDislike(
   type,
   profileId,
   profileName,
+  ownerMobile,
   button
 ) {
+
+  console.log("type",type);
+  console.log("profileId",profileId);
+  console.log("profileName",profileName);
 
   if (
     !profileAccessVerified
@@ -5322,7 +5737,7 @@ function changeLikedProfileToDislike(
     )
 
 
-    .saveProfileReaction(
+  .saveProfileReaction(
 
       profileUserMobile,
 
@@ -5330,15 +5745,21 @@ function changeLikedProfileToDislike(
 
       profileUserRegisteredSheet,
 
+      profileUserType,
+
+      profileUserId,
+
       type,
 
       profileId,
 
       profileName,
 
+      ownerMobile,
+
       "DISLIKE"
 
-    );
+  );
 
 }
 
@@ -5676,6 +6097,10 @@ function displayDislikedProfileCard(
       currentProfileName
     );
 
+  const safeOwnerMobile =
+  escapeJsValue(
+      profile.ownerMobile || ""
+  );
 
   // ==========================================
   // DISPLAY VALUES
@@ -5903,10 +6328,11 @@ function displayDislikedProfileCard(
           class="profile-reaction-btn"
           onclick="
             changeDislikedProfileToLike(
-              '${safeType}',
-              '${safeId}',
-              '${safeName}',
-              this
+                '${safeType}',
+                '${safeId}',
+                '${safeName}',
+                '${safeOwnerMobile}',
+                this
             )
           "
         >
@@ -5943,8 +6369,16 @@ function changeDislikedProfileToLike(
   type,
   profileId,
   profileName,
+  ownerMobile,
   button
 ) {
+
+  console.log({
+    ownerMobile: ownerMobile,
+    type: type,
+    profileId: profileId,
+    profileName: profileName
+});
 
   if (
     !profileAccessVerified
@@ -6022,7 +6456,9 @@ function changeDislikedProfileToLike(
     )
 
 
-    .saveProfileReaction(
+  
+
+  .saveProfileReaction(
 
       profileUserMobile,
 
@@ -6030,15 +6466,294 @@ function changeDislikedProfileToLike(
 
       profileUserRegisteredSheet,
 
+      profileUserType,
+
+      profileUserId,
+
       type,
 
       profileId,
 
       profileName,
 
-      "LIKE"
+      ownerMobile,
 
-    );
+       "LIKE"
+
+  );
+
+}
+
+
+// ==========================================
+// PROFILE CARD ACTION BUTTONS Using Liked Received Profiles
+// ==========================================
+
+function buildProfileActionButtons(
+    profile,
+    relationship
+) {
+
+    relationship = relationship || {};
+
+    const profileType =
+        profile.viewerProfileType ||
+        profile.type ||
+        "";
+
+    const profileId =
+        profile.viewerProfileId ||
+        profile.id ||
+        "";
+
+    const key =
+        profileType + "_" + profileId;
+
+    return `
+
+        <div
+            class="profile-action-group"
+            data-actions="${key}"
+        >
+
+            ${buildLikeButton(
+                profile,
+                relationship
+            )}
+
+            ${buildDislikeButton(
+                profile,
+                relationship
+            )}
+
+            ${buildViewProfileButton(
+                profile
+            )}
+
+        </div>
+
+    `;
+
+}
+
+
+// ==========================================
+// LIKE BUTTON
+// ==========================================
+
+function buildLikeButton(
+    profile,
+    relationship
+) {
+    relationship =
+        relationship || {};
+
+    const profileType =
+        profile.viewerProfileType ||
+        profile.type ||
+        "";
+
+    const profileId =
+        profile.viewerProfileId ||
+        profile.id ||
+        "";
+
+    const profileName =
+        profile.viewerName ||
+        profile.name ||
+        "";
+
+    const ownerMobile =
+        profile.viewerMobile ||
+        profile.ownerMobile ||
+        "";
+
+    let className =
+        "profile-reaction-btn";
+
+    if (
+        relationship.status ===
+        "MUTUAL_LIKE"
+    ) {
+
+        className +=
+            " mutual";
+
+    }
+
+    else if (
+
+        relationship.status ===
+        "OUTGOING_LIKE"
+
+    ) {
+
+        className +=
+            " liked";
+
+    }
+
+    return `
+
+        <button
+            type="button"
+
+            class="${className}"
+
+            ${relationship.canLike === false ? "disabled" : ""}
+
+            onclick="reactToProfile(
+
+                '${escapeJsValue(profileType)}',
+
+                '${escapeJsValue(profileId)}',
+
+                '${escapeJsValue(profileName)}',
+
+                '${escapeJsValue(ownerMobile)}',
+
+                'LIKE',
+
+                this
+
+            )"
+
+        >
+
+            ${relationship.likeLabel || "♡ Like"}
+
+        </button>
+
+    `;
+
+}
+
+
+// ==========================================
+// DISLIKE BUTTON
+// ==========================================
+
+function buildDislikeButton(
+    profile,
+    relationship
+) {
+    relationship =
+        relationship || {};
+
+    const profileType =
+        profile.viewerProfileType ||
+        profile.type ||
+        "";
+
+    const profileId =
+        profile.viewerProfileId ||
+        profile.id ||
+        "";
+
+    const profileName =
+        profile.viewerName ||
+        profile.name ||
+        "";
+
+    const ownerMobile =
+        profile.viewerMobile ||
+        profile.ownerMobile ||
+        "";
+
+    return `
+
+        <button
+            type="button"
+
+            class="profile-reaction-btn"
+
+            ${relationship.canDislike === false ? "disabled" : ""}
+
+            onclick="reactToProfile(
+
+                '${escapeJsValue(profileType)}',
+
+                '${escapeJsValue(profileId)}',
+
+                '${escapeJsValue(profileName)}',
+
+                '${escapeJsValue(ownerMobile)}',
+
+                'DISLIKE',
+
+                this
+
+            )"
+
+        >
+
+            ${relationship.dislikeLabel || "👎 Dislike"}
+
+        </button>
+
+    `;
+
+}
+
+function buildViewProfileButton(
+    profile
+) {
+
+    return `
+
+        <button
+            class="view-profile-btn"
+            onclick="showFullProfileFromReaction(
+                '${profile.viewerProfileType || profile.type}',
+                '${profile.viewerProfileId || profile.id}'
+            )">
+
+            👀 View Profile
+
+        </button>
+
+    `;
+
+}
+
+
+function refreshCurrentProfileScreen() {
+
+    switch(currentProfileScreen){
+
+        case "SEARCH":
+
+            displayProfileResults(
+
+                lastSearchProfiles,
+
+                lastSearchPage,
+
+                lastSearchPageSize
+
+            );
+
+            break;
+
+        case "LIKES_RECEIVED":
+
+            showLikesReceived();
+
+            break;
+
+        case "LIKED":
+
+            showLikedProfiles();
+
+            break;
+
+        case "DISLIKED":
+
+            showDislikedProfiles();
+
+            break;
+
+    }
 
 }
 

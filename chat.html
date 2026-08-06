@@ -1,6 +1,5 @@
 <script>
-
-window.onload=function(){
+  window.onload=function(){
 
 botMessage("👋 Welcome to Devang Pustika");
 
@@ -117,29 +116,29 @@ function menuClick(option) {
 
         case "📝 Registration":
           botMessage(`
-<b>${data.registration.title}</b><br><br>
-<a href="${data.registration.url}" target="_blank">
-Click here to Register
-</a>
-`);
+            <b>${data.registration.title}</b><br><br>
+            <a href="${data.registration.url}" target="_blank">
+            Click here to Register
+            </a>
+            `);
           break;
 
         case "📘 Download E-book":
           botMessage(`
-<b>${data.ebook.title}</b><br><br>
-<a href="${data.ebook.url}" target="_blank">
-Download E-book
-</a>
-`);
-          break;
+              <b>${data.ebook.title}</b><br><br>
+              <a href="${data.ebook.url}" target="_blank">
+              Download E-book
+              </a>
+              `);
+                        break;
 
-        case "☎ Contact Us":
-          botMessage(`
-<b>${data.contact.title}</b><br><br>
-<a href="${data.contact.url}" target="_blank">
-Contact Us
-</a>
-`);
+                      case "☎ Contact Us":
+                        botMessage(`
+              <b>${data.contact.title}</b><br><br>
+              <a href="${data.contact.url}" target="_blank">
+              Contact Us
+              </a>
+              `);
           break;
 
         default:

@@ -3,12 +3,19 @@
 // ==========================================
 
 function saveProfileReaction(
-  userMobile,
-  userName,
-  registeredSheet,
-  profileType,
-  profileId,
-  profileName,
+  viewerMobile,
+  viewerName,
+  viewerRegisteredSheet,
+
+  viewerProfileType,
+  viewerProfileId,
+
+  targetProfileType,
+  targetProfileId,
+  targetProfileName,
+
+  targetMobile,
+
   reaction
 ) {
 
@@ -18,57 +25,52 @@ function saveProfileReaction(
     // 1. NORMALIZE VALUES
     // ==========================================
 
-    userMobile =
-      String(
-        userMobile || ""
-      ).trim();
+          viewerMobile =
+        String(viewerMobile || "")
+          .replace(/\D/g,"")
+          .slice(-10);
 
+      viewerName =
+        String(viewerName || "").trim();
 
-    userName =
-      String(
-        userName || ""
-      ).trim();
+      viewerRegisteredSheet =
+        String(viewerRegisteredSheet || "").trim();
 
+      viewerProfileType =
+        String(viewerProfileType || "")
+          .trim()
+          .toLowerCase();
 
-    registeredSheet =
-      String(
-        registeredSheet || ""
-      ).trim();
+      viewerProfileId =
+        String(viewerProfileId || "").trim();
 
+      targetProfileType =
+        String(targetProfileType || "")
+          .trim()
+          .toLowerCase();
 
-    profileType =
-      String(
-        profileType || ""
-      )
-      .trim()
-      .toLowerCase();
+      targetProfileId =
+        String(targetProfileId || "").trim();
 
+      targetProfileName =
+        String(targetProfileName || "").trim();
 
-    profileId =
-      String(
-        profileId || ""
-      ).trim();
+      targetMobile =
+        String(targetMobile || "")
+          .replace(/\D/g,"")
+          .slice(-10);
 
-
-    profileName =
-      String(
-        profileName || ""
-      ).trim();
-
-
-    reaction =
-      String(
-        reaction || ""
-      )
-      .trim()
-      .toUpperCase();
+      reaction =
+        String(reaction || "")
+          .trim()
+          .toUpperCase();
 
 
     // ==========================================
     // 2. VALIDATION
     // ==========================================
 
-    if (!userMobile) {
+    if (!viewerMobile) {
 
       return {
         success: false,
@@ -78,11 +80,8 @@ function saveProfileReaction(
 
     }
 
-
-    if (
-      !profileType ||
-      !profileId
-    ) {
+    if (!targetProfileType || !targetProfileId)
+    {
 
       return {
         success: false,
@@ -156,30 +155,29 @@ function saveProfileReaction(
       i++
     ) {
 
+ 
+
       const rowMobile =
-        String(
-          data[i][1] || ""
-        ).trim();
+        String(data[i][1] || "")
+        .replace(/\D/g,"")
+        .slice(-10);
 
 
       const rowType =
-        String(
-          data[i][4] || ""
-        )
+        String(data[i][6] || "")
         .trim()
         .toLowerCase();
 
 
       const rowProfileId =
-        String(
-          data[i][5] || ""
-        ).trim();
+        String(data[i][7] || "")
+        .trim();
 
 
       if (
-        rowMobile === userMobile &&
-        rowType === profileType &&
-        rowProfileId === profileId
+        rowMobile === viewerMobile &&
+        rowType === targetProfileType &&
+        rowProfileId === targetProfileId
       ) {
 
         existingRow =
@@ -205,73 +203,71 @@ function saveProfileReaction(
       existingRow !== -1
     ) {
 
+      // C Viewer Name
       sheet
-        .getRange(
-          existingRow,
-          3
-        )
-        .setValue(
-          userName
-        );
+        .getRange(existingRow, 3)
+        .setValue(viewerName);
 
-
+      // D Viewer Registered Sheet
       sheet
-        .getRange(
-          existingRow,
-          4
-        )
-        .setValue(
-          registeredSheet
-        );
+        .getRange(existingRow, 4)
+        .setValue(viewerRegisteredSheet);
 
-
+      // E Viewer Profile Type
       sheet
-        .getRange(
-          existingRow,
-          7
-        )
-        .setValue(
-          profileName
-        );
+        .getRange(existingRow, 5)
+        .setValue(viewerProfileType);
 
-
+      // F Viewer Profile ID
       sheet
-        .getRange(
-          existingRow,
-          8
-        )
-        .setValue(
-          reaction
-        );
+        .getRange(existingRow, 6)
+        .setValue(viewerProfileId);
 
-
+      // I Target Profile Name
       sheet
-        .getRange(
-          existingRow,
-          9
-        )
-        .setValue(
-          now
-        );
+        .getRange(existingRow, 9)
+        .setValue(targetProfileName);
 
+      // J Reaction
+      sheet
+        .getRange(existingRow, 10)
+        .setValue(reaction);
+
+      // K Updated At
+      sheet
+        .getRange(existingRow, 11)
+        .setValue(now);
+
+      // L Target Mobile
+      sheet
+        .getRange(existingRow, 12)
+        .setValue(targetMobile);
+
+
+
+      const relationship = getRelationshipStatus(
+
+          viewerMobile,
+
+          targetMobile
+
+      );
 
       return {
 
-        success: true,
+            success: true,
 
-        updated: true,
+            updated: true,
 
-        reaction:
-          reaction,
+            reaction: reaction,
 
-        profileType:
-          profileType,
+            relationship: relationship,
 
-        profileId:
-          profileId
+            targetProfileType: targetProfileType,
 
-      };
+            targetProfileId: targetProfileId
 
+        };
     }
 
 
@@ -280,43 +276,75 @@ function saveProfileReaction(
     // CREATE NEW ROW
     // ==========================================
 
-    sheet.appendRow([
+    console.log({
 
-      now,                 // A Timestamp
+      viewerMobile,
 
-      userMobile,          // B User Mobile
+      viewerProfileType,
 
-      userName,            // C User Name
+      viewerProfileId,
 
-      registeredSheet,     // D Registered Sheet
+      targetProfileType,
 
-      profileType,         // E Profile Type
+      targetProfileId,
 
-      profileId,           // F Profile ID
+      targetMobile,
 
-      profileName,         // G Profile Name
+      reaction
 
-      reaction,            // H Reaction
+    });
 
-      now                  // I Updated At
+   sheet.appendRow([
+
+      now,                    // A Timestamp
+
+      viewerMobile,           // B Viewer Mobile
+
+      viewerName,             // C Viewer Name
+
+      viewerRegisteredSheet,  // D Viewer Registered Sheet
+
+      viewerProfileType,      // E Viewer Profile Type
+
+      viewerProfileId,        // F Viewer Profile ID
+
+      targetProfileType,      // G Target Profile Type
+
+      targetProfileId,        // H Target Profile ID
+
+      targetProfileName,      // I Target Profile Name
+
+      reaction,               // J Reaction
+
+      now,                    // K Updated At
+
+      targetMobile            // L Target Mobile
 
     ]);
 
 
+    const relationship = getRelationshipStatus(
+
+        viewerMobile,
+
+        targetMobile
+
+    );
+
+
     return {
 
-      success: true,
+        success: true,
 
-      updated: false,
+        updated: true,
 
-      reaction:
-        reaction,
+        reaction: reaction,
 
-      profileType:
-        profileType,
+        relationship: relationship,
 
-      profileId:
-        profileId
+        targetProfileType: targetProfileType,
+
+        targetProfileId: targetProfileId
 
     };
 
@@ -349,7 +377,7 @@ function testSaveProfileReaction() {
   const result =
     saveProfileReaction(
 
-      "9999999999",
+      "8975593689",
 
       "Test User",
 
@@ -360,6 +388,8 @@ function testSaveProfileReaction() {
       "TEST001",
 
       "Test Profile",
+
+      "9307375984",
 
       "DISLIKE"
 
@@ -393,6 +423,8 @@ function testProfileReaction() {
       "TEST-001",
 
       "TEST PROFILE",
+
+      "9307375984",
 
       "LIKE"
 

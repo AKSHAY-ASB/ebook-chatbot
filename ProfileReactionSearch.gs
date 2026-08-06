@@ -418,7 +418,8 @@ function excludeDislikedProfilesFromData(
 function addProfileReactionsFromData(
   profiles,
   liked,
-  profileType
+  profileType,
+  userMobile
 ) {
 
   if (
@@ -508,6 +509,15 @@ function addProfileReactionsFromData(
         likedSet.has(key)
           ? "LIKE"
           : "";
+
+      profile.relationship =
+        getRelationshipStatus(
+
+            userMobile,
+
+            profile.ownerMobile
+
+        );  
 
     }
   );

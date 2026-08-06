@@ -66,32 +66,30 @@ function getDislikedProfileIds(userMobile) {
     i++
   ) {
 
-    const rowMobile =
-      String(
-        data[i][1] || ""
-      ).trim();
+      const rowMobile =
+        normalizeMobile(
+            data[i][1]
+        );
 
 
-    const profileType =
-      String(
-        data[i][4] || ""
-      )
-      .trim()
-      .toLowerCase();
+      const profileType =
+            String(
+                data[i][6] || ""
+            )
+            .trim()
+            .toLowerCase();
 
+        const profileId =
+            String(
+                data[i][7] || ""
+            ).trim();
 
-    const profileId =
-      String(
-        data[i][5] || ""
-      ).trim();
-
-
-    const reaction =
-      String(
-        data[i][7] || ""
-      )
-      .trim()
-      .toUpperCase();
+        const reaction =
+            String(
+                data[i][9] || ""
+            )
+            .trim()
+            .toUpperCase();
 
 
     if (
@@ -146,6 +144,7 @@ function testDislikedIds() {
 // ==========================================
 
 function getDislikedProfiles(userMobile) {
+  currentProfileScreen = "DISLIKED";
 
   try {
 
@@ -347,6 +346,12 @@ function getDislikedProfiles(userMobile) {
             "फोटो : (फोटो हा पासपोर्ट स्वरूपाचा असावा)"
           );
 
+        const mobileIndex =
+          findProfileHeader(
+              headers,
+              "संपर्क क्रमांक १ : "
+          );  
+
 
         if (idIndex === -1) {
           return;
@@ -445,6 +450,14 @@ function getDislikedProfiles(userMobile) {
                   row,
                   photoIndex
                 )
+              ),
+
+            ownerMobile:
+              normalizeMobile(
+                  getProfileCell(
+                      row,
+                      mobileIndex
+                  )
               ),
 
             reaction:
