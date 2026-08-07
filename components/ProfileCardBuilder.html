@@ -1,0 +1,27 @@
+// ==========================================
+// PROFILE ICON
+// ==========================================
+
+function getProfileIcon(
+    profileType
+) {
+
+    profileType =
+        String(profileType || "")
+            .trim()
+            .toLowerCase();
+
+    switch (profileType) {
+
+        case "bride":
+            return "👰";
+
+        case "groom":
+            return "🤵";
+
+        default:
+            return "👤";
+
+    }
+
+}

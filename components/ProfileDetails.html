@@ -1,0 +1,179 @@
+// ==========================================
+// FILE : ProfileDetails.html
+// MODULE : Profile Components
+// PURPOSE : Build reusable profile details
+//
+// RESPONSIBILITY
+//  - Build profile information rows
+//  - Build profile details section
+//
+// DEPENDS ON
+//  - ProfileModel.html
+//
+// USED BY
+//  - ProfileCardBuilder.html
+// ==========================================
+
+
+
+// ==========================================
+// BUILD INFO ROW
+// ==========================================
+
+/**
+ * Builds a reusable profile information row.
+ *
+ * @param {Object} options
+ * @param {String} options.icon
+ * @param {String} options.label
+ * @param {String} options.value
+ * @param {String} [options.type="text"]
+ *
+ * @returns {String}
+ */
+
+function buildInfoRow(options) {
+
+    options = {
+
+        icon: "",
+
+        label: "",
+
+        value: "",
+
+        type: "text",
+
+        ...(
+            options || {}
+        )
+
+    };
+
+    const value =
+        escapeHtml(
+
+            String(
+                options.value ?? ""
+            )
+
+        );
+
+    return `
+
+        <div class="profile-detail-row">
+
+            <span class="profile-detail-label">
+
+                ${options.icon}
+                ${options.label}:
+
+            </span>
+
+            <span class="profile-detail-value">
+
+                ${value}
+
+            </span>
+
+        </div>
+
+    `;
+
+}
+
+
+
+// ==========================================
+// BUILD PROFILE DETAILS
+// ==========================================
+
+/**
+ * Builds profile details section.
+ *
+ * @param {Object} profile
+ *
+ * @returns {String}
+ */
+
+function buildProfileDetails(profile) {
+
+    return `
+
+        <div class="profile-details">
+
+            ${buildInfoRow({
+
+                icon: "📍",
+
+                label: "जिल्हा",
+
+                value: profile.district
+
+            })}
+
+            ${buildInfoRow({
+
+                icon: "🎓",
+
+                label: "शिक्षण",
+
+                value: profile.education
+
+            })}
+
+            ${buildInfoRow({
+
+                icon: "🎂",
+
+                label: "वय",
+
+                value: profile.age
+
+            })}
+
+            ${buildInfoRow({
+
+                icon: "📏",
+
+                label: "उंची",
+
+                value: profile.height
+
+            })}
+
+            ${buildInfoRow({
+
+                icon: "👥",
+
+                label: "पोट जात",
+
+                value: profile.caste
+
+            })}
+
+            ${buildInfoRow({
+
+                icon: "💼",
+
+                label: "नोकरी / व्यवसाय",
+
+                value: profile.job
+
+            })}
+
+            ${buildInfoRow({
+
+                icon: "💰",
+
+                label: "मासिक उत्पन्न",
+
+                value: profile.income
+
+            })}
+
+        </div>
+
+    `;
+
+}

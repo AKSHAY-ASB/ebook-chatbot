@@ -4,7 +4,7 @@
    GLOBAL
    ========================================== */
 
-* {
+/* * {
   box-sizing: border-box;
 }
 
@@ -20,7 +20,7 @@ body {
   font-family: Arial, sans-serif;
   background: #f2f4f8;
   overflow: hidden;
-}
+} */
 
 
 /* ==========================================
@@ -28,7 +28,7 @@ body {
    Desktop default
    ========================================== */
 
-.chat-container {
+/* .chat-container {
     position: fixed;
 
     inset: 0;
@@ -46,14 +46,14 @@ body {
     flex-direction: column;
 
     background: #fff;
-}
+} */
 
 
 /* ==========================================
    HEADER
    ========================================== */
 
-.header {
+/* .header {
   flex-shrink: 0;
 
   background: #0057B8;
@@ -61,8 +61,8 @@ body {
   color: #ffffff;
 
   padding:
-    16px
-    14px;
+    30px
+    15px;
 
   font-size: 50px;
 
@@ -71,7 +71,7 @@ body {
   font-weight: 700;
 
   text-align: center;
-}
+} */
 
 
 /* ==========================================
@@ -89,16 +89,16 @@ body {
   }
 
 
-  .chat-container {
+  /* .chat-container {
       width: 100%;
       height: 100dvh;
       margin: 0;
       border-radius: 0;
       box-shadow: none;
-  }
+  } */
 
 
-.header{
+/* .header{
 
     font-size: 50px;
 
@@ -109,12 +109,12 @@ body {
     z-index:50;
 
     background:#0057B8;
-}
+} */
 
 }
 
 
-#chat {
+/* #chat {
   flex: 1;
 
   min-height: 0;
@@ -129,10 +129,10 @@ body {
   -webkit-overflow-scrolling: touch;
 
   overscroll-behavior: contain;
-}
+} */
 
 
-@media (max-width: 600px) {
+/* @media (max-width: 600px) {
 
   button {
     min-height: 44px;
@@ -151,7 +151,7 @@ body {
     padding: 12px 14px;
   }
 
-}
+} */
 
 .profile-card {
   width: 100%;
@@ -172,15 +172,15 @@ body {
 }
 
 
-input,
+/* input,
 select,
 textarea {
   max-width: 100%;
 
   font-size: 35px;
-}
+} */
 
-.chat-input,
+/* .chat-input,
 .chat-footer,
 .input-area {
   flex-shrink: 0;
@@ -190,13 +190,13 @@ textarea {
       10px,
       env(safe-area-inset-bottom)
     );
-}
+} */
 
-.bot{
+/* .bot{
 
 background:#ECEFF1;
 
-padding:12px;
+padding:20px;
 
 border-radius:15px;
 
@@ -205,6 +205,8 @@ margin-bottom:10px;
 width:80%;
 
 font-size:35px;
+
+margin-top: 15px;
 
 }
 
@@ -218,7 +220,7 @@ font-size:35px;
 
   color:white;
 
-  padding:12px;
+  padding:15px;
 
   border-radius:15px;
 
@@ -228,9 +230,9 @@ font-size:35px;
 
   width:80%;
 
-}
+} */
 
-.bottom{
+/* .bottom{
 
     position: sticky;
 
@@ -253,13 +255,13 @@ font-size:35px;
     border-top:1px solid #ddd;
 
     z-index:50;
-}
+} */
 
-.bottom input{
+/* .bottom input{
 
 flex:1;
 
-padding:12px;
+padding:25px;
 
 font-size:35px;
 
@@ -277,7 +279,7 @@ font-size:35px;
 
 margin-left:10px;
 
-padding:12px 18px;
+padding:25px 50px;
 
 background:#0057B8;
 
@@ -307,7 +309,7 @@ margin-top:15px;
 
 .menu button{
 
-padding:12px;
+padding:20px;
 
 border-radius:8px;
 
@@ -327,9 +329,9 @@ background:#0057B8;
 
 color:white;
 
-}
+} */
 
-.chat-action-button {
+/* .chat-action-button {
 
   display: inline-block;
 
@@ -354,7 +356,7 @@ color:white;
 
   opacity: 0.9;
 
-}
+} */
 
 
 .profile-filter-menu {
@@ -364,7 +366,7 @@ color:white;
 }
 
 
-.profile-card {
+/* .profile-card {
 
   background: #ffffff;
 
@@ -416,13 +418,13 @@ color:white;
 
   margin-bottom: 3px;
 
-}
+} */
 
 /* =========================================
    PROFILE PHOTO CONTAINER
 ========================================= */
 
-.profile-photo-container {
+/* .profile-photo-container {
 
   width: 100%;
 
@@ -446,14 +448,14 @@ color:white;
 
   justify-content: center;
 
-}
+} */
 
 
 /* =========================================
    ACTUAL PROFILE PHOTO
 ========================================= */
 
-.profile-photo {
+/* .profile-photo {
 
   width: 100%;
 
@@ -465,14 +467,14 @@ color:white;
 
   display: block;
 
-}
+} */
 
 
 /* =========================================
    PLACEHOLDER - IF PHOTO NOT AVAILABLE
 ========================================= */
 
-.profile-photo-placeholder {
+/* .profile-photo-placeholder {
 
   width: 100%;
 
@@ -488,13 +490,13 @@ color:white;
 
   background: #f3f4f6;
 
-}
+} */
 
 /* =========================================
    SELECTED SEARCH FILTERS
 ========================================= */
 
-.selected-filters {
+/* .selected-filters {
 
   background: #f8fafc;
 
@@ -506,7 +508,7 @@ color:white;
 
   margin: 8px 0 12px 0;
 
-}
+} */
 
 
 .selected-filters-title {
@@ -543,7 +545,7 @@ color:white;
    VIEW FULL PROFILE BUTTON
 ========================================= */
 
-.profile-actions {
+/* .profile-actions {
 
   font-size: 35px;
 
@@ -560,7 +562,7 @@ color:white;
 
   width: 100%;
 
-  padding: 11px 15px;
+  padding: 25px;
 
   border: none;
 
@@ -586,13 +588,13 @@ color:white;
 
   transform: scale(0.98);
 
-}
+} */
 
 /* =========================================
    FULL PROFILE
 ========================================= */
 
-.full-profile-card {
+/* .full-profile-card {
   width: 100%;
   box-sizing: border-box;
 }
@@ -645,13 +647,13 @@ color:white;
 .full-profile-value {
   font-size: 35px;
   word-break: break-word;
-}
+} */
 
 /* =========================================
    PROFILE CONTACT CARD
 ========================================= */
 
-.profile-contact-card {
+/* .profile-contact-card {
 
   width: 100%;
 
@@ -679,14 +681,14 @@ color:white;
 
   font-weight: 600;
 
-}
+} */
 
 
 /* =========================================
    PROFILE LIKE / DISLIKE
 ========================================= */
 
-.profile-reaction-actions {
+/* .profile-reaction-actions {
   display: flex;
   gap: 10px;
   margin-top: 10px;
@@ -694,7 +696,7 @@ color:white;
 
 .profile-reaction-btn {
   flex: 1;
-  padding: 10px;
+  padding: 25px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   cursor: pointer;
@@ -706,13 +708,13 @@ color:white;
 .profile-reaction-btn:disabled {
   cursor: not-allowed;
   opacity: 0.6;
-}
+} */
 
 /* =========================================
    LIKED PROFILES
 ========================================= */
 
-.liked-profile-card {
+/* .liked-profile-card {
   position: relative;
 }
 
@@ -723,14 +725,14 @@ color:white;
 
 .liked-active:disabled {
   opacity: 1;
-}
+} */
 
 
 /* =========================================
    DISLIKED PROFILES
 ========================================= */
 
-.disliked-profile-card {
+/* .disliked-profile-card {
   position: relative;
 }
 
@@ -741,39 +743,60 @@ color:white;
 
 .disliked-active:disabled {
   opacity: 1;
-}
+} */
 
 .profile-list-section {
   scroll-margin-top: 10px;
 }
 
 .sent-view-profile-btn , 
-  option-btn{
+  option-btn, view-profile-btn{
     font-size: 35px;
 }
 
-.profile-reaction-btn.liked{
+.send-interest-btn {
+    width: 100%;
+    padding: 25px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 35px;
+    font-weight: 600;
+}
+
+.received-view-profile-btn {
+    font-size:35px;
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* .profile-reaction-btn.liked{
     background:#1976d2;
     color:#fff;
     border-color:#1976d2;
-}
+} */
 
-.profile-reaction-btn.mutual{
+/* .profile-reaction-btn.mutual{
     background:#28a745;
     color:#fff;
     border-color:#28a745;
     font-weight:bold;
-}
+} */
 
-.liked-active{
+/* .liked-active{
 
     background:#1976d2;
 
     color:#fff;
 
-}
+} */
 
-.matched-active{
+/* .matched-active{
 
     background:#2e7d32;
 
@@ -793,6 +816,6 @@ color:white;
 
     font-weight:600;
 
-}
+} */
 
 </style>

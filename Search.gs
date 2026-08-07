@@ -387,6 +387,8 @@ function normalizeIncome(value) {
 
 function searchProfiles(type, district, education, income, page, userMobile) {
 
+  currentProfileScreen = "SEARCH";
+
   try {
 
     page = parseInt(page) || 1;
@@ -621,6 +623,14 @@ function searchProfiles(type, district, education, income, page, userMobile) {
         "फोटो : (फोटो हा पासपोर्ट स्वरूपाचा असावा)"
       );
 
+    const mobile1Index =
+      findProfileHeader(
+          headers,
+          "संपर्क क्रमांक १ :"
+      );
+
+  
+
 
 
     // ==========================================
@@ -810,83 +820,42 @@ function searchProfiles(type, district, education, income, page, userMobile) {
       // ADD PROFILE
       // ========================================
 
-      allProfiles.push({
+            allProfiles.push({
 
-        id:
-          currentProfileId,
+              id: currentProfileId,
 
-        type:
-          currentProfileType,
+              type: currentProfileType,
 
-        name:
-          getProfileCell(
-            row,
-            nameIndex
-          ),
+              name: getProfileCell(row, nameIndex),
 
-        district:
-          getProfileCell(
-            row,
-            districtIndex
-          ),
+              district: getProfileCell(row, districtIndex),
 
-        education:
-          getProfileCell(
-            row,
-            educationIndex
-          ),
+              education: getProfileCell(row, educationIndex),
 
-        birthDate:
-          getProfileCell(
-            row,
-            birthDateIndex
-          ),
+              birthDate: getProfileCell(row, birthDateIndex),
 
-        age:
-          getProfileCell(
-            row,
-            ageIndex
-          ),
+              age: getProfileCell(row, ageIndex),
 
-        height:
-          getProfileCell(
-            row,
-            heightIndex
-          ),
+              height: getProfileCell(row, heightIndex),
 
-        caste:
-          getProfileCell(
-            row,
-            casteIndex
-          ),
+              caste: getProfileCell(row, casteIndex),
 
-        job:
-          getProfileCell(
-            row,
-            jobIndex
-          ),
+              job: getProfileCell(row, jobIndex),
 
-        income:
-          getProfileCell(
-            row,
-            incomeIndex
-          ),
+              income: getProfileCell(row, incomeIndex),
 
-        address:
-          getProfileCell(
-            row,
-            addressIndex
-          ),
+              address: getProfileCell(row, addressIndex),
 
-        photo:
-          convertProfilePhotoUrl(
-            getProfileCell(
-              row,
-              photoIndex
-            )
-          )
+              photo: convertProfilePhotoUrl(
+                  getProfileCell(row, photoIndex)
+              ),
 
-      });
+              ownerMobile: getProfileCell(
+                  row,
+                  mobile1Index
+              ),
+
+          });
 
     }
 
@@ -949,7 +918,8 @@ function searchProfiles(type, district, education, income, page, userMobile) {
         addProfileReactionsFromData(
           profiles,
           userReactions.liked,
-          type
+          type,
+          userMobile
         );
 
 
