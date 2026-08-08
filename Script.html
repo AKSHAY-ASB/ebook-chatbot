@@ -2599,435 +2599,363 @@ function getProfileInterestActions(
 
 
 function displayProfileResults(
-  profiles,
-  page,
-  pageSize
+
+    profiles,
+
+    page,
+
+    pageSize
+
 ) {
 
-  lastSearchProfiles = profiles;
+    lastSearchProfiles = profiles;
 
-  lastSearchPage = page;
+    lastSearchPage = page;
 
-  lastSearchPageSize = pageSize;
+    lastSearchPageSize = pageSize;
 
-  console.log(
-    "CURRENT PROFILE SEARCH TYPE:",
-    profileSearchType
-  );
+
+    console.log(
+        "CURRENT PROFILE SEARCH TYPE:",
+        profileSearchType
+    );
+
 
     const pageScrollMarkerId =
-    "profile-search-page-" +
-    String(page) +
-    "-" +
-    Date.now();
+        "profile-search-page-" +
+        String(page) +
+        "-" +
+        Date.now();
 
 
+    window.lastRenderedProfiles =
+        profiles;
 
 
+    let cardsHtml = "";
 
-  console.log(
-    "CURRENT PROFILE SEARCH TYPE:",
-    profileSearchType
-  );
 
+    profiles.forEach(
+        function(profile, index) {
 
-  window.lastRenderedProfiles = profiles;
 
+            // ========================================
+            // PROFILE TYPE / ID / NAME
+            // ========================================
 
-  let cardsHtml = "";
+            const currentProfileType =
+                String(
+                    profile.type ||
+                    profileSearchType ||
+                    ""
+                )
+                .trim()
+                .toLowerCase();
 
-  profiles.forEach(
-    function(profile, index) {
 
+            const currentProfileId =
+                String(
+                    profile.id || ""
+                ).trim();
 
-      // ========================================
-      // PROFILE TYPE / ID / NAME
-      // ========================================
 
-      const currentProfileType =
-        String(
-          profile.type ||
-          profileSearchType ||
-          ""
-        )
-        .trim()
-        .toLowerCase();
+            const currentProfileName =
+                String(
+                    profile.name || ""
+                ).trim();
 
 
-      const currentProfileId =
-        String(
-          profile.id || ""
-        ).trim();
+            // ========================================
+            // COMMON INTEREST UI
+            // ========================================
 
+            const interestUI =
+                getProfileInterestActions(
+                    profile,
+                    currentProfileType,
+                    currentProfileId,
+                    currentProfileName
+                );
 
-      const currentProfileName =
-        String(
-          profile.name || ""
-        ).trim();
 
+            const profileActions =
+                buildProfileActionButtons(
+                    profile,
+                    profile.relationship
+                );
 
-      // ========================================
-      // COMMON INTEREST UI
-      // ========================================
 
-      const interestUI =
-        getProfileInterestActions(
-          profile,
-          currentProfileType,
-          currentProfileId,
-          currentProfileName
-        );
+            // ========================================
+            // SAFE VALUES FOR BUTTONS
+            // ========================================
 
-      const profileActions =
-        buildProfileActionButtons(
-            profile,
-            profile.relationship
-        );
+            const safeType =
+                escapeJsValue(
+                    currentProfileType
+                );
 
 
+            const safeId =
+                escapeJsValue(
+                    currentProfileId
+                );
 
 
-      // ========================================
-      // SAFE VALUES FOR BUTTONS
-      // ========================================
+            // ========================================
+            // PROFILE ICON
+            // ========================================
 
-      const safeType =
-        escapeJsValue(
-          currentProfileType
-        );
+            let profileIcon = "👤";
 
 
-      const safeId =
-        escapeJsValue(
-          currentProfileId
-        );
+            if (
+                currentProfileType === "bride"
+            ) {
 
+                profileIcon = "👰";
 
-      const safeName =
-        escapeJsValue(
-          currentProfileName
-        );
+            }
 
+            else if (
+                currentProfileType === "groom"
+            ) {
 
+                profileIcon = "🤵";
 
-        
+            }
 
 
-      // ========================================
-      // PROFILE ICON
-      // ========================================
+            // ========================================
+            // PROFILE DATA
+            // ========================================
 
-      let profileIcon = "👤";
+            const name =
+                escapeHtml(
+                    currentProfileName || "-"
+                );
 
 
-      if (
-        currentProfileType === "bride"
-      ) {
+            const district =
+                escapeHtml(
+                    profile.district || "-"
+                );
 
-        profileIcon = "👰";
 
-      }
+            const education =
+                escapeHtml(
+                    profile.education || "-"
+                );
 
-      else if (
-        currentProfileType === "groom"
-      ) {
 
-        profileIcon = "🤵";
+            const age =
+                escapeHtml(
+                    profile.age || "-"
+                );
 
-      }
 
+            const height =
+                escapeHtml(
+                    profile.height || "-"
+                );
 
-      // ========================================
-      // PROFILE DATA
-      // ========================================
 
-      const name =
-        escapeHtml(
-          currentProfileName || "-"
-        );
+            const caste =
+                escapeHtml(
+                    profile.caste || "-"
+                );
 
 
-      const district =
-        escapeHtml(
-          profile.district || "-"
-        );
+            const job =
+                escapeHtml(
+                    profile.job || "-"
+                );
 
 
-      const education =
-        escapeHtml(
-          profile.education || "-"
-        );
+            const income =
+                escapeHtml(
+                    profile.income || "-"
+                );
 
 
-      const age =
-        escapeHtml(
-          profile.age || "-"
-        );
+            const photo =
+                profile.photo || "";
 
 
-      const height =
-        escapeHtml(
-          profile.height || "-"
-        );
+            // ========================================
+            // PROFILE PHOTO
+            // ========================================
 
+            const photoHtml =
+                buildProfilePhoto({
 
-      const caste =
-        escapeHtml(
-          profile.caste || "-"
-        );
+                    photo:
+                        photo,
 
+                    profileType:
+                        currentProfileType,
 
-      const job =
-        escapeHtml(
-          profile.job || "-"
-        );
+                    markerId:
+                        pageScrollMarkerId
 
+                });
 
-      const income =
-        escapeHtml(
-          profile.income || "-"
-        );
 
+            // ========================================
+            // PROFILE HEADER
+            // ========================================
 
-      const photo =
-        profile.photo || "";
+            const headerHtml =
+                buildProfileHeader({
 
+                    icon:
+                        profileIcon,
 
-      // ========================================
-      // PROFILE IMAGE
-      // ========================================
+                    profileNumber:
+                        (
+                            (page - 1) *
+                            pageSize
+                        ) +
+                        index +
+                        1,
 
-      let photoHtml = "";
+                    name:
+                        currentProfileName || "-"
 
+                });
 
-      if (photo) {
 
-        photoHtml = `
+            // ========================================
+            // PROFILE DETAILS
+            // ========================================
 
-          <div class="profile-photo-container" id="${pageScrollMarkerId}">
+            const detailsHtml =
+                buildProfileDetails({
 
-            <img
-              src="${photo}"
-              class="profile-photo"
-              alt="Profile Photo"
-              loading="lazy"
-              onerror="
-                this.style.display='none';
-                this.nextElementSibling.style.display='flex';
-              "
-            >
+                    district:
+                        profile.district || "-",
 
-            <div
-              class="profile-photo-placeholder"
-              style="display:none;"
-            >
+                    education:
+                        profile.education || "-",
 
-              ${profileIcon}
+                    age:
+                        profile.age || "-",
 
-            </div>
+                    height:
+                        profile.height || "-",
 
-          </div>
+                    caste:
+                        profile.caste || "-",
 
-        `;
+                    job:
+                        profile.job || "-",
 
-      }
+                    income:
+                        profile.income || "-"
 
-      else {
+                });
 
-        photoHtml = `
 
-          <div class="profile-photo-container">
+            // ========================================
+            // VIEW FULL PROFILE
+            // ========================================
 
-            <div
-              class="profile-photo-placeholder"
-            >
+            const profileActionsHtml = `
 
-              ${profileIcon}
+                <div class="profile-actions">
 
-            </div>
+                    <button
+                        type="button"
+                        class="view-profile-btn"
+                        onclick="viewFullProfile(
+                            '${safeType}',
+                            '${safeId}'
+                        )"
+                    >
 
-          </div>
+                        👤 View Full Profile
 
-        `;
-
-      }
-
-      // ========================================
-      // PROFILE CARD
-      // ========================================
-
-    cardsHtml += `
-
-            <div class="profile-card">
-
-
-              ${photoHtml}
-
-
-              <div class="profile-card-title">
-
-                ${profileIcon}
-
-                Profile ${
-                  ((page - 1) * pageSize) +
-                  index +
-                  1
-                }
-
-              </div>
-
-
-              <div class="profile-name">
-
-                ${name}
-
-              </div>
-
-
-              <div class="profile-details">
-
-
-                <div>
-
-                  <b>📍 जिल्हा:</b>
-
-                  ${district}
+                    </button>
 
                 </div>
 
-
-                <div>
-
-                  <b>🎓 शिक्षण:</b>
-
-                  ${education}
-
-                </div>
+            `;
 
 
-                <div>
+            // ========================================
+            // INTEREST STATUS
+            // ========================================
 
-                  <b>🎂 वय:</b>
-
-                  ${age}
-
-                </div>
-
-
-                <div>
-
-                  <b>📏 उंची:</b>
-
-                  ${height}
-
-                </div>
+            const interestStatusHtml =
+                interestUI.statusHtml || "";
 
 
-                <div>
+            // ========================================
+            // INTEREST ACTION
+            // ========================================
 
-                  <b>👥 पोट जात:</b>
-
-                  ${caste}
-
-                </div>
-
-
-                <div>
-
-                  <b>💼 नोकरी / व्यवसाय:</b>
-
-                  ${job}
-
-                </div>
+            const interestActionHtml =
+                interestUI.actionHtml || "";
 
 
-                <div>
+            // ========================================
+            // REACTION HTML
+            // ========================================
 
-                  <b>💰 मासिक उत्पन्न:</b>
-
-                  ${income}
-
-                </div>
-
-
-              </div>
+            const reactionHtml =
+                profileActions || "";
 
 
-              <!-- VIEW FULL PROFILE -->
+            // ========================================
+            // BUILD COMPLETE PROFILE CARD
+            // ========================================
 
-              <div class="profile-actions">
+            cardsHtml +=
+                buildProfileCard({
 
-                <button
-                  type="button"
-                  class="view-profile-btn"
-                  onclick="viewFullProfile(
-                    '${safeType}',
-                    '${safeId}'
-                  )"
-                >
+                    photoHtml:
+                        photoHtml,
 
-                  👤 View Full Profile
+                    headerHtml:
+                        headerHtml,
 
-                </button>
+                    detailsHtml:
+                        detailsHtml,
 
-              </div>
+                    profileActionsHtml:
+                        profileActionsHtml,
 
+                    interestStatusHtml:
+                        interestStatusHtml,
 
-              <!-- INTEREST STATUS -->
+                    interestActionHtml:
+                        interestActionHtml,
 
-                ${
-                  interestUI.statusHtml
-                    ? `
-                        <div class="interest-profile-action">
+                    reactionHtml:
+                        reactionHtml
 
-                          ${interestUI.statusHtml}
+                });
 
-                        </div>
-                      `
-                    : ""
-                }
-
-              
-              <!-- INTEREST ACTION -->
-
-              ${
-                interestUI.actionHtml
-                  ? `
-                      <div class="interest-profile-action">
-
-                        ${interestUI.actionHtml}
-
-                      </div>
-                    `
-                  : ""
-              }
-
-
-
-              <!-- Commom button for LIKE / DISLIKE -->
-
-                <div class="profile-reaction-actions">
-
-                    ${profileActions}
-
-                </div>
-
-            </div>
-
-          `;
 
         }
-      );
+    );
 
-        botMessage(cardsHtml);
 
-        // ========================================
-        // SCROLL TO FIRST PROFILE OF THIS PAGE
-        // ========================================
+    // ========================================
+    // RENDER PROFILE CARDS
+    // ========================================
 
-        scrollToCurrentProfilePage(
-          pageScrollMarkerId
-        );
+    botMessage(
+        cardsHtml
+    );
+
+
+    // ========================================
+    // SCROLL TO FIRST PROFILE OF THIS PAGE
+    // ========================================
+
+    scrollToCurrentProfilePage(
+        pageScrollMarkerId
+    );
 
 }
 
@@ -5342,56 +5270,60 @@ function displayLikedProfileCard(
   // 8. DISPLAY VALUES
   // ==========================================
 
-  const name =
-    escapeHtml(
-      currentProfileName || "-"
-    );
+    // ========================================
+    // PROFILE DATA
+    // ========================================
+
+        const name =
+            escapeHtml(
+                currentProfileName || "-"
+            );
 
 
-  const district =
-    escapeHtml(
-      profile.district || "-"
-    );
+        const district =
+            escapeHtml(
+                profile.district || "-"
+            );
 
 
-  const education =
-    escapeHtml(
-      profile.education || "-"
-    );
+        const education =
+            escapeHtml(
+                profile.education || "-"
+            );
 
 
-  const age =
-    escapeHtml(
-      profile.age || "-"
-    );
+        const age =
+            escapeHtml(
+                profile.age || "-"
+            );
 
 
-  const height =
-    escapeHtml(
-      profile.height || "-"
-    );
+        const height =
+            escapeHtml(
+                profile.height || "-"
+            );
 
 
-  const caste =
-    escapeHtml(
-      profile.caste || "-"
-    );
+        const caste =
+            escapeHtml(
+                profile.caste || "-"
+            );
 
 
-  const job =
-    escapeHtml(
-      profile.job || "-"
-    );
+        const job =
+            escapeHtml(
+                profile.job || "-"
+            );
 
 
-  const income =
-    escapeHtml(
-      profile.income || "-"
-    );
+        const income =
+            escapeHtml(
+                profile.income || "-"
+            );
 
 
-  const photo =
-    profile.photo || "";
+        const photo =
+            profile.photo || "";
 
 
   // ==========================================

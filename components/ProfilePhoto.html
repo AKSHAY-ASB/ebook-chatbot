@@ -1,30 +1,21 @@
+<script>
+
 // ==========================================
 // FILE : ProfilePhoto.html
 // MODULE : Profile Components
-// PURPOSE : Build profile photo section
-// DEPENDS ON :
-//      - ProfileConstants.html
-//      - ProfileConfig.html
-// USED BY :
-//      - ProfileCardBuilder.html
+// PURPOSE : Build reusable profile photo
+//
+// RESPONSIBILITY
+//  - Render profile photo
+//  - Render photo placeholder
+//  - Handle image load failure
+//
+// DEPENDS ON
+//  - getProfileIcon()
+//
+// USED BY
+//  - displayProfileResults()
 // ==========================================
-
-
-// ==========================================
-// PUBLIC FUNCTIONS
-// ==========================================
-
-buildProfilePhoto()
-
-// ==========================================
-// PRIVATE FUNCTIONS
-// ==========================================
-
-createPhotoPlaceholder()
-
-createProfileImage()
-
-resolveProfileIcon()
 
 
 // ==========================================
@@ -32,14 +23,14 @@ resolveProfileIcon()
 // ==========================================
 
 function createProfilePhotoPlaceholder(
+
     profileIcon
+
 ) {
 
     return `
 
-        <div
-            class="profile-photo-placeholder"
-        >
+        <div class="profile-photo-placeholder">
 
             ${profileIcon}
 
@@ -65,13 +56,14 @@ function createProfileImage(
     return `
 
         <img
+
             src="${photoUrl}"
 
             class="profile-photo"
 
             alt="Profile Photo"
 
-            loading="${PROFILE_CARD_CONFIG.PHOTO_LOADING}"
+            loading="lazy"
 
             onerror="
 
@@ -106,8 +98,6 @@ function createProfileImage(
 
 function buildProfilePhoto(
 
-    profile,
-
     options
 
 ) {
@@ -115,11 +105,11 @@ function buildProfilePhoto(
     options = options || {};
 
     const photo =
-        profile.photo || "";
+        options.photo || "";
 
     const profileType =
         String(
-            profile.type || ""
+            options.profileType || ""
         )
         .trim()
         .toLowerCase();
@@ -177,3 +167,5 @@ function buildProfilePhoto(
     `;
 
 }
+
+</script>

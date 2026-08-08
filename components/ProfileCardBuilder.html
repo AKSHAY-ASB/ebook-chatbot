@@ -1,27 +1,106 @@
+<script>
+
 // ==========================================
-// PROFILE ICON
+// FILE : ProfileCardBuilder.html
+// MODULE : Profile Components
+// PURPOSE : Build reusable profile card
+//
+// RESPONSIBILITY
+//  - Assemble profile card sections
+//  - Render profile actions
+//  - Render interest UI
+//  - Render reaction UI
+//
+// DEPENDS ON
+//  - ProfileHeader.html
+//  - ProfilePhoto.html
+//  - ProfileDetails.html
+//
+// USED BY
+//  - displayProfileResults()
 // ==========================================
 
-function getProfileIcon(
-    profileType
+
+// ==========================================
+// BUILD PROFILE CARD
+// ==========================================
+
+function buildProfileCard(
+
+    options
+
 ) {
 
-    profileType =
-        String(profileType || "")
-            .trim()
-            .toLowerCase();
+    options =
+        options || {};
 
-    switch (profileType) {
+    const photoHtml =
+        options.photoHtml || "";
 
-        case "bride":
-            return "👰";
+    const headerHtml =
+        options.headerHtml || "";
 
-        case "groom":
-            return "🤵";
+    const detailsHtml =
+        options.detailsHtml || "";
 
-        default:
-            return "👤";
+    const profileActionsHtml =
+        options.profileActionsHtml || "";
 
-    }
+    const interestStatusHtml =
+        options.interestStatusHtml || "";
+
+    const interestActionHtml =
+        options.interestActionHtml || "";
+
+    const reactionHtml =
+        options.reactionHtml || "";
+
+    return `
+
+        <div class="profile-card">
+
+            ${photoHtml}
+
+            ${headerHtml}
+
+            ${detailsHtml}
+
+            ${profileActionsHtml}
+
+            ${
+                interestStatusHtml
+                    ? `
+                        <div class="interest-profile-action">
+
+                            ${interestStatusHtml}
+
+                        </div>
+                    `
+                    : ""
+            }
+
+            ${
+                interestActionHtml
+                    ? `
+                        <div class="interest-profile-action">
+
+                            ${interestActionHtml}
+
+                        </div>
+                    `
+                    : ""
+            }
+
+            <div class="profile-reaction-actions">
+
+                ${reactionHtml}
+
+            </div>
+
+        </div>
+
+    `;
 
 }
+
+</script>

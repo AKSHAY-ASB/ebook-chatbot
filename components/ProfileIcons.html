@@ -1,0 +1,44 @@
+<script>
+
+// ==========================================
+// FILE : ProfileIcons.html
+// MODULE : Profile Components
+// PURPOSE : Profile icon helper
+//
+// RESPONSIBILITY
+//  - Return icon based on profile type
+//
+// USED BY
+//  - ProfilePhoto.html
+//  - Future profile components
+// ==========================================
+
+function getProfileIcon(
+
+    profileType
+
+) {
+
+    profileType =
+        String(
+            profileType || ""
+        )
+        .trim()
+        .toLowerCase();
+
+    switch (profileType) {
+
+        case "bride":
+            return "👰";
+
+        case "groom":
+            return "🤵";
+
+        default:
+            return "👤";
+
+    }
+
+}
+
+</script>

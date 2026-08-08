@@ -1,3 +1,5 @@
+<script>
+
 // ==========================================
 // FILE : ProfileDetails.html
 // MODULE : Profile Components
@@ -8,29 +10,16 @@
 //  - Build profile details section
 //
 // DEPENDS ON
-//  - ProfileModel.html
+//  - escapeHtml()
 //
 // USED BY
-//  - ProfileCardBuilder.html
+//  - displayProfileResults()
 // ==========================================
-
 
 
 // ==========================================
 // BUILD INFO ROW
 // ==========================================
-
-/**
- * Builds a reusable profile information row.
- *
- * @param {Object} options
- * @param {String} options.icon
- * @param {String} options.label
- * @param {String} options.value
- * @param {String} [options.type="text"]
- *
- * @returns {String}
- */
 
 function buildInfoRow(options) {
 
@@ -44,9 +33,7 @@ function buildInfoRow(options) {
 
         type: "text",
 
-        ...(
-            options || {}
-        )
+        ...(options || {})
 
     };
 
@@ -83,20 +70,14 @@ function buildInfoRow(options) {
 }
 
 
-
 // ==========================================
 // BUILD PROFILE DETAILS
 // ==========================================
 
-/**
- * Builds profile details section.
- *
- * @param {Object} profile
- *
- * @returns {String}
- */
-
 function buildProfileDetails(profile) {
+
+    profile =
+        profile || {};
 
     return `
 
@@ -177,3 +158,5 @@ function buildProfileDetails(profile) {
     `;
 
 }
+
+</script>
