@@ -1,0 +1,296 @@
+<script>
+
+// ==========================================
+// COMMON INTEREST STATUS UI
+// Used by Search Card + Full Profile
+// ==========================================
+
+function getInterestStatusHtml(
+  interestStatus
+) {
+
+  interestStatus =
+    String(
+      interestStatus || "NONE"
+    )
+    .trim()
+    .toUpperCase();
+
+
+  // ========================================
+  // PENDING - SENT
+  // ========================================
+
+  if (
+    interestStatus === "PENDING_SENT"
+  ) {
+
+    return `
+
+      <div class="profile-interest-status pending">
+
+        ⏳ <b>Pending</b>
+
+      </div>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // PENDING - RECEIVED
+  // ========================================
+
+  if (
+    interestStatus === "PENDING_RECEIVED"
+  ) {
+
+    return `
+
+      <div class="profile-interest-status pending">
+
+        ⏳ <b>Pending</b>
+
+      </div>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // ACCEPTED
+  // ========================================
+
+  if (
+    interestStatus === "ACCEPTED"
+  ) {
+
+    return `
+
+      <div class="profile-interest-status accepted">
+
+        ❤️ <b>Accepted</b>
+
+      </div>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // DECLINED
+  // ========================================
+
+  if (
+    interestStatus === "DECLINED"
+  ) {
+
+    return `
+
+      <div class="profile-interest-status declined">
+
+        ❌ <b>Declined</b>
+
+      </div>
+
+    `;
+
+  }
+
+
+  // NONE = no status UI
+  return "";
+
+}
+
+
+
+// ==========================================
+// COMMON PROFILE INTEREST UI
+// Used by Search / Liked / other profile cards
+// ==========================================
+
+function getProfileInterestActions(
+  profile,
+  profileType,
+  profileId,
+  profileName
+) {
+
+  // ========================================
+  // 1. RELATIONSHIP
+  // ========================================
+
+  const relationship =
+    profile &&
+    profile.interestRelationship
+      ? profile.interestRelationship
+      : {};
+
+
+  // ========================================
+  // 2. STATUS
+  // ========================================
+
+  const interestStatus =
+    String(
+      relationship.status || "NONE"
+    )
+    .trim()
+    .toUpperCase();
+
+
+  // ========================================
+  // 3. CONTACT PERMISSION
+  // ========================================
+
+  const canViewContact =
+    relationship.canViewContact === true;
+
+
+  // ========================================
+  // 4. SAFE VALUES
+  // ========================================
+
+  const safeType =
+    escapeJsValue(
+      String(profileType || "")
+        .trim()
+        .toLowerCase()
+    );
+
+
+  const safeId =
+    escapeJsValue(
+      String(profileId || "")
+        .trim()
+    );
+
+
+  const safeName =
+    escapeJsValue(
+      String(profileName || "")
+        .trim()
+    );
+
+
+  // ========================================
+  // 5. STATUS HTML
+  // Reuse existing common function
+  // ========================================
+
+  const statusHtml =
+    getInterestStatusHtml(
+      interestStatus
+    );
+
+
+  // ========================================
+  // 6. ACTION BUTTON
+  // ========================================
+
+  let actionHtml = "";
+
+
+  // ========================================
+  // ACCEPTED
+  // Show Contact Details
+  // ========================================
+
+  if (
+    interestStatus === "ACCEPTED" &&
+    canViewContact === true
+  ) {
+
+    actionHtml = `
+
+      <button
+        type="button"
+        class="view-profile-btn"
+        onclick="viewProfileContact(
+          '${safeType}',
+          '${safeId}'
+        )"
+      >
+
+        ☎ View Contact Details
+
+      </button>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // NO INTEREST RELATIONSHIP
+  // Show Send Interest
+  // ========================================
+
+  else if (
+    interestStatus === "NONE"
+  ) {
+
+    actionHtml = `
+
+      <button
+        type="button"
+        class="send-interest-btn"
+        onclick="openSendInterestConfirmation(
+          '${safeType}',
+          '${safeId}',
+          '${safeName}'
+        )"
+      >
+
+        💌 Send Interest
+
+      </button>
+
+    `;
+
+  }
+
+
+  // ========================================
+  // PENDING / DECLINED
+  // No action button
+  // Status is displayed by statusHtml
+  // ========================================
+
+  else {
+
+    actionHtml = "";
+
+  }
+
+
+  // ========================================
+  // 8. RETURN
+  // ========================================
+
+  return {
+
+    relationship:
+      relationship,
+
+    status:
+      interestStatus,
+
+    canViewContact:
+      canViewContact,
+
+    statusHtml:
+      statusHtml,
+
+    actionHtml:
+      actionHtml
+
+  };
+
+}
+
+</script>

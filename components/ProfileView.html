@@ -1,0 +1,201 @@
+<script>
+
+// ==========================================
+// FILE : ProfileView.html
+// MODULE : Profile Components
+// PURPOSE : Load and display full profile
+//
+// RESPONSIBILITY
+//  - Request full profile from backend
+//  - Validate profile request
+//  - Handle backend success/failure
+//  - Pass profile to full-profile renderer
+//
+// DEPENDS ON
+//  - botMessage()
+//  - showTyping()
+//  - hideTyping()
+//  - escapeHtml()
+//  - displayFullProfile()
+//  - showSearchAgainButton()
+//  - google.script.run.getFullProfile()
+//
+// USED BY
+//  - ProfileCardBuilder.html
+//  - displayProfileResults()
+// ==========================================
+
+
+// ==========================================
+// VIEW FULL PROFILE
+// ==========================================
+
+function viewFullProfile(
+
+    type,
+
+    profileId
+
+) {
+
+    type =
+        String(type || "")
+        .trim()
+        .toLowerCase();
+
+
+    profileId =
+        String(profileId || "")
+        .trim();
+
+
+    if (
+        !type ||
+        !profileId
+    ) {
+
+        botMessage(
+            "⚠️ Profile information is missing."
+        );
+
+        return;
+
+    }
+
+
+    console.log(
+        "VIEW FULL PROFILE REQUEST:",
+        {
+            type: type,
+            profileId: profileId,
+            userMobile: profileUserMobile
+        }
+    );
+
+
+    showTyping();
+
+
+    google.script.run
+
+        .withSuccessHandler(
+            function(result) {
+
+                hideTyping();
+
+
+                console.log(
+                    "FULL PROFILE BACKEND RESULT:",
+                    result
+                );
+
+
+                if (
+                    !result ||
+                    !result.success ||
+                    !result.profile
+                ) {
+
+                    botMessage(`
+
+                        ⚠️ <b>Unable to load profile.</b>
+
+                        <br><br>
+
+                        ${
+                            result &&
+                            result.message
+                                ? escapeHtml(
+                                    result.message
+                                )
+                                : "Profile information not found."
+                        }
+
+                    `);
+
+                    return;
+
+                }
+
+
+                // ======================================
+                // VERIFY RETURNED PROFILE
+                // ======================================
+
+                console.log(
+                    "FULL PROFILE MATCH CHECK:",
+                    {
+                        requestedType:
+                            type,
+
+                        requestedId:
+                            profileId,
+
+                        returnedId:
+                            result.profile.id,
+
+                        returnedName:
+                            result.profile.name,
+
+                        returnedProfile:
+                            result.profile
+                    }
+                );
+
+
+                // ======================================
+                // ADD PROFILE TYPE
+                // ======================================
+
+                result.profile.type =
+                    type;
+
+
+                displayFullProfile(
+                    result.profile
+                );
+
+
+                showSearchAgainButton();
+
+            }
+        )
+
+
+        .withFailureHandler(
+            function(error) {
+
+                hideTyping();
+
+
+                console.error(
+                    "Full Profile Error:",
+                    error
+                );
+
+
+                botMessage(`
+
+                    ⚠️ <b>Unable to load profile.</b>
+
+                    <br><br>
+
+                    कृपया पुन्हा प्रयत्न करा.
+
+                `);
+
+            }
+        )
+
+
+        .getFullProfile(
+            type,
+            profileId,
+            profileUserMobile || "",
+            profileUserName || "",
+            profileUserRegisteredSheet || ""
+        );
+
+}
+
+</script>
