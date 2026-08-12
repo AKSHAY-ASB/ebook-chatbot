@@ -1,0 +1,206 @@
+<script>
+
+// ==========================================
+// FILE : ProfileData.html
+// MODULE : Profile Components
+// PURPOSE : Normalize common profile display data
+//
+// RESPONSIBILITY
+//  - Prepare common profile values
+//  - Normalize profile type / ID / name
+//  - Prepare safe button values
+//  - Resolve profile icon
+//  - Prepare common display values
+//
+// USED BY
+//  - displayProfileResults()
+//  - displayLikedProfileCard()
+//  - displayDislikedProfileCard()
+//
+// IMPORTANT
+//  - No rendering
+//  - No DOM manipulation
+//  - No backend calls
+//  - No business logic
+// ==========================================
+
+
+function prepareProfileDisplayData(
+    profile,
+    fallbackProfileType
+) {
+
+    profile =
+        profile || {};
+
+
+    // ========================================
+    // PROFILE BASIC VALUES
+    // ========================================
+
+    const currentProfileType =
+        String(
+            profile.type ||
+            fallbackProfileType ||
+            ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    const currentProfileId =
+        String(
+            profile.id || ""
+        )
+        .trim();
+
+
+    const currentProfileName =
+        String(
+            profile.name || ""
+        )
+        .trim();
+
+
+    // ========================================
+    // SAFE VALUES FOR BUTTONS
+    // ========================================
+
+    const safeType =
+        escapeJsValue(
+            currentProfileType
+        );
+
+
+    const safeId =
+        escapeJsValue(
+            currentProfileId
+        );
+
+
+    const safeName =
+        escapeJsValue(
+            currentProfileName
+        );
+
+
+    const safeOwnerMobile =
+        escapeJsValue(
+            profile.ownerMobile || ""
+        );
+
+
+    // ========================================
+    // PROFILE ICON
+    // ========================================
+
+    const profileIcon =
+        getProfileIcon(
+            currentProfileType
+        );
+
+
+    // ========================================
+    // DISPLAY VALUES
+    // ========================================
+
+    const name =
+        currentProfileName || "-";
+
+
+    const district =
+        profile.district || "-";
+
+
+    const education =
+        profile.education || "-";
+
+
+    const age =
+        profile.age || "-";
+
+
+    const height =
+        profile.height || "-";
+
+
+    const caste =
+        profile.caste || "-";
+
+
+    const job =
+        profile.job || "-";
+
+
+    const income =
+        profile.income || "-";
+
+
+    const photo =
+        profile.photo || "";
+
+
+    // ========================================
+    // RETURN NORMALIZED DATA
+    // ========================================
+
+    return {
+
+        profile: profile,
+
+        currentProfileType:
+            currentProfileType,
+
+        currentProfileId:
+            currentProfileId,
+
+        currentProfileName:
+            currentProfileName,
+
+        safeType:
+            safeType,
+
+        safeId:
+            safeId,
+
+        safeName:
+            safeName,
+
+        safeOwnerMobile:
+            safeOwnerMobile,
+
+        profileIcon:
+            profileIcon,
+
+        name:
+            name,
+
+        district:
+            district,
+
+        education:
+            education,
+
+        age:
+            age,
+
+        height:
+            height,
+
+        caste:
+            caste,
+
+        job:
+            job,
+
+        income:
+            income,
+
+        photo:
+            photo
+
+    };
+
+}
+
+</script>

@@ -665,22 +665,6 @@ function showMenu() {
   }
 
 
-    function showFullProfileFromReaction(
-          profileType,
-          profileId
-      ){
-        console.log("Reaction View:", {
-              profileType,
-              profileId
-          });
-          viewFullProfile(
-              profileType,
-              profileId
-          );
-
-        }
-
-
 function loadVerifiedEbook() {
 
   showTyping();
@@ -2342,29 +2326,32 @@ function displayProfileResults(
 
 
             // ========================================
-            // PROFILE TYPE / ID / NAME
+            // PROFILE DISPLAY DATA
             // ========================================
 
-            const currentProfileType =
-                String(
-                    profile.type ||
-                    profileSearchType ||
-                    ""
-                )
-                .trim()
-                .toLowerCase();
+            const profileData =
+                prepareProfileDisplayData(
+                    profile,
+                    profileSearchType
+                );
 
 
-            const currentProfileId =
-                String(
-                    profile.id || ""
-                ).trim();
-
-
-            const currentProfileName =
-                String(
-                    profile.name || ""
-                ).trim();
+            const {
+                currentProfileType,
+                currentProfileId,
+                currentProfileName,
+                safeType,
+                safeId,
+                profileIcon,
+                district,
+                education,
+                age,
+                height,
+                caste,
+                job,
+                income,
+                photo
+            } = profileData;
 
 
             // ========================================
@@ -2380,108 +2367,16 @@ function displayProfileResults(
                 );
 
 
+            // ========================================
+            // REACTION UI
+            // ========================================
+
+
             const profileActions =
                 buildProfileActionButtons(
                     profile,
                     profile.relationship
                 );
-
-
-            // ========================================
-            // SAFE VALUES FOR BUTTONS
-            // ========================================
-
-            const safeType =
-                escapeJsValue(
-                    currentProfileType
-                );
-
-
-            const safeId =
-                escapeJsValue(
-                    currentProfileId
-                );
-
-
-            // ========================================
-            // PROFILE ICON
-            // ========================================
-
-            let profileIcon = "👤";
-
-
-            if (
-                currentProfileType === "bride"
-            ) {
-
-                profileIcon = "👰";
-
-            }
-
-            else if (
-                currentProfileType === "groom"
-            ) {
-
-                profileIcon = "🤵";
-
-            }
-
-
-            // ========================================
-            // PROFILE DATA
-            // ========================================
-
-            const name =
-                escapeHtml(
-                    currentProfileName || "-"
-                );
-
-
-            const district =
-                escapeHtml(
-                    profile.district || "-"
-                );
-
-
-            const education =
-                escapeHtml(
-                    profile.education || "-"
-                );
-
-
-            const age =
-                escapeHtml(
-                    profile.age || "-"
-                );
-
-
-            const height =
-                escapeHtml(
-                    profile.height || "-"
-                );
-
-
-            const caste =
-                escapeHtml(
-                    profile.caste || "-"
-                );
-
-
-            const job =
-                escapeHtml(
-                    profile.job || "-"
-                );
-
-
-            const income =
-                escapeHtml(
-                    profile.income || "-"
-                );
-
-
-            const photo =
-                profile.photo || "";
-
 
             // ========================================
             // PROFILE PHOTO
@@ -2531,30 +2426,30 @@ function displayProfileResults(
             // ========================================
 
             const detailsHtml =
-                buildProfileDetails({
+              buildProfileDetails({
 
-                    district:
-                        profile.district || "-",
+                  district:
+                      district,
 
-                    education:
-                        profile.education || "-",
+                  education:
+                      education,
 
-                    age:
-                        profile.age || "-",
+                  age:
+                      age,
 
-                    height:
-                        profile.height || "-",
+                  height:
+                      height,
 
-                    caste:
-                        profile.caste || "-",
+                  caste:
+                      caste,
 
-                    job:
-                        profile.job || "-",
+                  job:
+                      job,
 
-                    income:
-                        profile.income || "-"
+                  income:
+                      income
 
-                });
+              });
 
 
             // ========================================
@@ -4561,33 +4456,29 @@ function displayLikedProfileCard(
   profileNumber
 ) {
 
-  // ==========================================
-  // 1. PROFILE BASIC VALUES
-  // ==========================================
+  const profileData =
+    prepareProfileDisplayData(
+        profile
+    );
 
-  const currentProfileType =
-    String(
-      profile.type || ""
-    )
-    .trim()
-    .toLowerCase();
-
-
-  const currentProfileId =
-    String(
-      profile.id || ""
-    ).trim();
-
-
-  const currentProfileName =
-    String(
-      profile.name || ""
-    ).trim();
-
-
-  // ==========================================
-  // COMMON INTEREST UI
-  // ==========================================
+  const {
+    currentProfileType,
+    currentProfileId,
+    currentProfileName,
+    safeType,
+    safeId,
+    safeName,
+    safeOwnerMobile,
+    profileIcon,
+    district,
+    education,
+    age,
+    height,
+    caste,
+    job,
+    income,
+    photo
+} = profileData;
 
   const interestUI =
     getProfileInterestActions(
@@ -4597,176 +4488,61 @@ function displayLikedProfileCard(
       currentProfileName
     );
 
+  
+    const photoHtml =
+      buildProfilePhoto({
 
-  // ==========================================
-  // 2. SAFE VALUES
-  // IMPORTANT: BEFORE BUTTON HTML
-  // ==========================================
+          photo:
+              photo,
 
-  const safeType =
-    escapeJsValue(
-      currentProfileType
-    );
+          profileType:
+              currentProfileType
 
-
-  const safeId =
-    escapeJsValue(
-      currentProfileId
-    );
+      });
 
 
-  const safeName =
-    escapeJsValue(
-      currentProfileName
-    );
+      const headerHtml =
+      buildProfileHeader({
 
-    const safeOwnerMobile =
-    escapeJsValue(profile.ownerMobile || "");
+          icon:
+              profileIcon,
 
+          profileNumber:
+              profileNumber,
 
-  // ==========================================
-  // 7. PROFILE ICON
-  // ==========================================
+          title:
+              "Liked Profile ",
 
-  let profileIcon = "👤";
+          name:
+              currentProfileName || "-"
 
+      });
 
-  if (
-    currentProfileType === "bride"
-  ) {
+      const detailsHtml =
+      buildProfileDetails({
 
-    profileIcon = "👰";
+          district:
+              district,
 
-  }
+          education:
+              education,
 
-  else if (
-    currentProfileType === "groom"
-  ) {
+          age:
+              age,
 
-    profileIcon = "🤵";
+          height:
+              height,
 
-  }
+          caste:
+              caste,
 
+          job:
+              job,
 
-  // ==========================================
-  // 8. DISPLAY VALUES
-  // ==========================================
+          income:
+              income
 
-    // ========================================
-    // PROFILE DATA
-    // ========================================
-
-        const name =
-            escapeHtml(
-                currentProfileName || "-"
-            );
-
-
-        const district =
-            escapeHtml(
-                profile.district || "-"
-            );
-
-
-        const education =
-            escapeHtml(
-                profile.education || "-"
-            );
-
-
-        const age =
-            escapeHtml(
-                profile.age || "-"
-            );
-
-
-        const height =
-            escapeHtml(
-                profile.height || "-"
-            );
-
-
-        const caste =
-            escapeHtml(
-                profile.caste || "-"
-            );
-
-
-        const job =
-            escapeHtml(
-                profile.job || "-"
-            );
-
-
-        const income =
-            escapeHtml(
-                profile.income || "-"
-            );
-
-
-        const photo =
-            profile.photo || "";
-
-
-  // ==========================================
-  // 9. PROFILE IMAGE
-  // ==========================================
-
-  let photoHtml = "";
-
-
-  if (photo) {
-
-    photoHtml = `
-
-      <div class="profile-photo-container">
-
-        <img
-          src="${photo}"
-          class="profile-photo"
-          alt="Profile Photo"
-          loading="lazy"
-          onerror="
-            this.style.display='none';
-            this.nextElementSibling.style.display='flex';
-          "
-        >
-
-        <div
-          class="profile-photo-placeholder"
-          style="display:none;"
-        >
-
-          ${profileIcon}
-
-        </div>
-
-      </div>
-
-    `;
-
-  }
-
-  else {
-
-    photoHtml = `
-
-      <div class="profile-photo-container">
-
-        <div
-          class="profile-photo-placeholder"
-        >
-
-          ${profileIcon}
-
-        </div>
-
-      </div>
-
-    `;
-
-  }
-
+      });
 
   // ==========================================
   // 10. LIKED PROFILE CARD
@@ -4780,89 +4556,10 @@ function displayLikedProfileCard(
       ${photoHtml}
 
 
-      <div class="profile-card-title">
-
-        ${profileIcon}
-
-        Liked Profile ${profileNumber}
-
-      </div>
+      ${headerHtml}
 
 
-      <div class="profile-name">
-
-        ${name}
-
-      </div>
-
-
-      <div class="profile-details">
-
-
-        <div>
-
-          <b>📍 जिल्हा:</b>
-
-          ${district}
-
-        </div>
-
-
-        <div>
-
-          <b>🎓 शिक्षण:</b>
-
-          ${education}
-
-        </div>
-
-
-        <div>
-
-          <b>🎂 वय:</b>
-
-          ${age}
-
-        </div>
-
-
-        <div>
-
-          <b>📏 उंची:</b>
-
-          ${height}
-
-        </div>
-
-
-        <div>
-
-          <b>👥 पोट जात:</b>
-
-          ${caste}
-
-        </div>
-
-
-        <div>
-
-          <b>💼 नोकरी / व्यवसाय:</b>
-
-          ${job}
-
-        </div>
-
-
-        <div>
-
-          <b>💰 मासिक उत्पन्न:</b>
-
-          ${income}
-
-        </div>
-
-
-      </div>
+      ${detailsHtml}
 
 
       <!-- ======================================
@@ -5342,194 +5039,88 @@ function displayDislikedProfileCard(
   profileNumber
 ) {
 
-  // ==========================================
-  // PROFILE BASIC VALUES
-  // ==========================================
-
-  const currentProfileType =
-    String(
-      profile.type || ""
-    )
-    .trim()
-    .toLowerCase();
-
-
-  const currentProfileId =
-    String(
-      profile.id || ""
-    ).trim();
-
-
-  const currentProfileName =
-    String(
-      profile.name || ""
-    ).trim();
-
-
-  // ==========================================
-  // PROFILE ICON
-  // ==========================================
-
-  let profileIcon = "👤";
-
-
-  if (
-    currentProfileType === "bride"
-  ) {
-
-    profileIcon = "👰";
-
-  }
-
-  else if (
-    currentProfileType === "groom"
-  ) {
-
-    profileIcon = "🤵";
-
-  }
-
-
-  // ==========================================
-  // SAFE VALUES
-  // ==========================================
-
-  const safeType =
-    escapeJsValue(
-      currentProfileType
+    const profileData =
+    prepareProfileDisplayData(
+        profile
     );
 
-
-  const safeId =
-    escapeJsValue(
-      currentProfileId
-    );
-
-
-  const safeName =
-    escapeJsValue(
-      currentProfileName
-    );
-
-  const safeOwnerMobile =
-  escapeJsValue(
-      profile.ownerMobile || ""
-  );
-
-  // ==========================================
-  // DISPLAY VALUES
-  // ==========================================
-
-  const name =
-    escapeHtml(
-      currentProfileName || "-"
-    );
-
-
-  const district =
-    escapeHtml(
-      profile.district || "-"
-    );
-
-
-  const education =
-    escapeHtml(
-      profile.education || "-"
-    );
-
-
-  const age =
-    escapeHtml(
-      profile.age || "-"
-    );
-
-
-  const height =
-    escapeHtml(
-      profile.height || "-"
-    );
-
-
-  const caste =
-    escapeHtml(
-      profile.caste || "-"
-    );
-
-
-  const job =
-    escapeHtml(
-      profile.job || "-"
-    );
-
-
-  const income =
-    escapeHtml(
-      profile.income || "-"
-    );
-
-
-  const photo =
-    profile.photo || "";
-
-
+    const {
+    currentProfileType,
+    currentProfileId,
+    currentProfileName,
+    safeType,
+    safeId,
+    safeName,
+    safeOwnerMobile,
+    profileIcon,
+    district,
+    education,
+    age,
+    height,
+    caste,
+    job,
+    income,
+    photo
+} = profileData;
+  
   // ==========================================
   // PROFILE IMAGE
   // ==========================================
 
-  let photoHtml = "";
+    const photoHtml =
+    buildProfilePhoto({
+
+        photo:
+            photo,
+
+        profileType:
+            currentProfileType
+
+    });
+
+    const headerHtml =
+    buildProfileHeader({
+
+        icon:
+            profileIcon,
+
+        profileNumber:
+            profileNumber,
+
+        title:
+            "Disliked Profile ",
+
+        name:
+            currentProfileName || "-"
+
+    });
 
 
-  if (photo) {
+    const detailsHtml =
+    buildProfileDetails({
 
-    photoHtml = `
+        district:
+            district,
 
-      <div class="profile-photo-container">
+        education:
+            education,
 
-        <img
-          src="${photo}"
-          class="profile-photo"
-          alt="Profile Photo"
-          loading="lazy"
-          onerror="
-            this.style.display='none';
-            this.nextElementSibling.style.display='flex';
-          "
-        >
+        age:
+            age,
 
-        <div
-          class="profile-photo-placeholder"
-          style="display:none;"
-        >
+        height:
+            height,
 
-          ${profileIcon}
+        caste:
+            caste,
 
-        </div>
+        job:
+            job,
 
-      </div>
+        income:
+            income
 
-    `;
-
-  }
-
-  else {
-
-    photoHtml = `
-
-      <div class="profile-photo-container">
-
-        <div
-          class="profile-photo-placeholder"
-        >
-
-          ${profileIcon}
-
-        </div>
-
-      </div>
-
-    `;
-
-  }
+    });
 
 
   // ==========================================
@@ -5544,68 +5135,11 @@ function displayDislikedProfileCard(
       ${photoHtml}
 
 
-      <div class="profile-card-title">
-
-        ${profileIcon}
-
-        Disliked Profile ${profileNumber}
-
-      </div>
+      ${headerHtml}
 
 
-      <div class="profile-name">
+      ${detailsHtml}
 
-        ${name}
-
-      </div>
-
-
-      <div class="profile-details">
-
-
-        <div>
-          <b>📍 जिल्हा:</b>
-          ${district}
-        </div>
-
-
-        <div>
-          <b>🎓 शिक्षण:</b>
-          ${education}
-        </div>
-
-
-        <div>
-          <b>🎂 वय:</b>
-          ${age}
-        </div>
-
-
-        <div>
-          <b>📏 उंची:</b>
-          ${height}
-        </div>
-
-
-        <div>
-          <b>👥 पोट जात:</b>
-          ${caste}
-        </div>
-
-
-        <div>
-          <b>💼 नोकरी / व्यवसाय:</b>
-          ${job}
-        </div>
-
-
-        <div>
-          <b>💰 मासिक उत्पन्न:</b>
-          ${income}
-        </div>
-
-
-      </div>
 
 
       <!-- VIEW FULL PROFILE -->
@@ -5845,28 +5379,6 @@ function buildProfileActionButtons(
             )}
 
         </div>
-
-    `;
-
-}
-
-
-function buildViewProfileButton(
-    profile
-) {
-
-    return `
-
-        <button
-            class="view-profile-btn"
-            onclick="showFullProfileFromReaction(
-                '${profile.viewerProfileType || profile.type}',
-                '${profile.viewerProfileId || profile.id}'
-            )">
-
-            👀 View Profile
-
-        </button>
 
     `;
 
