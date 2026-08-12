@@ -4,7 +4,6 @@
 ========================================= */
 let chatbotState = "normal";
 let profileSearchType = "";
-let profileCurrentPage = 1;
 let profileSearchDistrict = "";
 let profileSearchPage = 1;
 let profileSearchEducation = "";
@@ -22,12 +21,7 @@ let pendingProfileSearchType = "";
 
 let pendingProfileCategory = "";
 
-let currentProfileScreen = "";
-
-let lastSearchProfiles = [];
-let lastSearchPage = 1;
-let lastSearchPageSize = 10;
-
+let lastRenderedProfiles = [];
 
 window.onload = function () {
 
@@ -579,8 +573,6 @@ function showMenu() {
 
                 .withSuccessHandler(function(result){
 
-                    console.log(result);
-
                     if (!result.success) {
 
                         botMessage("तुम्हाला अद्याप कोणतीही Like मिळालेली नाही.");
@@ -624,7 +616,7 @@ function showMenu() {
 
     `;
 
-    window.lastRenderedProfiles =
+    lastRenderedProfiles =
     result.profiles;
 
     result.profiles.forEach(function(profile){
@@ -828,9 +820,6 @@ function verifyEbookMobile(mobile) {
     .withSuccessHandler(function(result) {
 
       hideTyping();
-
-      console.log("Verification Result:", result);
-
 
       // No response received
       if (!result) {
@@ -1197,37 +1186,21 @@ function verifyProfileMobile(mobile) {
     profileUserId =
         result.profileId || "";
 
-
-        console.log({
-
-            profileUserMobile,
-
-            profileUserName,
-
-            profileUserRegisteredSheet,
-
-            profileUserType,
-
-            profileUserId
-
-        });
+    chatbotState =
+      "normal";
 
 
-  chatbotState =
-    "normal";
+    botMessage(`
+
+      ✅ <b>Verification Successful</b>
+
+      <br><br>
+
+      नमस्कार
+      <b>${escapeHtml(result.name || "")}</b>
 
 
-  botMessage(`
-
-    ✅ <b>Verification Successful</b>
-
-    <br><br>
-
-    नमस्कार
-     <b>${escapeHtml(result.name || "")}</b>
-
-
-  `);
+    `);
 
 
   // ========================================
@@ -1275,12 +1248,6 @@ function verifyProfileMobile(mobile) {
 
         pendingProfileCategory = "";
 
-
-        console.log(
-          "OPENING SENT INTERESTS AFTER VERIFICATION"
-        );
-
-
         showSentInterests();
 
 
@@ -1299,12 +1266,6 @@ function verifyProfileMobile(mobile) {
     ) {
 
       pendingProfileCategory = "";
-
-
-      console.log(
-        "OPENING RECEIVED INTERESTS AFTER VERIFICATION"
-      );
-
 
       showReceivedInterests();
 
@@ -2055,11 +2016,6 @@ function searchChatProfiles() {
 
           `);     
 
-          profileCurrentPage =
-          Number(
-            result.page || 1
-          );
-
           displayProfileResults(
             result.profiles,
             result.page,
@@ -2294,19 +2250,6 @@ function displayProfileResults(
 
 ) {
 
-    lastSearchProfiles = profiles;
-
-    lastSearchPage = page;
-
-    lastSearchPageSize = pageSize;
-
-
-    console.log(
-        "CURRENT PROFILE SEARCH TYPE:",
-        profileSearchType
-    );
-
-
     const pageScrollMarkerId =
         "profile-search-page-" +
         String(page) +
@@ -2314,8 +2257,8 @@ function displayProfileResults(
         Date.now();
 
 
-    window.lastRenderedProfiles =
-        profiles;
+    lastRenderedProfiles =
+    profiles;
 
 
     let cardsHtml = "";
@@ -2340,8 +2283,6 @@ function displayProfileResults(
                 currentProfileType,
                 currentProfileId,
                 currentProfileName,
-                safeType,
-                safeId,
                 profileIcon,
                 district,
                 education,
@@ -2451,33 +2392,6 @@ function displayProfileResults(
 
               });
 
-
-            // ========================================
-            // VIEW FULL PROFILE
-            // ========================================
-
-            const profileActionsHtml = `
-
-                <div class="profile-actions">
-
-                    <button
-                        type="button"
-                        class="view-profile-btn"
-                        onclick="viewFullProfile(
-                            '${safeType}',
-                            '${safeId}'
-                        )"
-                    >
-
-                        👤 View Full Profile
-
-                    </button>
-
-                </div>
-
-            `;
-
-
             // ========================================
             // INTEREST STATUS
             // ========================================
@@ -2517,9 +2431,6 @@ function displayProfileResults(
 
                     detailsHtml:
                         detailsHtml,
-
-                    profileActionsHtml:
-                        profileActionsHtml,
 
                     interestStatusHtml:
                         interestStatusHtml,
@@ -2576,11 +2487,6 @@ function scrollToCurrentProfilePage(
 
       if (!target) {
 
-        console.log(
-          "PROFILE SCROLL TARGET NOT FOUND:",
-          markerId
-        );
-
         return;
 
       }
@@ -2602,18 +2508,6 @@ function scrollToCurrentProfilePage(
 // ==========================================
 
 function previousProfilePage() {
-
-  console.log(
-    "PREVIOUS PROFILE PAGE:",
-    {
-      currentPage: profileSearchPage,
-      searchType: profileSearchType,
-      district: profileSearchDistrict,
-      education: profileSearchEducation,
-      income: profileSearchIncome
-    }
-  );
-
 
   // Already on first page
   if (
@@ -2643,18 +2537,6 @@ function previousProfilePage() {
 
 function nextProfilePage() {
 
-  console.log(
-    "NEXT PROFILE PAGE:",
-    {
-      currentPage: profileSearchPage,
-      searchType: profileSearchType,
-      district: profileSearchDistrict,
-      education: profileSearchEducation,
-      income: profileSearchIncome
-    }
-  );
-
-
   // Go to next page
   profileSearchPage =
     Number(
@@ -2673,32 +2555,7 @@ function nextProfilePage() {
 
 function loadCurrentProfileSearchPage() {
 
-  console.log(
-    "LOAD PROFILE SEARCH PAGE:",
-    {
-      type:
-        profileSearchType,
-
-      district:
-        profileSearchDistrict,
-
-      education:
-        profileSearchEducation,
-
-      income:
-        profileSearchIncome,
-
-      page:
-        profileSearchPage,
-
-      userMobile:
-        profileUserMobile
-    }
-  );
-
-
   showTyping();
-
 
   google.script.run
 
@@ -2706,13 +2563,6 @@ function loadCurrentProfileSearchPage() {
       function(result) {
 
         hideTyping();
-
-
-        console.log(
-          "PROFILE SEARCH PAGE RESULT:",
-          result
-        );
-
 
         if (
           !result ||
@@ -3772,7 +3622,6 @@ function reactToProfile(
   button,
 ) {
 
-document.querySelectorAll(".profile-card").length
   // ==========================================
   // VERIFIED USER ONLY
   // ==========================================
@@ -3816,12 +3665,6 @@ document.querySelectorAll(".profile-card").length
 
     .withSuccessHandler(
       function(result) {
-        console.log("SAVE RESULT:", result);
-
-        console.log(
-          "SAVE PROFILE REACTION RESULT:",
-          result
-        );
 
         if (button) {
           button.disabled = false;
@@ -3865,15 +3708,11 @@ document.querySelectorAll(".profile-card").length
           result.reaction === "LIKE"
         ) {
 
-        console.log("lastSearchProfiles", lastSearchProfiles);
-
          updateReactionButtons(
               type,
               profileId,
               result.relationship
           );
-
-          // refreshCurrentProfileScreen();
 
         }
 
@@ -3886,16 +3725,11 @@ document.querySelectorAll(".profile-card").length
           result.reaction === "DISLIKE"
         ) {
 
-        console.log("lastSearchProfiles DDDDD", lastSearchProfiles);
-        
-
-       updateReactionButtons(
-            type,
-            profileId,
-            result.relationship
-        );
-
-        // refreshCurrentProfileScreen();
+          updateReactionButtons(
+                type,
+                profileId,
+                result.relationship
+            );
 
         }
 
@@ -3953,6 +3787,27 @@ document.querySelectorAll(".profile-card").length
 }
 
 
+function updateProfileReactionState(
+    profile,
+    relationship
+) {
+
+    if (
+        !profile ||
+        !relationship
+    ) {
+        return;
+    }
+
+    profile.relationship =
+        relationship;
+
+    profile.reaction =
+        relationship.canLike
+            ? ""
+            : "LIKE";
+}
+
 
 // ==========================================
 // REFRESH PROFILE ACTIONS
@@ -3987,8 +3842,6 @@ function updateReactionButtons(
         "_" +
         String(profileId);
 
-    console.log("Updating:", key);
-
     // ========================================
     // FIND ACTION CONTAINER
     // ========================================
@@ -4015,14 +3868,14 @@ function updateReactionButtons(
 
     let profile = null;
 
-    if (
-        Array.isArray(
-            window.lastRenderedProfiles
-        )
-    ) {
+                if (
+                    Array.isArray(
+                        lastRenderedProfiles
+                    )
+                ) {
 
-        profile =
-            window.lastRenderedProfiles.find(function(p){
+                  profile =
+                  lastRenderedProfiles.find(function(p){
 
                 return (
 
@@ -4044,11 +3897,6 @@ function updateReactionButtons(
 
     }
 
-    console.log(
-        "Matched Profile:",
-        profile
-    );
-
     if (!profile) {
 
         console.warn(
@@ -4063,16 +3911,8 @@ function updateReactionButtons(
     // UPDATE LOCAL STATE
     // ========================================
 
-    profile.relationship =
-        relationship;
-
-    profile.reaction =
-        relationship.canLike
-            ? ""
-            : "LIKE";
-
-    console.log(
-        "Relationship:",
+    updateProfileReactionState(
+        profile,
         relationship
     );
 
@@ -4091,41 +3931,6 @@ function updateReactionButtons(
             container.outerHTML = html;
 
         });
-
-
-
-    // ========================================
-    // REPLACE DOM
-    // ========================================
-
-
-
-    // ========================================
-    // VERIFY DOM
-    // ========================================
-
-    setTimeout(function(){
-
-        const updated =
-
-            document.querySelector(
-                `[data-actions="${key}"]`
-            );
-
-        console.log(
-            "UPDATED DOM:",
-            updated
-        );
-
-        if (updated) {
-
-            console.log(
-                updated.outerHTML
-            );
-
-        }
-
-    },100);
 
 }
 
@@ -4184,19 +3989,7 @@ function showLikedProfiles() {
 
   }
 
-
-  // ==========================================
-  // 2. VERIFIED USER
-  // ==========================================
-
-  console.log(
-    "LOADING LIKED PROFILES FOR:",
-    profileUserMobile
-  );
-
-
   showTyping();
-
 
   // ==========================================
   // 3. LOAD LIKED PROFILES FROM SERVER
@@ -4208,13 +4001,6 @@ function showLikedProfiles() {
       function(result) {
 
         hideTyping();
-
-
-        console.log(
-          "LIKED PROFILES RESULT:",
-          result
-        );
-
 
         // ======================================
         // INVALID RESPONSE
@@ -4373,11 +4159,6 @@ function scrollProfileSectionToTop(
       !section
     ) {
 
-      console.log(
-        "Scroll target not found:",
-        sectionId
-      );
-
       return;
 
     }
@@ -4408,12 +4189,6 @@ function scrollProfileSectionToTop(
         "smooth"
 
     });
-
-
-    console.log(
-      "SCROLLED TO:",
-      sectionId
-    );
 
   }, 300);
 
@@ -4568,18 +4343,7 @@ function displayLikedProfileCard(
 
       <div class="profile-actions">
 
-        <button
-          type="button"
-          class="view-profile-btn"
-          onclick="viewFullProfile(
-            '${safeType}',
-            '${safeId}'
-          )"
-        >
-
-          👤 View Full Profile
-
-        </button>
+          ${buildViewProfileButton(profile)}
 
       </div>
 
@@ -4666,10 +4430,6 @@ function changeLikedProfileToDislike(
   ownerMobile,
   button
 ) {
-
-  console.log("type",type);
-  console.log("profileId",profileId);
-  console.log("profileName",profileName);
 
   if (
     !profileAccessVerified
@@ -4821,19 +4581,7 @@ function showDislikedProfiles() {
     return;
   }
 
-
-  // ==========================================
-  // 2. VERIFIED USER
-  // ==========================================
-
-  console.log(
-    "LOADING DISLIKED PROFILES FOR:",
-    profileUserMobile
-  );
-
-
   showTyping();
-
 
   // ==========================================
   // 3. LOAD DISLIKED PROFILES
@@ -4845,13 +4593,6 @@ function showDislikedProfiles() {
       function(result) {
 
         hideTyping();
-
-
-        console.log(
-          "DISLIKED PROFILES RESULT:",
-          result
-        );
-
 
         // ======================================
         // INVALID RESPONSE
@@ -5146,20 +4887,7 @@ function displayDislikedProfileCard(
 
       <div class="profile-actions">
 
-        <button
-          type="button"
-          class="view-profile-btn"
-          onclick="
-            viewFullProfile(
-              '${safeType}',
-              '${safeId}'
-            )
-          "
-        >
-
-          👤 View Full Profile
-
-        </button>
+      ${buildViewProfileButton(profile)}
 
       </div>
 
@@ -5220,13 +4948,6 @@ function changeDislikedProfileToLike(
   ownerMobile,
   button
 ) {
-
-  console.log({
-    ownerMobile: ownerMobile,
-    type: type,
-    profileId: profileId,
-    profileName: profileName
-});
 
   if (
     !profileAccessVerified
@@ -5381,47 +5102,6 @@ function buildProfileActionButtons(
         </div>
 
     `;
-
-}
-
-
-function refreshCurrentProfileScreen() {
-
-    switch(currentProfileScreen){
-
-        case "SEARCH":
-
-            displayProfileResults(
-
-                lastSearchProfiles,
-
-                lastSearchPage,
-
-                lastSearchPageSize
-
-            );
-
-            break;
-
-        case "LIKES_RECEIVED":
-
-            showLikesReceived();
-
-            break;
-
-        case "LIKED":
-
-            showLikedProfiles();
-
-            break;
-
-        case "DISLIKED":
-
-            showDislikedProfiles();
-
-            break;
-
-    }
 
 }
 
