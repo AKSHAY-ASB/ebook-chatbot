@@ -1,13 +1,4 @@
-// function saveAPIKey(){
 
-// PropertiesService
-// .getScriptProperties()
-// .setProperty(
-// "OPENAI_KEY",
-// "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"
-// );
-
-// }
 
 
 function doGet() {
