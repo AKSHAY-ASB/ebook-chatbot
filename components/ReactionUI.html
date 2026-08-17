@@ -1,0 +1,161 @@
+<script>
+
+// ==========================================
+// LIKE BUTTON
+// ==========================================
+
+function buildLikeButton(
+    profile,
+    relationship
+) {
+    relationship =
+        relationship || {};
+
+    const profileType =
+        profile.viewerProfileType ||
+        profile.type ||
+        "";
+
+    const profileId =
+        profile.viewerProfileId ||
+        profile.id ||
+        "";
+
+    const profileName =
+        profile.viewerName ||
+        profile.name ||
+        "";
+
+    const ownerMobile =
+        profile.viewerMobile ||
+        profile.ownerMobile ||
+        "";
+
+    let className =
+        "profile-reaction-btn";
+
+    if (
+        relationship.status ===
+        "MUTUAL_LIKE"
+    ) {
+
+        className +=
+            " mutual";
+
+    }
+
+    else if (
+
+        relationship.status ===
+        "OUTGOING_LIKE"
+
+    ) {
+
+        className +=
+            " liked";
+
+    }
+
+    return `
+
+        <button
+            type="button"
+
+            class="${className}"
+
+            ${relationship.canLike === false ? "disabled" : ""}
+
+            onclick="reactToProfile(
+
+                '${escapeJsValue(profileType)}',
+
+                '${escapeJsValue(profileId)}',
+
+                '${escapeJsValue(profileName)}',
+
+                '${escapeJsValue(ownerMobile)}',
+
+                'LIKE',
+
+                this
+
+            )"
+
+        >
+
+            ${relationship.likeLabel || "♡ Like"}
+
+        </button>
+
+    `;
+
+}
+
+
+// ==========================================
+// DISLIKE BUTTON
+// ==========================================
+
+function buildDislikeButton(
+    profile,
+    relationship
+) {
+    relationship =
+        relationship || {};
+
+    const profileType =
+        profile.viewerProfileType ||
+        profile.type ||
+        "";
+
+    const profileId =
+        profile.viewerProfileId ||
+        profile.id ||
+        "";
+
+    const profileName =
+        profile.viewerName ||
+        profile.name ||
+        "";
+
+    const ownerMobile =
+        profile.viewerMobile ||
+        profile.ownerMobile ||
+        "";
+
+    return `
+
+        <button
+            type="button"
+
+            class="profile-reaction-btn"
+
+            ${relationship.canDislike === false ? "disabled" : ""}
+
+            onclick="reactToProfile(
+
+                '${escapeJsValue(profileType)}',
+
+                '${escapeJsValue(profileId)}',
+
+                '${escapeJsValue(profileName)}',
+
+                '${escapeJsValue(ownerMobile)}',
+
+                'DISLIKE',
+
+                this
+
+            )"
+
+        >
+
+            ${relationship.dislikeLabel || "👎 Dislike"}
+
+        </button>
+
+    `;
+
+}
+
+</script>

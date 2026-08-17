@@ -1,0 +1,830 @@
+<script>
+
+// ==========================================
+// RECEIVED INTERESTS
+// ==========================================
+
+function showReceivedInterests() {
+
+        // ==========================================
+        // VERIFICATION CHECK
+        // ==========================================
+
+        if (
+          !profileAccessVerified ||
+          !profileUserMobile
+        ) {
+
+    // Remember which category user clicked
+    pendingProfileCategory =
+      "receivedInterests";
+
+
+    botMessage(`
+
+      🔐 <b>Verification Required</b>
+
+      <br><br>
+
+      📥 Received Interests पाहण्यासाठी
+      प्रथम Registered Mobile Number Verify करा.
+
+      <br><br>
+
+      Mobile verification पूर्ण झाल्यानंतर
+      तुमचे Received Interests
+      आपोआप उघडतील.
+
+    `);
+
+
+    // ========================================
+    // USE EXISTING MOBILE VERIFICATION FLOW
+    // ========================================
+
+    chatbotState =
+      "profile_mobile_verification";
+
+
+    const input =
+      document.getElementById("message");
+
+
+    if (input) {
+
+      input.placeholder =
+        "Enter registered mobile number...";
+
+
+      input.focus();
+
+    }
+
+
+    return;
+
+  }
+
+
+  // ==========================================
+  // VERIFIED USER
+  // ==========================================
+
+  pendingProfileCategory = "";
+
+
+  console.log(
+    "LOADING RECEIVED INTERESTS FOR:",
+    profileUserMobile
+  );
+
+
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+
+        console.log(
+          "RECEIVED INTERESTS RESULT:",
+          result
+        );
+
+
+        if (!result) {
+
+          botMessage(
+            "⚠️ Received Interests response not received."
+          );
+
+          return;
+
+        }
+
+
+        if (
+          result.success !== true
+        ) {
+
+          botMessage(
+            "⚠️ " +
+            (
+              result.message ||
+              "Unable to load Received Interests."
+            )
+          );
+
+          return;
+
+        }
+
+
+        // ======================================
+        // NO RECEIVED INTERESTS
+        // ======================================
+
+        if (
+          !result.interests ||
+          result.interests.length === 0
+        ) {
+
+          botMessage(`
+
+            📥 <b>Received Interests</b>
+
+            <br><br>
+
+            तुम्हाला अजून कोणतीही
+            Interest Request आलेली नाही.
+
+          `);
+
+
+        showReceivedInterestActions();
+
+
+          return;
+
+        }
+
+
+        // ======================================
+        // RECEIVED INTERESTS FOUND
+        // ======================================
+
+        botMessage(`
+
+          📥 <b>Received Interests</b>
+
+          <br><br>
+
+          तुम्हाला
+          <b>${result.totalCount}</b>
+          Interest Request${
+            result.totalCount === 1
+              ? ""
+              : "s"
+          }
+          आलेल्या आहेत.
+
+        `);
+
+
+        displayReceivedInterests(
+          result.interests
+        );
+
+
+      showReceivedInterestActions();
+
+
+        scrollChat();
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+
+        console.error(
+          "Received Interests Error:",
+          error
+        );
+
+
+        botMessage(
+          "⚠️ Received Interests load करताना समस्या आली."
+        );
+
+      }
+    )
+
+
+    .getReceivedInterests(
+      profileUserMobile
+    );
+
+}
+
+
+function displayReceivedInterests(
+  interests
+) {
+
+  if (!Array.isArray(interests) || interests.length === 0) {
+    return;
+  }
+
+  interests.forEach(function(interest) {
+
+    const senderName =
+      escapeHtml(interest.senderName || "Profile");
+
+    const senderId =
+      escapeHtml(interest.senderId || "");
+
+    const senderType =
+      String(interest.senderType || "")
+        .trim()
+        .toLowerCase();
+
+    const safeType =
+      escapeJsValue(senderType);
+
+    const safeId =
+      escapeJsValue(interest.senderId || "");
+
+    const safeInterestId =
+      escapeJsValue(interest.interestId || "");
+
+    const currentStatus =
+      String(interest.status || "PENDING")
+        .trim()
+        .toUpperCase();
+
+        let contactButtonHtml = "";
+
+        if (currentStatus === "ACCEPTED") {
+
+          contactButtonHtml = `
+
+            <button
+              type="button"
+              class="received-view-profile-btn"
+              onclick="viewProfileContact(
+                '${safeType}',
+                '${safeId}'
+              )"
+            >
+
+              ☎ View Contact Details
+
+            </button>
+
+          `;
+
+        }
+      
+
+    let statusHtml = "⏳ Pending";
+
+    if (currentStatus === "ACCEPTED") {
+      statusHtml = "❤️ Accepted";
+    }
+    else if (currentStatus === "DECLINED") {
+      statusHtml = "Not Proceeding";
+    }
+
+    let decisionButtons = "";
+
+    if (currentStatus === "PENDING") {
+
+      decisionButtons = `
+
+        <div class="received-decision-actions">
+
+          <button
+            type="button"
+            class="interest-accept-btn"
+            onclick="respondToReceivedInterest(
+              '${safeInterestId}',
+              'ACCEPTED',
+              this
+            )"
+          >
+            ❤️ Accept
+          </button>
+
+          <button
+            type="button"
+            class="interest-decline-btn"
+            onclick="respondToReceivedInterest(
+              '${safeInterestId}',
+              'DECLINED',
+              this
+            )"
+          >
+            ✖ Decline
+          </button>
+
+        </div>
+
+      `;
+    }
+
+    botMessage(`
+
+      <div class="received-interest-card">
+
+        <div class="received-interest-icon">
+          💌
+        </div>
+
+        <div class="received-interest-title">
+          New Interest Request
+        </div>
+
+        <div class="received-interest-name">
+          ${senderName}
+        </div>
+
+        <div class="received-interest-id">
+          Profile ID:
+          <b>${senderId}</b>
+        </div>
+
+        <div class="received-interest-status">
+          Status:
+          <b>${statusHtml}</b>
+        </div>
+
+        <div class="received-interest-actions">
+
+          <button
+            type="button"
+            class="received-view-profile-btn"
+            onclick="viewFullProfile(
+              '${safeType}',
+              '${safeId}'
+            )"
+          >
+            👤 View Full Profile
+          </button>
+
+        </div>
+
+        <div class="sent-interest-actions">
+
+            ${contactButtonHtml}
+
+          </div>
+
+        ${decisionButtons}
+
+      </div>
+
+    `);
+
+  });
+
+}
+
+
+function respondToReceivedInterest(
+  interestId,
+  newStatus,
+  button
+) {
+
+  // ========================================
+  // 1. NORMALIZE VALUES
+  // ========================================
+
+  interestId =
+    String(
+      interestId || ""
+    ).trim();
+
+
+  newStatus =
+    String(
+      newStatus || ""
+    )
+    .trim()
+    .toUpperCase();
+
+
+  // ========================================
+  // 2. VALIDATE INTEREST DATA
+  // ========================================
+
+  if (
+    !interestId ||
+    (
+      newStatus !== "ACCEPTED" &&
+      newStatus !== "DECLINED"
+    )
+  ) {
+
+    botMessage(
+      "⚠️ Interest information is missing."
+    );
+
+    return;
+
+  }
+
+
+  // ========================================
+  // 3. VERIFIED USER REQUIRED
+  // ========================================
+
+  if (
+    !profileAccessVerified ||
+    !profileUserMobile
+  ) {
+
+    botMessage(
+      "🔐 कृपया प्रथम Registered Mobile Number Verify करा."
+    );
+
+    return;
+
+  }
+
+
+  // ========================================
+  // 4. DEBUG CURRENT VERIFIED USER
+  // IMPORTANT FOR AUTHORIZATION TEST
+  // ========================================
+
+  console.log(
+    "ACCEPT/DECLINE FRONTEND DEBUG:",
+    {
+      profileAccessVerified:
+        profileAccessVerified,
+
+      profileUserMobile:
+        profileUserMobile,
+
+      profileUserName:
+        profileUserName,
+
+      profileUserRegisteredSheet:
+        profileUserRegisteredSheet,
+
+      interestId:
+        interestId,
+
+      newStatus:
+        newStatus
+    }
+  );
+
+
+  // ========================================
+  // 5. DOUBLE CLICK PROTECTION
+  // ========================================
+
+  if (
+    button &&
+    button.dataset.processing === "true"
+  ) {
+
+    return;
+
+  }
+
+
+  if (button) {
+
+    button.dataset.processing =
+      "true";
+
+
+    button.disabled =
+      true;
+
+
+    button.innerHTML =
+      newStatus === "ACCEPTED"
+        ? "Accepting..."
+        : "Updating...";
+
+  }
+
+
+  // ========================================
+  // 6. SHOW TYPING
+  // ========================================
+
+  showTyping();
+
+
+  // ========================================
+  // 7. CALL BACKEND
+  // ========================================
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+
+        console.log(
+          "UPDATE INTEREST RESULT:",
+          result
+        );
+
+
+        // ==================================
+        // NO RESPONSE
+        // ==================================
+
+        if (!result) {
+
+          resetReceivedInterestButton(
+            button,
+            newStatus
+          );
+
+
+          botMessage(
+            "⚠️ Interest update response not received."
+          );
+
+
+          return;
+
+        }
+
+
+        // ==================================
+        // SUCCESS
+        // ==================================
+
+        if (
+          result.success === true
+        ) {
+
+          if (
+            newStatus === "ACCEPTED"
+          ) {
+
+            botMessage(`
+
+              <div class="interest-success-message">
+
+                ❤️ <b>Interest Accepted</b>
+
+                <br><br>
+
+                तुम्ही ही Interest Request
+                Accept केली आहे.
+
+              </div>
+
+            `);
+
+          }
+
+
+          else {
+
+            botMessage(`
+
+              <div class="interest-info-message">
+
+                Interest Request
+                <b>Declined</b> केली आहे.
+
+              </div>
+
+            `);
+
+          }
+
+
+          // ==================================
+          // RELOAD RECEIVED INTERESTS
+          // ==================================
+
+          showReceivedInterests();
+
+
+          return;
+
+        }
+
+
+        // ==================================
+        // ALREADY UPDATED
+        // ==================================
+
+        if (
+          result.code ===
+          "STATUS_ALREADY_UPDATED"
+        ) {
+
+          botMessage(`
+
+            ℹ️ ही Interest Request
+            आधीच update केलेली आहे.
+
+            <br><br>
+
+            Status:
+
+            <b>
+              ${escapeHtml(
+                result.status || ""
+              )}
+            </b>
+
+          `);
+
+
+          showReceivedInterests();
+
+
+          return;
+
+        }
+
+
+        // ==================================
+        // NOT AUTHORIZED
+        // ==================================
+
+        if (
+          result.code ===
+          "NOT_AUTHORIZED"
+        ) {
+
+          resetReceivedInterestButton(
+            button,
+            newStatus
+          );
+
+
+          console.error(
+            "INTEREST NOT AUTHORIZED:",
+            {
+              profileUserMobile:
+                profileUserMobile,
+
+              profileUserName:
+                profileUserName,
+
+              interestId:
+                interestId
+            }
+          );
+
+
+          botMessage(
+            "⚠️ " +
+            (
+              result.message ||
+              "You are not authorized to update this Interest."
+            )
+          );
+
+
+          return;
+
+        }
+
+
+        // ==================================
+        // OTHER ERROR
+        // ==================================
+
+        resetReceivedInterestButton(
+          button,
+          newStatus
+        );
+
+
+        botMessage(
+
+          "⚠️ " +
+          (
+            result.message ||
+            "Interest update करता आला नाही."
+          )
+
+        );
+
+      }
+    )
+
+
+    // ========================================
+    // FAILURE HANDLER
+    // ========================================
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+
+        resetReceivedInterestButton(
+          button,
+          newStatus
+        );
+
+
+        console.error(
+          "Update Received Interest Error:",
+          error
+        );
+
+
+        botMessage(
+          "⚠️ Interest update करताना समस्या आली."
+        );
+
+      }
+    )
+
+
+    // ========================================
+    // BACKEND FUNCTION
+    // ========================================
+
+    .updateInterestStatus(
+      profileUserMobile,
+      interestId,
+      newStatus
+    );
+
+}
+
+
+function resetReceivedInterestButton(
+  button,
+  status
+) {
+
+  if (!button) {
+
+    return;
+
+  }
+
+
+  button.dataset.processing =
+    "false";
+
+
+  button.disabled =
+    false;
+
+
+  button.innerHTML =
+    status === "ACCEPTED"
+      ? "❤️ Accept"
+      : "✖ Decline";
+
+}
+
+
+function showReceivedInterestActions() {
+
+  const chat =
+    document.getElementById("chat");
+
+
+  if (!chat) {
+
+    return;
+
+  }
+
+
+  chat.innerHTML += `
+
+    <div class="menu">
+
+      <button
+        type="button"
+        onclick="showReceivedInterests()"
+      >
+
+        🔄 Refresh Interests
+
+      </button>
+
+
+      <button
+        type="button"
+        onclick="showMenu()"
+      >
+
+        🏠 Main Menu
+
+      </button>
+
+    </div>
+
+  `;
+
+
+  scrollChat();
+
+}
+
+</script>

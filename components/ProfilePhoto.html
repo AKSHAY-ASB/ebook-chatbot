@@ -1,0 +1,171 @@
+<script>
+
+// ==========================================
+// FILE : ProfilePhoto.html
+// MODULE : Profile Components
+// PURPOSE : Build reusable profile photo
+//
+// RESPONSIBILITY
+//  - Render profile photo
+//  - Render photo placeholder
+//  - Handle image load failure
+//
+// DEPENDS ON
+//  - getProfileIcon()
+//
+// USED BY
+//  - displayProfileResults()
+// ==========================================
+
+
+// ==========================================
+// CREATE PROFILE PHOTO PLACEHOLDER
+// ==========================================
+
+function createProfilePhotoPlaceholder(
+
+    profileIcon
+
+) {
+
+    return `
+
+        <div class="profile-photo-placeholder">
+
+            ${profileIcon}
+
+        </div>
+
+    `;
+
+}
+
+
+// ==========================================
+// CREATE PROFILE IMAGE
+// ==========================================
+
+function createProfileImage(
+
+    photoUrl,
+
+    profileIcon
+
+) {
+
+    return `
+
+        <img
+
+            src="${photoUrl}"
+
+            class="profile-photo"
+
+            alt="Profile Photo"
+
+            loading="lazy"
+
+            onerror="
+
+                this.style.display='none';
+
+                this.nextElementSibling.style.display='flex';
+
+            "
+
+        >
+
+        <div
+
+            class="profile-photo-placeholder"
+
+            style="display:none;"
+
+        >
+
+            ${profileIcon}
+
+        </div>
+
+    `;
+
+}
+
+
+// ==========================================
+// BUILD PROFILE PHOTO
+// ==========================================
+
+function buildProfilePhoto(
+
+    options
+
+) {
+
+    options = options || {};
+
+    const photo =
+        options.photo || "";
+
+    const profileType =
+        String(
+            options.profileType || ""
+        )
+        .trim()
+        .toLowerCase();
+
+    const profileIcon =
+        getProfileIcon(
+            profileType
+        );
+
+    const markerId =
+        options.markerId || "";
+
+    let photoContent = "";
+
+    if (photo) {
+
+        photoContent =
+            createProfileImage(
+
+                photo,
+
+                profileIcon
+
+            );
+
+    }
+
+    else {
+
+        photoContent =
+            createProfilePhotoPlaceholder(
+
+                profileIcon
+
+            );
+
+    }
+
+    return `
+
+        <div
+
+            class="profile-photo-container"
+
+            ${markerId
+                ? `id="${markerId}"`
+                : ""}
+
+        >
+
+            ${photoContent}
+
+        </div>
+
+    `;
+
+}
+
+</script>

@@ -1,0 +1,106 @@
+<script>
+
+// ==========================================
+// FILE : ProfileCardBuilder.html
+// MODULE : Profile Components
+// PURPOSE : Build reusable profile card
+//
+// RESPONSIBILITY
+//  - Assemble profile card sections
+//  - Render profile actions
+//  - Render interest UI
+//  - Render reaction UI
+//
+// DEPENDS ON
+//  - ProfileHeader.html
+//  - ProfilePhoto.html
+//  - ProfileDetails.html
+//
+// USED BY
+//  - displayProfileResults()
+// ==========================================
+
+
+// ==========================================
+// BUILD PROFILE CARD
+// ==========================================
+
+function buildProfileCard(
+
+    options
+
+) {
+
+    options =
+        options || {};
+
+    const photoHtml =
+        options.photoHtml || "";
+
+    const headerHtml =
+        options.headerHtml || "";
+
+    const detailsHtml =
+        options.detailsHtml || "";
+
+    const profileActionsHtml =
+        options.profileActionsHtml || "";
+
+    const interestStatusHtml =
+        options.interestStatusHtml || "";
+
+    const interestActionHtml =
+        options.interestActionHtml || "";
+
+    const reactionHtml =
+        options.reactionHtml || "";
+
+    return `
+
+        <div class="profile-card">
+
+            ${photoHtml}
+
+            ${headerHtml}
+
+            ${detailsHtml}
+
+            ${profileActionsHtml}
+
+            ${
+                interestStatusHtml
+                    ? `
+                        <div class="interest-profile-action">
+
+                            ${interestStatusHtml}
+
+                        </div>
+                    `
+                    : ""
+            }
+
+            ${
+                interestActionHtml
+                    ? `
+                        <div class="interest-profile-action">
+
+                            ${interestActionHtml}
+
+                        </div>
+                    `
+                    : ""
+            }
+
+            <div class="profile-reaction-actions">
+
+                ${reactionHtml}
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+</script>

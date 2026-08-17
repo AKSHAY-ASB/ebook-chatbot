@@ -1,12 +1,27 @@
 <script>
-
-/* =========================================
+  /* =========================================
    CHATBOT START
 ========================================= */
 let chatbotState = "normal";
 let profileSearchType = "";
 let profileSearchDistrict = "";
 let profileSearchPage = 1;
+let profileSearchEducation = "";
+let profileSearchIncome = "";
+
+let profileAccessVerified = false;
+
+let profileUserMobile = "";
+
+let profileUserName = "";
+
+let profileUserRegisteredSheet = "";
+
+let pendingProfileSearchType = "";
+
+let pendingProfileCategory = "";
+
+let lastRenderedProfiles = [];
 
 window.onload = function () {
 
@@ -57,6 +72,7 @@ function sendMessage() {
   }
 
 
+  // Show user's message
   userMessage(text);
 
   input.value = "";
@@ -76,8 +92,71 @@ function sendMessage() {
     verifyEbookMobile(text);
 
     return;
-
   }
+
+
+  /*
+   * ===================================
+   * PROFILE SEARCH MOBILE VERIFICATION
+   * ===================================
+   */
+
+if (
+  chatbotState ===
+  "profile_mobile_verification"
+) {
+
+  // Remove spaces, +91, hyphens, etc.
+  let mobile =
+    text.replace(/\D/g, "");
+
+
+  // Handle 91XXXXXXXXXX
+  if (
+    mobile.length === 12 &&
+    mobile.startsWith("91")
+  ) {
+
+    mobile =
+      mobile.substring(2);
+  }
+
+
+  // ==========================================
+  // INVALID MOBILE INPUT
+  // ==========================================
+
+  if (
+    !/^[6-9]\d{9}$/.test(mobile)
+  ) {
+
+    botMessage(`
+
+      ⚠️ <b>Invalid Mobile Number</b>
+
+      <br><br>
+
+      कृपया नोंदणी करताना दिलेला
+      <b>10 अंकी मोबाईल नंबर</b> टाका.
+
+      <br><br>
+
+      उदाहरण: <b>9876543210</b>
+
+    `);
+
+    return;
+  }
+
+
+  // ==========================================
+  // VALID MOBILE FORMAT
+  // ==========================================
+
+  verifyProfileMobile(mobile);
+
+  return;
+}
 
 
   /*
@@ -92,7 +171,7 @@ function sendMessage() {
   google.script.run
 
     .withSuccessHandler(
-      function (result) {
+      function(result) {
 
         hideTyping();
 
@@ -118,19 +197,61 @@ function sendMessage() {
 
           }
 
-        } else {
-
-          botMessage(
-            "❌ Sorry, I couldn't find an answer."
-          );
-
         }
+
+          else {
+
+                const invalidMessageId =
+              "invalid-chat-message-" +
+              Date.now();
+
+
+            botMessage(`
+
+              <div id="${invalidMessageId}">
+
+                👋 <b>Welcome to Devang Pustika</b>
+
+                <br><br>
+
+                माफ करा, तुमचा प्रश्न मला समजला नाही.
+
+                <br><br>
+
+                मी तुम्हाला खालील पर्यायांमध्ये मदत करू शकतो.
+
+                <br><br>
+
+                कृपया एक पर्याय निवडा.
+
+              </div>
+
+            `);
+
+
+            // Scroll specifically to invalid message
+            setTimeout(
+              function() {
+
+                scrollToChatSection(
+                  invalidMessageId
+                );
+
+              },
+              100
+            );
+
+
+            // Show main chatbot menu again
+            showMenu();
+
+          }
 
       }
     )
 
     .withFailureHandler(
-      function (error) {
+      function(error) {
 
         hideTyping();
 
@@ -171,7 +292,133 @@ function botMessage(message) {
 
 }
 
+function getSelectedFiltersHtml() {
 
+  // ==========================================
+  // PROFILE TYPE
+  // ==========================================
+
+  let typeLabel = "👤 Other";
+
+  if (profileSearchType === "bride") {
+    typeLabel = "👰 Bride";
+  }
+
+  else if (profileSearchType === "groom") {
+    typeLabel = "🤵 Groom";
+  }
+
+
+  // ==========================================
+  // DISTRICT
+  // ==========================================
+
+  let districtLabel =
+    profileSearchDistrict === "all"
+      ? "सर्व जिल्हे"
+      : profileSearchDistrict;
+
+
+  // ==========================================
+  // EDUCATION
+  // ==========================================
+
+  const educationLabels = {
+
+    Engineering:
+      "Engineering & Technology",
+
+    Medical:
+      "Medical & Healthcare",
+
+    Commerce:
+      "Commerce & Management",
+
+    Arts:
+      "Arts & Humanities",
+
+    Science:
+      "Science & Agriculture",
+
+    Diploma:
+      "Diploma / ITI / Technical",
+
+    Law:
+      "Law / Architecture / Design",
+
+    General:
+      "General Education",
+
+    all:
+      "कोणतेही शिक्षण"
+
+  };
+
+
+  const educationLabel =
+    educationLabels[profileSearchEducation] ||
+    profileSearchEducation ||
+    "कोणतेही शिक्षण";
+
+
+  // ==========================================
+  // INCOME
+  // ==========================================
+
+  let incomeLabel = "कोणतेही उत्पन्न";
+
+
+  if (
+    profileSearchIncome &&
+    profileSearchIncome !== "all"
+  ) {
+
+    incomeLabel =
+      profileSearchIncome
+        .replace("मासिक उत्पन्न", "")
+        .replace("रु.", "₹")
+        .trim();
+
+  }
+
+
+  // ==========================================
+  // RETURN FILTER BOX
+  // ==========================================
+
+  return `
+
+    <div class="selected-filters">
+
+      <div class="selected-filters-title">
+        🔎 <b>Selected Filters</b>
+      </div>
+
+      <div class="selected-filter-row">
+        <b>Profile:</b>
+        ${typeLabel}
+      </div>
+
+      <div class="selected-filter-row">
+        <b>📍 District:</b>
+        ${escapeHtml(districtLabel)}
+      </div>
+
+      <div class="selected-filter-row">
+        <b>🎓 Education:</b>
+        ${escapeHtml(educationLabel)}
+      </div>
+
+      <div class="selected-filter-row">
+        <b>💰 Monthly Income:</b>
+        ${escapeHtml(incomeLabel)}
+      </div>
+
+    </div>
+
+  `;
+
+}
 /* =========================================
    USER MESSAGE
 ========================================= */
@@ -251,6 +498,47 @@ function showMenu() {
 
       </button>
 
+      <button
+        class="option-btn"
+        onclick="showLikedProfiles()"
+      >
+        ❤️ Liked Profiles
+      </button>
+
+      <button
+        class="option-btn"
+        onclick="showDislikedProfiles()"
+      >
+        👎 Disliked Profiles
+      </button>
+
+      <button
+        type="button"
+        onclick="showReceivedInterests()"
+      >
+        📥 Received Interests
+      </button>
+
+      <button
+        type="button"
+        onclick="showSentInterests()"
+      >
+        📤 Sent Interests
+      </button>
+
+      <button
+        type="button"
+        id="likesReceivedBtn"
+        class="option-btn"
+        onclick="showLikesReceived()"
+      >
+
+        ❤️ Likes Received
+
+      </button>
+
+      
+
     </div>
 
   `;
@@ -258,6 +546,116 @@ function showMenu() {
   scrollChat();
 
 }
+
+
+    function showLikesReceived() {
+
+      if (!profileAccessVerified) {
+
+        botMessage(`
+
+          🔐 <b>Verification Required</b>
+
+          <br><br>
+
+          Likes पाहण्यासाठी
+          प्रथम Registered Mobile Number Verify करा.
+
+        `);
+
+        return;
+
+      }
+
+          botMessage("⏳ Loading Likes...");
+
+              google.script.run
+
+                .withSuccessHandler(function(result){
+
+                    if (!result.success) {
+
+                        botMessage("तुम्हाला अद्याप कोणतीही Like मिळालेली नाही.");
+
+                        return;
+
+                    }
+
+                    renderLikesReceived(result);
+
+                })
+
+            .withFailureHandler(function(error){
+
+                console.error(error);
+
+                botMessage(
+                    "❌ Likes load करण्यात अडचण आली."
+                );
+
+            })
+
+            .getLikedReceivedProfiles(
+                profileUserMobile
+            );
+
+    }
+
+
+  function renderLikesReceived(result) {
+
+    let html = `
+
+    <div class="profile-card">
+
+        <div class="profile-name">
+
+            ❤️ Likes Received (${result.totalLikes})
+
+        </div>
+
+    `;
+
+    lastRenderedProfiles =
+    result.profiles;
+
+    result.profiles.forEach(function(profile){
+
+        const actionButtons =
+            buildProfileActionButtons(
+
+                profile,
+
+                profile.relationship
+
+            );
+
+        html += `
+
+        <div class="full-profile-row">
+
+            👤 <b>${profile.viewerName}</b><br>
+
+            📅 ${profile.likedAt}
+
+            <br><br>
+
+            ${actionButtons}
+
+            <hr>
+
+        </div>
+
+        `;
+
+    });
+
+        html += `</div>`;
+
+        botMessage(html);
+
+  }
+
 
 function loadVerifiedEbook() {
 
@@ -423,9 +821,6 @@ function verifyEbookMobile(mobile) {
 
       hideTyping();
 
-      console.log("Verification Result:", result);
-
-
       // No response received
       if (!result) {
 
@@ -589,6 +984,61 @@ function verifyEbookMobile(mobile) {
     .verifyEbookUser(mobile);
 
 }
+
+
+function requestProfileSearchAccess(type) {
+
+  pendingProfileSearchType =
+    type;
+
+
+  // ==========================================
+  // ALREADY VERIFIED IN CURRENT SESSION
+  // ==========================================
+
+  if (profileAccessVerified) {
+
+    startProfileSearch(type);
+
+    return;
+  }
+
+
+  // ==========================================
+  // WAIT FOR MOBILE NUMBER
+  // ==========================================
+
+  chatbotState =
+    "profile_mobile_verification";
+
+
+  botMessage(`
+
+    🔐 <b>Profile Search Verification</b>
+
+    <br><br>
+
+    प्रोफाइल शोधण्यासाठी आपला
+    नोंदणीकृत मोबाईल नंबर टाका.
+
+    <br><br>
+
+    📱 <b>10 अंकी मोबाईल नंबर टाका.</b>
+
+  `);
+
+
+  const input =
+    document.getElementById("message");
+
+
+  input.placeholder =
+    "Enter registered mobile number...";
+
+
+  input.focus();
+
+}
 /* =========================================
    MENU CLICK
 ========================================= */
@@ -634,20 +1084,17 @@ function menuClick(option) {
       break;
 
 
-    case "bride":
-
       case "bride":
 
       userMessage(
         "👰 Search Bride"
       );
 
-      startProfileSearch("bride");
+        requestProfileSearchAccess(
+          "bride"
+        );
 
       break;
-
-
-    case "groom":
 
         case "groom":
 
@@ -655,7 +1102,9 @@ function menuClick(option) {
           "🤵 Search Groom"
         );
 
-        startProfileSearch("groom");
+        requestProfileSearchAccess(
+          "groom"
+        );
 
         break;
 
@@ -665,13 +1114,334 @@ function menuClick(option) {
         "👤 Search Other"
       );
 
-      startProfileSearch("other");
+       requestProfileSearchAccess(
+        "other"
+      );
 
       break;  
 
   }
 
 }
+
+
+
+function verifyProfileMobile(mobile) {
+
+  const cleanMobile =
+    mobile.replace(/\D/g, "");
+
+
+  if (cleanMobile.length !== 10) {
+
+    botMessage(
+      "⚠️ कृपया योग्य 10 अंकी मोबाईल नंबर टाका."
+    );
+
+    return;
+
+  }
+
+
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+
+        if (
+          result &&
+          result.verified
+        ) {
+
+  profileAccessVerified =
+    true;
+
+
+   profileUserMobile =
+    String(
+      result.mobile || ""
+    ).trim();
+
+
+    profileUserName =
+    result.name || "";
+
+
+   profileUserRegisteredSheet =
+    result.registeredSheet || "";
+
+    // ==========================================
+    // VERIFIED USER PROFILE
+    // ==========================================
+
+    profileUserType =
+        result.profileType || "";
+
+    profileUserId =
+        result.profileId || "";
+
+    chatbotState =
+      "normal";
+
+
+    botMessage(`
+
+      ✅ <b>Verification Successful</b>
+
+      <br><br>
+
+      नमस्कार
+      <b>${escapeHtml(result.name || "")}</b>
+
+
+    `);
+
+
+  // ========================================
+  // USER CAME FROM LIKED PROFILES
+  // ========================================
+
+  if (
+    pendingProfileCategory === "liked"
+  ) {
+
+    pendingProfileCategory = "";
+
+    showLikedProfiles();
+
+    return;
+
+  }
+
+
+  // ========================================
+  // USER CAME FROM DISLIKED PROFILES
+  // ========================================
+
+  if (
+    pendingProfileCategory === "disliked"
+  ) {
+
+    pendingProfileCategory = "";
+
+    showDislikedProfiles();
+
+    return;
+
+  }
+
+
+      // ========================================
+      // USER WAITING FOR SENT INTERESTS
+      // ========================================
+
+      if (
+        pendingProfileCategory ===
+        "sentInterests"
+      ) {
+
+        pendingProfileCategory = "";
+
+        showSentInterests();
+
+
+        return;
+
+      }
+
+
+    // ========================================
+    // RECEIVED INTERESTS AFTER VERIFICATION
+    // ========================================
+
+    if (
+      pendingProfileCategory ===
+      "receivedInterests"
+    ) {
+
+      pendingProfileCategory = "";
+
+      showReceivedInterests();
+
+
+      return;
+
+    }
+
+
+  // ========================================
+  // NORMAL PROFILE SEARCH FLOW
+  // ========================================
+
+  if (
+    pendingProfileSearchType
+  ) {
+
+    startProfileSearch(
+      pendingProfileSearchType
+    );
+
+    return;
+
+  }
+
+
+  // ========================================
+  // NORMAL VERIFICATION
+  // ========================================
+
+  botMessage(`
+
+    आता तुम्ही प्रोफाइल शोधू शकता.
+
+  `);
+
+  }else {
+
+  // ========================================
+  // MOBILE NOT REGISTERED
+  // ========================================
+
+  profileAccessVerified =
+    false;
+
+
+  profileUserMobile = "";
+
+  profileUserName = "";
+
+  profileUserRegisteredSheet = "";
+
+
+  chatbotState =
+    "normal";
+
+
+  // Clear pending category
+  pendingProfileCategory = "";
+
+
+  botMessage(`
+
+    🔐 <b>Please Login / Verify</b>
+
+    <br><br>
+
+    हा मोबाईल नंबर वधू / वर / इतर
+    नोंदणीमध्ये आढळला नाही.
+
+    <br><br>
+
+    कृपया आपला
+    <b>Registered Mobile Number</b>
+    वापरा.
+
+    <br><br>
+
+    नोंदणी केलेली नसल्यास
+    प्रथम आपली नोंदणी करा.
+
+  `);
+
+
+  // ========================================
+  // YOUR EXISTING REGISTER BUTTON CODE
+  // ========================================
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(data) {
+
+        if (
+          data &&
+          data.registration &&
+          data.registration.url
+        ) {
+
+          const chat =
+            document.getElementById(
+              "chat"
+            );
+
+
+          chat.innerHTML += `
+
+            <div class="menu">
+
+              <button
+                onclick="window.open(
+                  '${data.registration.url}',
+                  '_blank'
+                )"
+              >
+
+                📝 Register Now
+
+              </button>
+
+            </div>
+
+          `;
+
+
+          chat.scrollTop =
+            chat.scrollHeight;
+
+        }
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "Registration Link Error:",
+          error
+        );
+
+      }
+    )
+
+
+    .getChatLinks();
+
+  }
+
+
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+
+        botMessage(
+          "⚠️ Verification करताना समस्या आली. कृपया पुन्हा प्रयत्न करा."
+        );
+
+      }
+    )
+
+
+    .verifyProfileSearchAccess(
+      cleanMobile
+    );
+
+}
+
 
 function startProfileSearch(type) {
 
@@ -682,6 +1452,8 @@ function startProfileSearch(type) {
   profileSearchPage = 1;
 
   chatbotState = "profile_search";
+
+  profileSearchEducation = "";
 
 
   let title = "";
@@ -773,6 +1545,317 @@ function showDistrictOptions() {
 
 }
 
+function showEducationOptions() {
+
+  const chat =
+    document.getElementById("chat");
+
+
+  chat.innerHTML += `
+
+    <div class="menu education-filter-menu">
+
+      <button
+        onclick="selectProfileEducation('Engineering')">
+
+        🎓 Engineering & Technology
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Medical')">
+
+        🩺 Medical & Healthcare
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Commerce')">
+
+        📊 Commerce & Management
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Arts')">
+
+        📚 Arts & Humanities
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Science')">
+
+        🔬 Science & Agriculture
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Diploma')">
+
+        🛠 Diploma / ITI / Technical
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('Law')">
+
+        ⚖️ Law / Architecture / Design
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('General')">
+
+        📖 General Education
+
+      </button>
+
+
+      <button
+        onclick="selectProfileEducation('all')">
+
+        🌐 कोणतेही शिक्षण
+
+      </button>
+
+    </div>
+
+  `;
+
+  scrollChat();
+
+}
+
+
+function selectProfileEducation(education) {
+
+  profileSearchEducation =
+    education;
+
+  profileSearchPage = 1;
+
+
+  const educationLabels = {
+
+    Engineering:
+      "🎓 Engineering & Technology",
+
+    Medical:
+      "🩺 Medical & Healthcare",
+
+    Commerce:
+      "📊 Commerce & Management",
+
+    Arts:
+      "📚 Arts & Humanities",
+
+    Science:
+      "🔬 Science & Agriculture",
+
+    Diploma:
+      "🛠 Diploma / ITI / Technical",
+
+    Law:
+      "⚖️ Law / Architecture / Design",
+
+    General:
+      "📖 General Education",
+
+    all:
+      "🌐 कोणतेही शिक्षण"
+
+  };
+
+
+  userMessage(
+    educationLabels[education] ||
+    education
+  );
+
+
+botMessage(`
+
+  💰 <b>मासिक उत्पन्न निवडा</b>
+
+  <br><br>
+
+  कृपया मासिक उत्पन्नाचा पर्याय निवडा.
+
+`);
+
+showIncomeOptions();
+
+}
+
+function showIncomeOptions() {
+
+  const chat =
+    document.getElementById("chat");
+
+
+  chat.innerHTML += `
+
+    <div class="menu income-filter-menu">
+
+
+      <button
+        onclick="selectProfileIncome('मी सध्या नोकरी करत नाही, त्यामुळे माझे नियमित उत्पन्न नाही.')">
+
+        मी सध्या नोकरी करत नाही, त्यामुळे माझे नियमित उत्पन्न नाही.
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. १०,००० ते १५,०००')">
+
+        ₹१०,००० ते ₹१५,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. १५,००० ते २०,०००')">
+
+        ₹१५,००० ते ₹२०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. २०,००० ते २५,०००')">
+
+        ₹२०,००० ते ₹२५,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. २५,००० ते ३०,०००')">
+
+        ₹२५,००० ते ₹३०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. ३५,००० ते ४०,०००')">
+
+        ₹३५,००० ते ₹४०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. ४५,००० ते ५०,०००')">
+
+        ₹४५,००० ते ₹५०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. ५०,००० ते ७०,०००')">
+
+        ₹५०,००० ते ₹७०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. ७०,००० ते ९०,०००')">
+
+        ₹७०,००० ते ₹९०,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. ९०,००० ते १,००,०००')">
+
+        ₹९०,००० ते ₹१,००,०००
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. १००,०००  पेक्षा जास्त')">
+
+        ₹१,००,००० पेक्षा जास्त
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('मासिक उत्पन्न  रु. २००,०००  पेक्षा जास्त')">
+
+        ₹२,००,००० पेक्षा जास्त
+
+      </button>
+
+
+      <button
+        onclick="selectProfileIncome('all')">
+
+        🌐 कोणतेही उत्पन्न
+
+      </button>
+
+
+    </div>
+
+  `;
+
+
+  scrollChat();
+
+}
+
+function selectProfileIncome(income) {
+
+  profileSearchIncome =
+    income;
+
+  profileSearchPage = 1;
+
+
+  if (income === "all") {
+
+    userMessage(
+      "🌐 कोणतेही उत्पन्न"
+    );
+
+  }
+
+  else {
+
+    let displayIncome =
+      income
+        .replace("मासिक उत्पन्न", "")
+        .replace("रु.", "₹")
+        .trim();
+
+
+    userMessage(
+      "💰 " + displayIncome
+    );
+
+  }
+
+
+  searchChatProfiles();
+
+}
+
+
 function selectProfileDistrict(district) {
 
   profileSearchPage = 1;
@@ -799,8 +1882,18 @@ function selectProfileDistrict(district) {
 
   }
 
+    botMessage(`
 
-  searchChatProfiles();
+    🎓 <b>शिक्षण निवडा</b>
+
+    <br><br>
+
+    कृपया शिक्षणाचा प्रकार निवडा.
+
+  `);
+
+
+  showEducationOptions();
 
 }
 
@@ -883,8 +1976,12 @@ function searchChatProfiles() {
           );
 
 
-              const resultSectionId =
+                  const resultSectionId =
             "profile-results-" + Date.now();
+
+
+          const selectedFiltersHtml =
+            getSelectedFiltersHtml();
 
 
           botMessage(`
@@ -895,51 +1992,60 @@ function searchChatProfiles() {
 
               <br><br>
 
-              Showing profiles
-              <b>${fromProfile} – ${toProfile}</b>
-              of
-              <b>${result.totalCount}</b>
+              ${selectedFiltersHtml}
 
               <br>
 
-              Page
-              <b>${result.page}</b>
-              of
-              <b>${result.totalPages}</b>
+              <div class="result-count">
+
+                Showing profiles
+                <b>${fromProfile} – ${toProfile}</b>
+                of
+                <b>${result.totalCount}</b>
+
+                <br>
+
+                Page
+                <b>${result.page}</b>
+                of
+                <b>${result.totalPages}</b>
+
+              </div>
 
             </div>
 
-          `);
+          `);     
 
           displayProfileResults(
             result.profiles,
             result.page,
             result.pageSize
           );
-
+          
+        saveProfileSearchLog(result);
         showProfilePagination(result);
 
         setTimeout(function() {
 
-  const resultSection =
-    document.getElementById(
-      resultSectionId
-    );
+            const resultSection =
+              document.getElementById(
+                resultSectionId
+              );
 
 
-  if (resultSection) {
+              if (resultSection) {
 
-    resultSection.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
+                resultSection.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start"
+                });
 
-  }
+              }
 
-}, 100);
+          }, 100);
 
-      }
-    )
+        }
+      )
 
 
     .withFailureHandler(
@@ -967,16 +2073,75 @@ function searchChatProfiles() {
     )
 
 
-    .searchProfiles(
+      .searchProfiles(
+        profileSearchType,
+        profileSearchDistrict,
+        profileSearchEducation,
+        profileSearchIncome,
+        profileSearchPage,
+        profileUserMobile
+      );
 
-      profileSearchType,
+}
 
-      profileSearchDistrict,
 
-      "",
+function saveProfileSearchLog(result) {
 
-      profileSearchPage
+  // Only log first page.
+  // Next 10 / Previous 10 ला नवीन search समजणार नाही.
 
+  if (result.page !== 1) {
+
+    return;
+
+  }
+
+
+  const logData = {
+
+  mobile:
+    profileUserMobile,
+
+  name:
+    profileUserName,
+
+  registeredSheet:
+    profileUserRegisteredSheet,
+
+  type:
+    profileSearchType,
+
+  district:
+    profileSearchDistrict,
+
+  education:
+    profileSearchEducation,
+
+  income:
+    profileSearchIncome,
+
+  totalCount:
+    result.totalCount,
+
+  totalPages:
+    result.totalPages
+
+};
+
+
+  google.script.run
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "Profile Log Error:",
+          error
+        );
+
+      }
+    )
+    .logProfileSearch(
+      logData
     );
 
 }
@@ -1050,7 +2215,7 @@ function showProfilePagination(result) {
 
 
     <button
-      onclick="showMenu()">
+      onclick="showMenu()" style="margin-bottom:10px">
 
       🏠 Main Menu
 
@@ -1074,254 +2239,414 @@ function showProfilePagination(result) {
 
 }
 
-function nextProfilePage() {
 
-  profileSearchPage =
-    profileSearchPage + 1;
+function displayProfileResults(
+
+    profiles,
+
+    page,
+
+    pageSize
+
+) {
+
+    const pageScrollMarkerId =
+        "profile-search-page-" +
+        String(page) +
+        "-" +
+        Date.now();
 
 
-  userMessage(
-    "Next 10 Profiles ▶"
-  );
+    lastRenderedProfiles =
+    profiles;
 
 
-  searchChatProfiles();
+    let cardsHtml = "";
+
+
+    profiles.forEach(
+        function(profile, index) {
+
+
+            // ========================================
+            // PROFILE DISPLAY DATA
+            // ========================================
+
+            const profileData =
+                prepareProfileDisplayData(
+                    profile,
+                    profileSearchType
+                );
+
+
+            const {
+                currentProfileType,
+                currentProfileId,
+                currentProfileName,
+                profileIcon,
+                district,
+                education,
+                age,
+                height,
+                caste,
+                job,
+                income,
+                photo
+            } = profileData;
+
+
+            // ========================================
+            // COMMON INTEREST UI
+            // ========================================
+
+            const interestUI =
+                getProfileInterestActions(
+                    profile,
+                    currentProfileType,
+                    currentProfileId,
+                    currentProfileName
+                );
+
+
+            // ========================================
+            // REACTION UI
+            // ========================================
+
+
+            const profileActions =
+                buildProfileActionButtons(
+                    profile,
+                    profile.relationship
+                );
+
+            // ========================================
+            // PROFILE PHOTO
+            // ========================================
+
+            const photoHtml =
+                buildProfilePhoto({
+
+                    photo:
+                        photo,
+
+                    profileType:
+                        currentProfileType,
+
+                    markerId:
+                        pageScrollMarkerId
+
+                });
+
+
+            // ========================================
+            // PROFILE HEADER
+            // ========================================
+
+            const headerHtml =
+                buildProfileHeader({
+
+                    icon:
+                        profileIcon,
+
+                    profileNumber:
+                        (
+                            (page - 1) *
+                            pageSize
+                        ) +
+                        index +
+                        1,
+
+                    name:
+                        currentProfileName || "-"
+
+                });
+
+
+            // ========================================
+            // PROFILE DETAILS
+            // ========================================
+
+            const detailsHtml =
+              buildProfileDetails({
+
+                  district:
+                      district,
+
+                  education:
+                      education,
+
+                  age:
+                      age,
+
+                  height:
+                      height,
+
+                  caste:
+                      caste,
+
+                  job:
+                      job,
+
+                  income:
+                      income
+
+              });
+
+            // ========================================
+            // INTEREST STATUS
+            // ========================================
+
+            const interestStatusHtml =
+                interestUI.statusHtml || "";
+
+
+            // ========================================
+            // INTEREST ACTION
+            // ========================================
+
+            const interestActionHtml =
+                interestUI.actionHtml || "";
+
+
+            // ========================================
+            // REACTION HTML
+            // ========================================
+
+            const reactionHtml =
+                profileActions || "";
+
+
+            // ========================================
+            // BUILD COMPLETE PROFILE CARD
+            // ========================================
+
+            cardsHtml +=
+                buildProfileCard({
+
+                    photoHtml:
+                        photoHtml,
+
+                    headerHtml:
+                        headerHtml,
+
+                    detailsHtml:
+                        detailsHtml,
+
+                    interestStatusHtml:
+                        interestStatusHtml,
+
+                    interestActionHtml:
+                        interestActionHtml,
+
+                    reactionHtml:
+                        reactionHtml
+
+                });
+
+
+        }
+    );
+
+
+    // ========================================
+    // RENDER PROFILE CARDS
+    // ========================================
+
+    botMessage(
+        cardsHtml
+    );
+
+
+    // ========================================
+    // SCROLL TO FIRST PROFILE OF THIS PAGE
+    // ========================================
+
+    scrollToCurrentProfilePage(
+        pageScrollMarkerId
+    );
 
 }
 
 
-function displayProfileResults(profiles, page, pageSize) {
+// ==========================================
+// SCROLL TO CURRENT SEARCH PAGE FIRST PROFILE
+// ==========================================
 
-  profiles.forEach(
-    function(profile, index) {
+function scrollToCurrentProfilePage(
+  markerId
+) {
+
+  setTimeout(
+    function() {
+
+      const target =
+        document.getElementById(
+          markerId
+        );
 
 
-      let profileIcon = "👤";
+      if (!target) {
 
-
-      if (
-        profileSearchType === "bride"
-      ) {
-
-        profileIcon = "👰";
+        return;
 
       }
 
 
-      else if (
-        profileSearchType === "groom"
-      ) {
-
-        profileIcon = "🤵";
-
-      }
-
-
-      const name =
-        escapeHtml(
-          profile.name || "-"
-        );
-
-
-      const district =
-        escapeHtml(
-          profile.district || "-"
-        );
-
-
-      const education =
-        escapeHtml(
-          profile.education || "-"
-        );
-
-
-      const age =
-        escapeHtml(
-          profile.age || "-"
-        );
-
-
-      const height =
-        escapeHtml(
-          profile.height || "-"
-        );
-
-
-      const caste =
-        escapeHtml(
-          profile.caste || "-"
-        );
-
-
-      const job =
-        escapeHtml(
-          profile.job || "-"
-        );
-
-
-      const income =
-        escapeHtml(
-          profile.income || "-"
-        );
-
-
-      const photo =
-        profile.photo || "";
-
-
-      // ========================================
-      // PROFILE IMAGE
-      // ========================================
-
-      let photoHtml = "";
-
-
-      if (photo) {
-
-        photoHtml = `
-
-          <div class="profile-photo-container">
-
-            <img
-              src="${photo}"
-              class="profile-photo"
-              alt="Profile Photo"
-              loading="lazy"
-              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-            >
-
-            <div
-              class="profile-photo-placeholder"
-              style="display:none;"
-            >
-
-              ${profileIcon}
-
-            </div>
-
-          </div>
-
-        `;
-
-      }
-
-      else {
-
-        photoHtml = `
-
-          <div class="profile-photo-container">
-
-            <div class="profile-photo-placeholder">
-
-              ${profileIcon}
-
-            </div>
-
-          </div>
-
-        `;
-
-      }
-
-
-      // ========================================
-      // PROFILE CARD
-      // ========================================
-
-      botMessage(`
-
-        <div class="profile-card">
-
-          ${photoHtml}
-
-
-          <div class="profile-card-title">
-
-          ${profileIcon}
-          Profile ${((page - 1) * pageSize) + index + 1}
-
-          </div>
-
-
-          <div class="profile-name">
-
-            ${name}
-
-          </div>
-
-
-          <div class="profile-details">
-
-            <div>
-
-              <b>📍 जिल्हा:</b>
-
-              ${district}
-
-            </div>
-
-
-            <div>
-
-              <b>🎓 शिक्षण:</b>
-
-              ${education}
-
-            </div>
-
-
-            <div>
-
-              <b>🎂 वय:</b>
-
-              ${age}
-
-            </div>
-
-
-            <div>
-
-              <b>📏 उंची:</b>
-
-              ${height}
-
-            </div>
-
-
-            <div>
-
-              <b>👥 पोट जात:</b>
-
-              ${caste}
-
-            </div>
-
-
-            <div>
-
-              <b>💼 नोकरी / व्यवसाय:</b>
-
-              ${job}
-
-            </div>
-
-
-            <div>
-
-              <b>💰 मासिक उत्पन्न:</b>
-
-              ${income}
-
-            </div>
-
-          </div>
-
-        </div>
-
-      `);
-
-    }
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+    },
+    200
   );
+
+}
+
+// ==========================================
+// PREVIOUS PROFILE SEARCH PAGE
+// ==========================================
+
+function previousProfilePage() {
+
+  // Already on first page
+  if (
+    !profileSearchPage ||
+    profileSearchPage <= 1
+  ) {
+
+    return;
+
+  }
+
+
+  // Go to previous page
+  profileSearchPage =
+    profileSearchPage - 1;
+
+
+  // Reload using SAME search filters
+  loadCurrentProfileSearchPage();
+
+}
+
+
+// ==========================================
+// NEXT PROFILE SEARCH PAGE
+// ==========================================
+
+function nextProfilePage() {
+
+  // Go to next page
+  profileSearchPage =
+    Number(
+      profileSearchPage || 1
+    ) + 1;
+
+
+  // Reload using SAME search filters
+  loadCurrentProfileSearchPage();
+
+}
+
+// ==========================================
+// LOAD CURRENT PROFILE SEARCH PAGE
+// ==========================================
+
+function loadCurrentProfileSearchPage() {
+
+  showTyping();
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+        if (
+          !result ||
+          result.success !== true
+        ) {
+
+          botMessage(
+            "⚠️ Profile search करता आला नाही."
+          );
+
+          return;
+
+        }
+
+
+        // ==================================
+        // SAVE ACTUAL CURRENT PAGE
+        // ==================================
+
+        profileSearchPage =
+          Number(
+            result.page ||
+            profileSearchPage ||
+            1
+          );
+
+
+        // ==================================
+        // DISPLAY PROFILES
+        // ==================================
+
+        displayProfileResults(
+
+          result.profiles || [],
+
+          result.page ||
+            profileSearchPage,
+
+          result.pageSize ||
+            10
+
+        );
+
+
+        // ==================================
+        // PAGINATION BUTTONS
+        // ==================================
+
+        showProfilePagination(
+          result
+        );
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+
+        console.error(
+          "PROFILE SEARCH PAGE ERROR:",
+          error
+        );
+
+
+        botMessage(
+          "⚠️ Profiles load करताना समस्या आली."
+        );
+
+      }
+    )
+
+
+    .searchProfiles(
+      profileSearchType,
+      profileSearchDistrict,
+      profileSearchEducation,
+      profileSearchIncome,
+      profileSearchPage,
+      profileUserMobile
+    );
 
 }
 
@@ -1604,6 +2929,32 @@ function hideTyping() {
 /* =========================================
    AUTO SCROLL
 ========================================= */
+function scrollToChatSection(
+  elementId
+) {
+
+  requestAnimationFrame(
+    function() {
+
+      const element =
+        document.getElementById(
+          elementId
+        );
+
+      if (!element) {
+        return;
+      }
+
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+    }
+  );
+
+}
+
 
 function scrollChat() {
 
@@ -1635,6 +2986,2122 @@ function escapeHtml(text) {
     text || "";
 
   return div.innerHTML;
+
+}
+
+
+
+
+function displayFullProfile(profile) {
+
+  if (!profile) {
+
+    botMessage(
+      "⚠️ Profile information not found."
+    );
+
+    return;
+  }
+
+
+  // ==========================================
+  // BASIC PROFILE VALUES
+  // ==========================================
+
+  const currentProfileType =
+    String(
+      profile.type || ""
+    )
+    .trim()
+    .toLowerCase();
+
+
+  const currentProfileId =
+    String(
+      profile.id || ""
+    ).trim();
+
+
+  const currentProfileName =
+    String(
+      profile.name || ""
+    ).trim();
+
+
+    // ==========================================
+    // COMMON INTEREST UI
+    // ==========================================
+
+    const interestUI =
+      getProfileInterestActions(
+        profile,
+        currentProfileType,
+        currentProfileId,
+        currentProfileName
+      );
+
+
+
+
+
+    // ==========================================
+    // PROFILE ICON
+    // ==========================================
+
+      let profileIcon = "👤";
+
+
+      if (
+        currentProfileType === "bride"
+      ) {
+
+        profileIcon = "👰";
+
+      }
+
+      else if (
+        currentProfileType === "groom"
+      ) {
+
+        profileIcon = "🤵";
+
+      }
+
+
+  // ==========================================
+  // PROFILE PHOTO
+  // ==========================================
+
+  const photoHtml =
+    profile.photo
+      ? `
+
+        <div class="full-profile-photo">
+
+          <img
+            src="${profile.photo}"
+            alt="Profile Photo"
+            loading="lazy"
+            onerror="
+              this.style.display='none';
+              this.nextElementSibling.style.display='flex';
+            "
+          >
+
+          <div
+            class="profile-photo-placeholder"
+            style="display:none;"
+          >
+            ${profileIcon}
+          </div>
+
+        </div>
+
+      `
+      : `
+
+        <div class="full-profile-photo">
+
+          <div class="profile-photo-placeholder">
+
+            ${profileIcon}
+
+          </div>
+
+        </div>
+
+      `;
+
+
+  // ==========================================
+  // DISPLAY FULL PROFILE
+  // ==========================================
+
+  botMessage(`
+
+    <div class="full-profile-card">
+
+
+      <div class="full-profile-title">
+
+        ${profileIcon}
+        <b>Complete Profile</b>
+
+      </div>
+
+
+      ${photoHtml}
+
+
+
+
+
+      <!-- BASIC INFORMATION -->
+
+      <div class="full-profile-section">
+
+        <div class="full-profile-section-title">
+          Basic Information
+        </div>
+
+        ${profileRow(
+          "🆔",
+          "ID",
+          profile.id
+        )}
+
+        ${profileRow(
+          "👤",
+          "Name",
+          profile.name
+        )}
+
+        ${profileRow(
+          "📍",
+          "District",
+          profile.district
+        )}
+
+        ${profileRow(
+          "🏠",
+          "Permanent Address",
+          profile.address
+        )}
+
+      </div>
+
+
+      <!-- PERSONAL DETAILS -->
+
+      <div class="full-profile-section">
+
+        <div class="full-profile-section-title">
+          Personal Details
+        </div>
+
+        ${profileRow(
+          "🎂",
+          "Birth Date",
+          profile.birthDate
+        )}
+
+        ${profileRow(
+          "🎂",
+          "Age",
+          profile.age
+        )}
+
+        ${profileRow(
+          "⏰",
+          "Birth Time",
+          profile.birthTime
+        )}
+
+        ${profileRow(
+          "📍",
+          "Birth Place",
+          profile.birthPlace
+        )}
+
+        ${profileRow(
+          "📝",
+          "Navras Name",
+          profile.navrasName
+        )}
+
+        ${profileRow(
+          "",
+          "वर्ण",
+          profile.complexion
+        )}
+
+        ${profileRow(
+          "📏",
+          "Height",
+          profile.height
+        )}
+
+        ${profileRow(
+          "🩸",
+          "Blood Group",
+          profile.bloodGroup
+        )}
+
+        ${profileRow(
+          "",
+          "पोट जात",
+          profile.caste
+        )}
+
+        ${profileRow(
+          "",
+          "रास",
+          profile.rashi
+        )}
+
+      </div>
+
+
+      <!-- EDUCATION & CAREER -->
+
+      <div class="full-profile-section">
+
+        <div class="full-profile-section-title">
+          Education & Career
+        </div>
+
+        ${profileRow(
+          "🎓",
+          "Education",
+          profile.education
+        )}
+
+        ${profileRow(
+          "💼",
+          "Job / Business",
+          profile.job
+        )}
+
+        ${profileRow(
+          "💰",
+          "Monthly Income",
+          profile.income
+        )}
+
+      </div>
+
+
+      <!-- FAMILY INFORMATION -->
+
+      <div class="full-profile-section">
+
+        <div class="full-profile-section-title">
+          Family Information
+        </div>
+
+        ${profileRow(
+          "",
+          "Father's Name",
+          profile.fatherName
+        )}
+
+        ${profileRow(
+          "",
+          "Brother",
+          profile.brother
+        )}
+
+        ${profileRow(
+          "",
+          "Sister",
+          profile.sister
+        )}
+
+      </div>
+
+
+      <!-- EXPECTATIONS -->
+
+      <div class="full-profile-section">
+
+        <div class="full-profile-section-title">
+          Expectations
+        </div>
+
+        ${profileRow(
+          "",
+          "Expectations",
+          profile.expectation
+        )}
+
+      </div>
+
+
+    </div>
+
+  `);
+
+}
+
+
+
+function profileRow(
+  icon,
+  label,
+  value
+) {
+
+  if (
+    value === null ||
+    value === undefined ||
+    value.toString().trim() === ""
+  ) {
+
+    return "";
+
+  }
+
+
+  return `
+
+    <div class="full-profile-row">
+
+      <div class="full-profile-label">
+        ${icon}
+        <b>${escapeHtml(label)}:</b>
+      </div>
+
+      <div class="full-profile-value">
+        ${escapeHtml(value)}
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+function escapeJsValue(value) {
+
+  return String(value || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/\r/g, "")
+    .replace(/\n/g, "\\n");
+
+}
+
+
+function viewProfileContact(
+  type,
+  profileId
+) {
+
+  // ==========================================
+  // USER MUST BE VERIFIED
+  // ==========================================
+
+  if (!profileAccessVerified) {
+
+    botMessage(`
+
+      🔐 <b>Verification Required</b>
+
+      <br><br>
+
+      Contact details पाहण्यासाठी
+      प्रथम आपला registered mobile
+      number verify करा.
+
+    `);
+
+    return;
+
+  }
+
+
+  if (!type || !profileId) {
+
+    botMessage(
+      "⚠️ Profile information is missing."
+    );
+
+    return;
+
+  }
+
+
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+
+        if (
+          !result ||
+          !result.success ||
+          !result.contact
+        ) {
+
+          botMessage(`
+
+            ⚠️ <b>Contact details not found.</b>
+
+          `);
+
+          return;
+
+        }
+
+
+        displayProfileContact(
+          result.contact
+        );
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+        console.error(
+          "Contact Error:",
+          error
+        );
+
+
+        botMessage(`
+
+          ⚠️ Contact details load
+          करताना समस्या आली.
+
+        `);
+
+      }
+    )
+
+
+    .getProfileContact(
+      type,
+      profileId
+    );
+
+}
+
+function displayProfileContact(
+  contact
+) {
+
+  let contactHtml = `
+
+    <div class="profile-contact-card">
+
+      <div class="full-profile-title">
+        ☎ <b>Contact Details</b>
+      </div>
+
+      <div class="profile-contact-name">
+        ${escapeHtml(
+          contact.name || ""
+        )}
+      </div>
+
+  `;
+
+
+  // ==========================================
+  // MOBILE 1
+  // ==========================================
+
+  if (contact.mobile1) {
+
+    const mobile1 =
+      contact.mobile1
+        .toString()
+        .replace(/\D/g, "");
+
+
+    contactHtml += `
+
+      <div class="full-profile-row">
+
+        <div class="full-profile-label">
+          <b>📱 Contact 1:</b>
+        </div>
+
+        <div class="full-profile-value">
+
+          <a href="tel:${mobile1}">
+            ${escapeHtml(contact.mobile1)}
+          </a>
+
+        </div>
+
+      </div>
+
+    `;
+
+  }
+
+
+  // ==========================================
+  // MOBILE 2
+  // ==========================================
+
+  if (contact.mobile2) {
+
+    const mobile2 =
+      contact.mobile2
+        .toString()
+        .replace(/\D/g, "");
+
+
+    contactHtml += `
+
+      <div class="full-profile-row">
+
+        <div class="full-profile-label">
+          <b>📱 Contact 2:</b>
+        </div>
+
+        <div class="full-profile-value">
+
+          <a href="tel:${mobile2}">
+            ${escapeHtml(contact.mobile2)}
+          </a>
+
+        </div>
+
+      </div>
+
+    `;
+
+  }
+
+
+  // ==========================================
+  // EMAIL
+  // ==========================================
+
+  if (contact.email) {
+
+    contactHtml += `
+
+      <div class="full-profile-row">
+
+        <div class="full-profile-label">
+          <b>✉ Email:</b>
+        </div>
+
+        <div class="full-profile-value">
+
+          ${escapeHtml(
+            contact.email
+          )}
+
+        </div>
+
+      </div>
+
+    `;
+
+  }
+
+
+  contactHtml += `
+
+    </div>
+
+  `;
+
+
+  botMessage(
+    contactHtml
+  );
+
+    scrollChat();
+
+}
+
+
+function reactToProfile(
+  type,
+  profileId,
+  profileName,
+  ownerMobile,
+  reaction,
+  button,
+) {
+
+  // ==========================================
+  // VERIFIED USER ONLY
+  // ==========================================
+
+  if (!profileAccessVerified) {
+
+    botMessage(`
+
+      🔐 <b>Verification Required</b>
+
+      <br><br>
+
+      Profile Like किंवा Dislike करण्यासाठी
+      प्रथम registered mobile number verify करा.
+
+    `);
+
+    return;
+
+  }
+
+
+  if (
+    !type ||
+    !profileId ||
+    !reaction
+  ) {
+
+    return;
+
+  }
+
+
+  const originalText =
+    button
+      ? button.innerHTML
+      : "";
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        if (button) {
+          button.disabled = false;
+        }
+
+
+        if (
+          !result ||
+          !result.success
+        ) {
+
+          console.error(
+            "SAVE REACTION FAILED:",
+            result
+          );
+
+          if (button) {
+            button.innerHTML =
+              originalText;
+          }
+
+          botMessage(
+            "⚠️ " +
+            (
+              result && result.message
+                ? result.message
+                : "Reaction save झाली नाही."
+            )
+          );
+
+          return;
+
+        }
+
+
+        // ====================================
+        // LIKE
+        // ====================================
+
+        if (
+          result.reaction === "LIKE"
+        ) {
+
+         updateReactionButtons(
+              type,
+              profileId,
+              result.relationship
+          );
+
+        }
+
+
+        // ====================================
+        // DISLIKE
+        // ====================================
+
+        else if (
+          result.reaction === "DISLIKE"
+        ) {
+
+          updateReactionButtons(
+                type,
+                profileId,
+                result.relationship
+            );
+
+        }
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "Profile Reaction Error:",
+          error
+        );
+
+
+        if (button) {
+
+          button.disabled = false;
+
+          button.innerHTML =
+            originalText;
+
+        }
+
+      }
+    )
+
+
+.saveProfileReaction(
+
+    profileUserMobile,
+
+    profileUserName,
+
+    profileUserRegisteredSheet,
+
+    profileUserType,
+
+    profileUserId,
+
+    type,
+
+    profileId,
+
+    profileName,
+
+    ownerMobile,
+
+    reaction
+
+);
+    
+
+}
+
+
+function updateProfileReactionState(
+    profile,
+    relationship
+) {
+
+    if (
+        !profile ||
+        !relationship
+    ) {
+        return;
+    }
+
+    profile.relationship =
+        relationship;
+
+    profile.reaction =
+        relationship.canLike
+            ? ""
+            : "LIKE";
+}
+
+
+// ==========================================
+// REFRESH PROFILE ACTIONS
+// ==========================================
+
+function updateReactionButtons(
+    type,
+    profileId,
+    relationship
+) {
+
+    // ========================================
+    // VALIDATION
+    // ========================================
+
+    if (!relationship) {
+
+        console.warn(
+            "Relationship missing."
+        );
+
+        return;
+
+    }
+
+    // ========================================
+    // KEY
+    // ========================================
+
+    const key =
+        String(type).toLowerCase() +
+        "_" +
+        String(profileId);
+
+    // ========================================
+    // FIND ACTION CONTAINER
+    // ========================================
+
+      const containers =
+          document.querySelectorAll(
+              `[data-actions="${key}"]`
+          );
+
+      if (!containers.length) {
+
+          console.warn(
+              "Action container not found:",
+              key
+          );
+
+          return;
+
+      }
+
+    // ========================================
+    // FIND PROFILE OBJECT
+    // ========================================
+
+    let profile = null;
+
+                if (
+                    Array.isArray(
+                        lastRenderedProfiles
+                    )
+                ) {
+
+                  profile =
+                  lastRenderedProfiles.find(function(p){
+
+                return (
+
+                    String(
+                        p.viewerProfileType || p.type
+                    ).toLowerCase() ===
+                    String(type).toLowerCase()
+
+                    &&
+
+                    String(
+                        p.viewerProfileId || p.id
+                    ) ===
+                    String(profileId)
+
+                );
+
+            });
+
+    }
+
+    if (!profile) {
+
+        console.warn(
+            "Profile not found."
+        );
+
+        return;
+
+    }
+
+    // ========================================
+    // UPDATE LOCAL STATE
+    // ========================================
+
+    updateProfileReactionState(
+        profile,
+        relationship
+    );
+
+    // ========================================
+    // BUILD NEW HTML
+    // ========================================
+
+        const html =
+        buildProfileActionButtons(
+            profile,
+            relationship
+        );
+
+        containers.forEach(function(container){
+
+            container.outerHTML = html;
+
+        });
+
+}
+
+
+function showLikedProfiles() {
+
+  // ==========================================
+  // 1. USER NOT VERIFIED
+  // ==========================================
+
+  if (
+    !profileAccessVerified ||
+    !profileUserMobile
+  ) {
+
+    // Remember that user wants Liked Profiles
+    pendingProfileCategory = "liked";
+
+
+    botMessage(`
+
+      🔐 <b>Verification Required</b>
+
+      <br><br>
+
+      ❤️ Liked Profiles पाहण्यासाठी
+      आपला Registered Mobile Number Verify करा.
+
+      <br><br>
+
+      Mobile Number registered असल्यास
+      तुमचे Liked Profiles उघडतील.
+
+    `);
+
+
+    // Use same verification flow
+    // which normal profile search uses
+
+    chatbotState =
+      "profile_mobile_verification";
+
+
+    const input =
+      document.getElementById("message");
+
+
+    input.placeholder =
+      "Enter registered mobile number...";
+
+
+    input.focus();
+
+
+    return;
+
+  }
+
+  showTyping();
+
+  // ==========================================
+  // 3. LOAD LIKED PROFILES FROM SERVER
+  // ==========================================
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+        // ======================================
+        // INVALID RESPONSE
+        // ======================================
+
+        if (
+          !result ||
+          result.success !== true
+        ) {
+
+          botMessage(`
+
+            ⚠️ <b>Liked Profiles load झाले नाहीत.</b>
+
+            <br><br>
+
+            ${
+              result && result.message
+                ? escapeHtml(result.message)
+                : "कृपया पुन्हा प्रयत्न करा."
+            }
+
+          `);
+
+
+          return;
+
+        }
+
+
+        // ======================================
+        // NO LIKED PROFILES
+        // ======================================
+
+        if (
+          !result.profiles ||
+          result.profiles.length === 0
+        ) {
+
+          botMessage(`
+
+            ❤️ <b>Liked Profiles</b>
+
+            <br><br>
+
+            तुम्ही अजून कोणतेही Profile
+            Like केलेले नाही.
+
+          `);
+
+
+          return;
+
+        }
+
+
+        // ======================================
+        // LIKED PROFILES FOUND
+        // ======================================
+
+        const likedSectionId =
+          "liked-profiles-" + Date.now();
+
+
+        botMessage(`
+
+          <div
+            id="${likedSectionId}"
+            class="profile-list-section"
+          >
+
+            ❤️ <b>Liked Profiles</b>
+
+            <br><br>
+
+            तुम्ही एकूण
+            <b>${result.totalCount}</b>
+            Profile Like केले आहेत.
+
+          </div>
+
+        `);
+
+
+        // IMPORTANT
+        // Display actual profile cards
+
+        displayLikedProfileResults(
+          result.profiles
+        );
+
+        showSearchAgainButton();
+
+        scrollProfileSectionToTop(
+          likedSectionId
+        );
+
+
+       
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+
+        console.error(
+          "Liked Profiles Error:",
+          error
+        );
+
+
+        botMessage(`
+
+          ⚠️ <b>Liked Profiles load करताना
+          समस्या आली.</b>
+
+          <br><br>
+
+          कृपया पुन्हा प्रयत्न करा.
+
+        `);
+
+      }
+    )
+
+
+    .getLikedProfiles(
+      profileUserMobile
+    );
+
+}
+
+
+function scrollProfileSectionToTop(
+  sectionId
+) {
+
+  setTimeout(function() {
+
+    const chat =
+      document.getElementById("chat");
+
+    const section =
+      document.getElementById(
+        sectionId
+      );
+
+
+    if (
+      !chat ||
+      !section
+    ) {
+
+      return;
+
+    }
+
+
+    // Section position relative to chat container
+    const chatRect =
+      chat.getBoundingClientRect();
+
+
+    const sectionRect =
+      section.getBoundingClientRect();
+
+
+    const targetTop =
+      chat.scrollTop +
+      sectionRect.top -
+      chatRect.top -
+      10;
+
+
+    chat.scrollTo({
+
+      top:
+        targetTop,
+
+      behavior:
+        "smooth"
+
+    });
+
+  }, 300);
+
+}
+
+
+function displayLikedProfileResults(
+  profiles
+) {
+
+  if (
+    !profiles ||
+    profiles.length === 0
+  ) {
+
+    return;
+
+  }
+
+
+  profiles.forEach(
+    function(profile, index) {
+
+      displayLikedProfileCard(
+        profile,
+        index + 1
+      );
+
+    }
+  );
+
+
+  scrollChat();
+
+}
+
+
+function displayLikedProfileCard(
+  profile,
+  profileNumber
+) {
+
+  const profileData =
+    prepareProfileDisplayData(
+        profile
+    );
+
+  const {
+    currentProfileType,
+    currentProfileId,
+    currentProfileName,
+    safeType,
+    safeId,
+    safeName,
+    safeOwnerMobile,
+    profileIcon,
+    district,
+    education,
+    age,
+    height,
+    caste,
+    job,
+    income,
+    photo
+} = profileData;
+
+  const interestUI =
+    getProfileInterestActions(
+      profile,
+      currentProfileType,
+      currentProfileId,
+      currentProfileName
+    );
+
+  
+    const photoHtml =
+      buildProfilePhoto({
+
+          photo:
+              photo,
+
+          profileType:
+              currentProfileType
+
+      });
+
+
+      const headerHtml =
+      buildProfileHeader({
+
+          icon:
+              profileIcon,
+
+          profileNumber:
+              profileNumber,
+
+          title:
+              "Liked Profile ",
+
+          name:
+              currentProfileName || "-"
+
+      });
+
+      const detailsHtml =
+      buildProfileDetails({
+
+          district:
+              district,
+
+          education:
+              education,
+
+          age:
+              age,
+
+          height:
+              height,
+
+          caste:
+              caste,
+
+          job:
+              job,
+
+          income:
+              income
+
+      });
+
+  // ==========================================
+  // 10. LIKED PROFILE CARD
+  // ==========================================
+
+  botMessage(`
+
+    <div class="profile-card">
+
+
+      ${photoHtml}
+
+
+      ${headerHtml}
+
+
+      ${detailsHtml}
+
+
+      <!-- ======================================
+           VIEW FULL PROFILE
+      ======================================= -->
+
+      <div class="profile-actions">
+
+          ${buildViewProfileButton(profile)}
+
+      </div>
+
+
+      <!-- ======================================
+          INTEREST STATUS
+      ======================================= -->
+
+      ${
+        interestUI.statusHtml
+          ? `
+              <div class="interest-profile-action">
+
+                ${interestUI.statusHtml}
+
+              </div>
+            `
+          : ""
+      }
+
+
+      <!-- ======================================
+          INTEREST ACTION
+      ======================================= -->
+
+      ${
+        interestUI.actionHtml
+          ? `
+              <div class="interest-profile-action">
+
+                ${interestUI.actionHtml}
+
+              </div>
+            `
+          : ""
+      }
+
+
+      <!-- ======================================
+          LIKE / DISLIKE
+      ======================================= -->
+
+      <div class="profile-reaction-actions">
+
+        <button
+          type="button"
+          class="profile-reaction-btn liked-active"
+          disabled
+        >
+          ❤️ Liked
+        </button>
+
+
+        <button
+          type="button"
+          class="profile-reaction-btn"
+          onclick="
+        changeLikedProfileToDislike(
+            '${safeType}',
+            '${safeId}',
+            '${safeName}',
+            '${safeOwnerMobile}',
+            this
+        )
+          "
+        >
+          👎 Dislike LP
+        </button>
+
+      </div>
+
+
+    </div>
+
+  `);
+
+}
+
+
+function changeLikedProfileToDislike(
+  type,
+  profileId,
+  profileName,
+  ownerMobile,
+  button
+) {
+
+  if (
+    !profileAccessVerified
+  ) {
+    return;
+  }
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        if (
+          !result ||
+          !result.success
+        ) {
+
+          if (button) {
+
+            button.disabled = false;
+
+            button.innerHTML =
+              "👎 Dislike";
+
+          }
+
+
+          botMessage(
+            "⚠️ Reaction update झाली नाही."
+          );
+
+          return;
+
+        }
+
+
+        botMessage(`
+
+          👎 <b>Profile Disliked</b>
+
+          <br><br>
+
+          ही profile तुमच्या
+          Liked Profiles मधून काढली आहे.
+
+        `);
+
+
+        // Refresh liked profiles
+        showLikedProfiles();
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "Reaction Update Error:",
+          error
+        );
+
+
+        if (button) {
+
+          button.disabled = false;
+
+          button.innerHTML =
+            "👎 Dislike";
+
+        }
+
+      }
+    )
+
+
+  .saveProfileReaction(
+
+      profileUserMobile,
+
+      profileUserName,
+
+      profileUserRegisteredSheet,
+
+      profileUserType,
+
+      profileUserId,
+
+      type,
+
+      profileId,
+
+      profileName,
+
+      ownerMobile,
+
+      "DISLIKE"
+
+  );
+
+}
+
+function showDislikedProfiles() {
+
+  // ==========================================
+  // 1. USER NOT VERIFIED
+  // ==========================================
+
+  if (
+    !profileAccessVerified ||
+    !profileUserMobile
+  ) {
+
+    pendingProfileCategory = "disliked";
+
+    botMessage(`
+
+      🔐 <b>Verification Required</b>
+
+      <br><br>
+
+      👎 Disliked Profiles पाहण्यासाठी
+      आपला Registered Mobile Number Verify करा.
+
+      <br><br>
+
+      Mobile Number registered असल्यास
+      तुमचे Disliked Profiles उघडतील.
+
+    `);
+
+
+    chatbotState =
+      "profile_mobile_verification";
+
+
+    const input =
+      document.getElementById("message");
+
+
+    input.placeholder =
+      "Enter registered mobile number...";
+
+
+    input.focus();
+
+    return;
+  }
+
+  showTyping();
+
+  // ==========================================
+  // 3. LOAD DISLIKED PROFILES
+  // ==========================================
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+        // ======================================
+        // INVALID RESPONSE
+        // ======================================
+
+        if (
+          !result ||
+          result.success !== true
+        ) {
+
+          botMessage(`
+
+            ⚠️ <b>Disliked Profiles load झाले नाहीत.</b>
+
+            <br><br>
+
+            ${
+              result && result.message
+                ? escapeHtml(result.message)
+                : "कृपया पुन्हा प्रयत्न करा."
+            }
+
+          `);
+
+          return;
+        }
+
+
+        // ======================================
+        // NO DISLIKED PROFILES
+        // ======================================
+
+        if (
+          !result.profiles ||
+          result.profiles.length === 0
+        ) {
+
+          botMessage(`
+
+            👎 <b>Disliked Profiles</b>
+
+            <br><br>
+
+            तुम्ही अजून कोणतेही Profile
+            Dislike केलेले नाही.
+
+          `);
+
+          return;
+        }
+
+
+        // ======================================
+        // PROFILES FOUND
+        // ======================================
+
+     // ======================================
+// CREATE RESULT SECTION
+// ======================================
+
+const dislikedSectionId =
+  "disliked-results-" + Date.now();
+
+
+botMessage(`
+
+  <div id="${dislikedSectionId}">
+
+    👎 <b>Disliked Profiles</b>
+
+    <br><br>
+
+    तुम्ही एकूण
+    <b>${result.totalCount}</b>
+    Profile Dislike केले आहेत.
+
+  </div>
+
+`);
+
+
+// ======================================
+// DISPLAY PROFILE CARDS
+// ======================================
+
+displayDislikedProfileResults(
+  result.profiles
+);
+
+showSearchAgainButton();
+// ======================================
+// SCROLL TO DISLIKED RESULTS
+// ======================================
+
+setTimeout(
+  function() {
+
+    const section =
+      document.getElementById(
+        dislikedSectionId
+      );
+
+
+    if (section) {
+
+      section.scrollIntoView({
+
+        behavior: "smooth",
+
+        block: "start"
+
+      });
+
+    }
+
+  },
+  150
+);
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+
+        console.error(
+          "Disliked Profiles Error:",
+          error
+        );
+
+
+        botMessage(`
+
+          ⚠️ <b>Disliked Profiles load करताना
+          समस्या आली.</b>
+
+          <br><br>
+
+          कृपया पुन्हा प्रयत्न करा.
+
+        `);
+
+      }
+    )
+
+
+    .getDislikedProfiles(
+      profileUserMobile
+    );
+
+}
+
+function displayDislikedProfileResults(
+  profiles
+) {
+
+  if (
+    !profiles ||
+    profiles.length === 0
+  ) {
+    return;
+  }
+
+
+  profiles.forEach(
+    function(profile, index) {
+
+      displayDislikedProfileCard(
+        profile,
+        index + 1
+      );
+
+    }
+  );
+
+}
+
+
+function displayDislikedProfileCard(
+  profile,
+  profileNumber
+) {
+
+    const profileData =
+    prepareProfileDisplayData(
+        profile
+    );
+
+    const {
+    currentProfileType,
+    currentProfileId,
+    currentProfileName,
+    safeType,
+    safeId,
+    safeName,
+    safeOwnerMobile,
+    profileIcon,
+    district,
+    education,
+    age,
+    height,
+    caste,
+    job,
+    income,
+    photo
+} = profileData;
+  
+  // ==========================================
+  // PROFILE IMAGE
+  // ==========================================
+
+    const photoHtml =
+    buildProfilePhoto({
+
+        photo:
+            photo,
+
+        profileType:
+            currentProfileType
+
+    });
+
+    const headerHtml =
+    buildProfileHeader({
+
+        icon:
+            profileIcon,
+
+        profileNumber:
+            profileNumber,
+
+        title:
+            "Disliked Profile ",
+
+        name:
+            currentProfileName || "-"
+
+    });
+
+
+    const detailsHtml =
+    buildProfileDetails({
+
+        district:
+            district,
+
+        education:
+            education,
+
+        age:
+            age,
+
+        height:
+            height,
+
+        caste:
+            caste,
+
+        job:
+            job,
+
+        income:
+            income
+
+    });
+
+
+  // ==========================================
+  // DISLIKED PROFILE CARD
+  // ==========================================
+
+  botMessage(`
+
+    <div class="profile-card">
+
+
+      ${photoHtml}
+
+
+      ${headerHtml}
+
+
+      ${detailsHtml}
+
+
+
+      <!-- VIEW FULL PROFILE -->
+
+      <div class="profile-actions">
+
+      ${buildViewProfileButton(profile)}
+
+      </div>
+
+
+      <!-- LIKE / DISLIKE -->
+
+      <div class="profile-reaction-actions">
+
+
+        <!-- CHANGE TO LIKE -->
+
+        <button
+          type="button"
+          class="profile-reaction-btn"
+          onclick="
+            changeDislikedProfileToLike(
+                '${safeType}',
+                '${safeId}',
+                '${safeName}',
+                '${safeOwnerMobile}',
+                this
+            )
+          "
+        >
+
+          ♡ Like
+
+        </button>
+
+
+        <!-- ALREADY DISLIKED -->
+
+        <button
+          type="button"
+          class="profile-reaction-btn disliked-active"
+          disabled
+        >
+
+          👎 Disliked
+
+        </button>
+
+
+      </div>
+
+
+    </div>
+
+  `);
+
+}
+
+
+function changeDislikedProfileToLike(
+  type,
+  profileId,
+  profileName,
+  ownerMobile,
+  button
+) {
+
+  if (
+    !profileAccessVerified
+  ) {
+    return;
+  }
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        if (
+          !result ||
+          !result.success
+        ) {
+
+          if (button) {
+
+            button.disabled = false;
+
+            button.innerHTML =
+              "♡ Like";
+
+          }
+
+          botMessage(
+            "⚠️ Reaction update झाली नाही."
+          );
+
+          return;
+
+        }
+
+
+        botMessage(`
+
+          ❤️ <b>Profile Liked</b>
+
+          <br><br>
+
+          ही profile आता तुमच्या
+          Liked Profiles मध्ये आहे.
+
+        `);
+
+
+        // Refresh disliked list
+        showDislikedProfiles();
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "Reaction Update Error:",
+          error
+        );
+
+
+        if (button) {
+
+          button.disabled = false;
+
+          button.innerHTML =
+            "♡ Like";
+
+        }
+
+      }
+    )
+
+
+  
+
+  .saveProfileReaction(
+
+      profileUserMobile,
+
+      profileUserName,
+
+      profileUserRegisteredSheet,
+
+      profileUserType,
+
+      profileUserId,
+
+      type,
+
+      profileId,
+
+      profileName,
+
+      ownerMobile,
+
+       "LIKE"
+
+  );
+
+}
+
+
+// ==========================================
+// PROFILE CARD ACTION BUTTONS Using Liked Received Profiles
+// ==========================================
+
+function buildProfileActionButtons(
+    profile,
+    relationship
+) {
+
+    relationship = relationship || {};
+
+    const profileType =
+        profile.viewerProfileType ||
+        profile.type ||
+        "";
+
+    const profileId =
+        profile.viewerProfileId ||
+        profile.id ||
+        "";
+
+    const key =
+        profileType + "_" + profileId;
+
+    return `
+
+        <div
+            class="profile-action-group"
+            data-actions="${key}"
+        >
+
+            ${buildLikeButton(
+                profile,
+                relationship
+            )}
+
+            ${buildDislikeButton(
+                profile,
+                relationship
+            )}
+
+            ${buildViewProfileButton(
+                profile
+            )}
+
+        </div>
+
+    `;
 
 }
 

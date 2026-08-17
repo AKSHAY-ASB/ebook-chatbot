@@ -1,0 +1,532 @@
+// ==========================================
+// GET DISLIKED PROFILE IDS
+// ==========================================
+
+function getDislikedProfileIds(userMobile) {
+
+  // ==========================================
+  // 1. NORMALIZE MOBILE
+  // ==========================================
+
+  userMobile =
+    String(
+      userMobile || ""
+    ).trim();
+
+
+  if (!userMobile) {
+
+    return [];
+
+  }
+
+
+  // ==========================================
+  // 2. GET PROFILE REACTIONS SHEET
+  // ==========================================
+
+  const ss =
+    SpreadsheetApp
+      .getActiveSpreadsheet();
+
+
+  const sheet =
+    ss.getSheetByName(
+      "Profile Reactions"
+    );
+
+
+  if (!sheet) {
+
+    return [];
+
+  }
+
+
+  // ==========================================
+  // 3. GET DATA
+  // ==========================================
+
+  const data =
+    sheet
+      .getDataRange()
+      .getDisplayValues();
+
+
+  const disliked = [];
+
+
+  // ==========================================
+  // 4. FIND THIS USER'S DISLIKED PROFILES
+  // ==========================================
+
+  for (
+    let i = 1;
+    i < data.length;
+    i++
+  ) {
+
+      const rowMobile =
+        normalizeMobile(
+            data[i][1]
+        );
+
+
+      const profileType =
+            String(
+                data[i][6] || ""
+            )
+            .trim()
+            .toLowerCase();
+
+        const profileId =
+            String(
+                data[i][7] || ""
+            ).trim();
+
+        const reaction =
+            String(
+                data[i][9] || ""
+            )
+            .trim()
+            .toUpperCase();
+
+
+    if (
+      rowMobile === userMobile &&
+      reaction === "DISLIKE"
+    ) {
+
+      disliked.push({
+
+        type:
+          profileType,
+
+        id:
+          profileId
+
+      });
+
+    }
+
+  }
+
+
+  // ==========================================
+  // 5. RETURN DISLIKED PROFILE IDS
+  // ==========================================
+
+  return disliked;
+
+}
+
+function testDislikedIds() {
+
+  Logger.log(
+
+    JSON.stringify(
+
+      getDislikedProfileIds(
+        "8975593689"
+      ),
+
+      null,
+      2
+
+    )
+
+  );
+
+}
+
+// ==========================================
+// GET ACTUAL DISLIKED PROFILES
+// ==========================================
+
+function getDislikedProfiles(userMobile) {
+  currentProfileScreen = "DISLIKED";
+
+  try {
+
+    userMobile =
+      String(userMobile || "")
+        .trim();
+
+
+    if (!userMobile) {
+
+      return {
+        success: false,
+        message:
+          "Mobile number is required.",
+        totalCount: 0,
+        profiles: []
+      };
+
+    }
+
+
+    const dislikedItems =
+      getDislikedProfileIds(
+        userMobile
+      );
+
+
+    if (
+      !dislikedItems ||
+      dislikedItems.length === 0
+    ) {
+
+      return {
+        success: true,
+        totalCount: 0,
+        profiles: []
+      };
+
+    }
+
+
+    const ss =
+      SpreadsheetApp
+        .getActiveSpreadsheet();
+
+
+    const sheetMap = {
+
+      bride: "वधू",
+
+      groom: "वर",
+
+      other: "इतर"
+
+    };
+
+
+    const profiles = [];
+
+
+    dislikedItems.forEach(
+      function(item) {
+
+        const profileType =
+          String(
+            item.type || ""
+          )
+          .trim()
+          .toLowerCase();
+
+
+        const profileId =
+          String(
+            item.id || ""
+          ).trim();
+
+
+        const sheetName =
+          sheetMap[
+            profileType
+          ];
+
+
+        if (
+          !sheetName ||
+          !profileId
+        ) {
+          return;
+        }
+
+
+        const sheet =
+          ss.getSheetByName(
+            sheetName
+          );
+
+
+        if (!sheet) {
+          return;
+        }
+
+
+        const data =
+          sheet
+            .getDataRange()
+            .getDisplayValues();
+
+
+        if (
+          !data ||
+          data.length < 2
+        ) {
+          return;
+        }
+
+
+        const headers =
+          data[0].map(
+            function(header) {
+
+              return normalizeHeader(
+                header
+              );
+
+            }
+          );
+
+
+        // ======================================
+        // COLUMN INDEXES
+        // ======================================
+
+        const idIndex =
+          findProfileHeader(
+            headers,
+            "ID"
+          );
+
+
+        const nameIndex =
+          findProfileHeader(
+            headers,
+            "नाव :"
+          );
+
+
+        const districtIndex =
+          findProfileHeader(
+            headers,
+            "जिल्हा निवडा"
+          );
+
+
+        const educationIndex =
+          findProfileHeader(
+            headers,
+            "शिक्षण :"
+          );
+
+
+        const ageIndex =
+          findProfileHeader(
+            headers,
+            "वय :"
+          );
+
+
+        const heightIndex =
+          findProfileHeader(
+            headers,
+            "ऊंची :"
+          );
+
+
+        const casteIndex =
+          findProfileHeader(
+            headers,
+            "पोट जात :"
+          );
+
+
+        const jobIndex =
+          findProfileHeader(
+            headers,
+            "नोकरी / व्यवसाय व ठिकाण"
+          );
+
+
+        const incomeIndex =
+          findProfileHeader(
+            headers,
+            "मासिक उत्पन्न :"
+          );
+
+
+        const photoIndex =
+          findProfileHeader(
+            headers,
+            "फोटो : (फोटो हा पासपोर्ट स्वरूपाचा असावा)"
+          );
+
+        const mobileIndex =
+          findProfileHeader(
+              headers,
+              "संपर्क क्रमांक १ : "
+          );  
+
+
+        if (idIndex === -1) {
+          return;
+        }
+
+
+        // ======================================
+        // FIND EXACT PROFILE
+        // ======================================
+
+        for (
+          let i = 1;
+          i < data.length;
+          i++
+        ) {
+
+          const row =
+            data[i];
+
+
+          const rowId =
+            String(
+              getProfileCell(
+                row,
+                idIndex
+              ) || ""
+            ).trim();
+
+
+          if (
+            rowId !== profileId
+          ) {
+            continue;
+          }
+
+
+          profiles.push({
+
+            type:
+              profileType,
+
+            id:
+              rowId,
+
+            name:
+              getProfileCell(
+                row,
+                nameIndex
+              ),
+
+            district:
+              getProfileCell(
+                row,
+                districtIndex
+              ),
+
+            education:
+              getProfileCell(
+                row,
+                educationIndex
+              ),
+
+            age:
+              getProfileCell(
+                row,
+                ageIndex
+              ),
+
+            height:
+              getProfileCell(
+                row,
+                heightIndex
+              ),
+
+            caste:
+              getProfileCell(
+                row,
+                casteIndex
+              ),
+
+            job:
+              getProfileCell(
+                row,
+                jobIndex
+              ),
+
+            income:
+              getProfileCell(
+                row,
+                incomeIndex
+              ),
+
+            photo:
+              convertProfilePhotoUrl(
+                getProfileCell(
+                  row,
+                  photoIndex
+                )
+              ),
+
+            ownerMobile:
+              normalizeMobile(
+                  getProfileCell(
+                      row,
+                      mobileIndex
+                  )
+              ),
+
+            reaction:
+              "DISLIKE"
+
+          });
+
+
+          break;
+
+        }
+
+      }
+    );
+
+
+    return {
+
+      success: true,
+
+      totalCount:
+        profiles.length,
+
+      profiles:
+        profiles
+
+    };
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "getDislikedProfiles Error:",
+      error
+    );
+
+
+    return {
+
+      success: false,
+
+      message:
+        error.message,
+
+      totalCount: 0,
+
+      profiles: []
+
+    };
+
+  }
+
+}
+
+function testGetDislikedProfiles() {
+
+  const result =
+    getDislikedProfiles(
+      "8975593689"
+    );
+
+
+  Logger.log(
+    JSON.stringify(
+      result,
+      null,
+      2
+    )
+  );
+
+}

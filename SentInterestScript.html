@@ -1,0 +1,468 @@
+<script>
+
+function showSentInterests() {
+
+  // ==========================================
+  // VERIFICATION CHECK
+  // ==========================================
+
+  if (
+    !profileAccessVerified ||
+    !profileUserMobile
+  ) {
+
+    pendingProfileCategory =
+      "sentInterests";
+
+
+    botMessage(`
+
+      🔐 <b>Verification Required</b>
+
+      <br><br>
+
+      📤 Sent Interests पाहण्यासाठी
+      प्रथम Registered Mobile Number Verify करा.
+
+      <br><br>
+
+      Mobile verification पूर्ण झाल्यानंतर
+      तुम्ही पाठवलेल्या Interest Requests
+      आपोआप उघडतील.
+
+    `);
+
+
+    // ========================================
+    // USE EXISTING VERIFICATION FLOW
+    // ========================================
+
+    chatbotState =
+      "profile_mobile_verification";
+
+
+    const input =
+      document.getElementById(
+        "message"
+      );
+
+
+    if (input) {
+
+      input.placeholder =
+        "Enter registered mobile number...";
+
+
+      input.focus();
+
+    }
+
+
+    return;
+
+  }
+
+
+  // ==========================================
+  // VERIFIED USER
+  // ==========================================
+
+  pendingProfileCategory = "";
+
+
+  console.log(
+    "LOADING SENT INTERESTS FOR:",
+    profileUserMobile
+  );
+
+
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+
+        console.log(
+          "SENT INTERESTS RESULT:",
+          result
+        );
+
+
+        if (!result) {
+
+          botMessage(
+            "⚠️ Sent Interests response not received."
+          );
+
+          return;
+
+        }
+
+
+        if (
+          result.success !== true
+        ) {
+
+          botMessage(
+
+            "⚠️ " +
+            (
+              result.message ||
+              "Unable to load Sent Interests."
+            )
+
+          );
+
+
+          return;
+
+        }
+
+
+        // ======================================
+        // NO SENT INTERESTS
+        // ======================================
+
+        if (
+          !result.interests ||
+          result.interests.length === 0
+        ) {
+
+          botMessage(`
+
+            📤 <b>Sent Interests</b>
+
+            <br><br>
+
+            तुम्ही अजून कोणत्याही Profile ला
+            Interest Request पाठवलेली नाही.
+
+          `);
+
+
+          showSentInterestActions();
+
+
+          return;
+
+        }
+
+
+        // ======================================
+        // SENT INTERESTS FOUND
+        // ======================================
+
+        botMessage(`
+
+          📤 <b>Sent Interests</b>
+
+          <br><br>
+
+          तुम्ही
+          <b>${result.totalCount}</b>
+          Interest Request${
+            result.totalCount === 1
+              ? ""
+              : "s"
+          }
+          पाठवल्या आहेत.
+
+        `);
+
+
+        displaySentInterests(
+          result.interests
+        );
+
+
+        showSentInterestActions();
+
+
+        scrollChat();
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+
+        console.error(
+          "Sent Interests Error:",
+          error
+        );
+
+
+        botMessage(
+          "⚠️ Sent Interests load करताना समस्या आली."
+        );
+
+      }
+    )
+
+
+    .getSentInterests(
+      profileUserMobile
+    );
+
+}
+
+function displaySentInterests(
+  interests
+) {
+
+  if (
+    !Array.isArray(interests) ||
+    interests.length === 0
+  ) {
+
+    return;
+
+  }
+
+
+  interests.forEach(
+    function(interest) {
+
+      const receiverName =
+        escapeHtml(
+          interest.receiverName ||
+          "Profile"
+        );
+
+
+      const receiverId =
+        escapeHtml(
+          interest.receiverId ||
+          ""
+        );
+
+
+      const receiverType =
+        String(
+          interest.receiverType ||
+          ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+      const safeType =
+        escapeJsValue(
+          receiverType
+        );
+
+
+      const safeId =
+        escapeJsValue(
+          interest.receiverId ||
+          ""
+        );
+
+
+      const currentStatus =
+        String(
+          interest.status ||
+          "PENDING"
+        )
+        .trim()
+        .toUpperCase();
+
+
+        let contactButtonHtml = "";
+
+        if (currentStatus === "ACCEPTED") {
+
+          contactButtonHtml = `
+
+            <button
+              type="button"
+              class="sent-view-profile-btn"
+              onclick="viewProfileContact(
+                '${safeType}',
+                '${safeId}'
+              )"
+            >
+
+              ☎ View Contact Details
+
+            </button>
+
+          `;
+
+        }
+
+
+      // ========================================
+      // STATUS
+      // ========================================
+
+      let statusHtml =
+        "⏳ Pending";
+
+
+      let statusClass =
+        "sent-status-pending";
+
+
+      if (
+        currentStatus ===
+        "ACCEPTED"
+      ) {
+
+        statusHtml =
+          "❤️ Accepted";
+
+
+        statusClass =
+          "sent-status-accepted";
+
+      }
+
+
+      else if (
+        currentStatus ===
+        "DECLINED"
+      ) {
+
+        statusHtml =
+          "Not Proceeding";
+
+
+        statusClass =
+          "sent-status-declined";
+
+      }
+
+
+      // ========================================
+      // CARD
+      // ========================================
+
+      botMessage(`
+
+        <div class="sent-interest-card">
+
+          <div class="sent-interest-icon">
+            💌
+          </div>
+
+
+          <div class="sent-interest-title">
+
+            Sent Interest
+
+          </div>
+
+
+          <div class="sent-interest-name">
+
+            ${receiverName}
+
+          </div>
+
+
+          <div class="sent-interest-id">
+
+            Profile ID:
+            <b>${receiverId}</b>
+
+          </div>
+
+
+          <div
+            class="sent-interest-status ${statusClass}"
+          >
+
+            Status:
+            <b>${statusHtml}</b>
+
+          </div>
+
+
+          <div class="sent-interest-actions">
+
+          <button
+            type="button"
+            class="sent-view-profile-btn"
+            onclick="viewFullProfile(
+              '${safeType}',
+              '${safeId}'
+            )"
+          >
+
+            👤 View Full Profile
+
+          </button>
+
+          <div class="sent-interest-actions">
+
+            ${contactButtonHtml}
+
+          </div>
+
+        </div>
+
+      `);
+
+    }
+  );
+
+}
+
+function showSentInterestActions() {
+
+  const chat =
+    document.getElementById(
+      "chat"
+    );
+
+
+  if (!chat) {
+
+    return;
+
+  }
+
+
+  chat.innerHTML += `
+
+    <div class="menu">
+
+      <button
+        type="button"
+        onclick="showSentInterests()"
+      >
+
+        🔄 Refresh Interests
+
+      </button>
+
+
+      <button
+        type="button"
+        onclick="showMenu()"
+      >
+
+        🏠 Main Menu
+
+      </button>
+
+    </div>
+
+  `;
+
+
+  scrollChat();
+
+}
+
+</script>

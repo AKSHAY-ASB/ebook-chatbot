@@ -1,115 +1,269 @@
 <style>
 
-*{
-box-sizing:border-box;
-font-family:Arial,sans-serif;
+/* ==========================================
+   GLOBAL
+   ========================================== */
+
+/* * {
+  box-sizing: border-box;
 }
 
-body{
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
 
-margin:0;
-background:#f2f4f8;
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f4f8;
+  overflow: hidden;
+} */
+
+
+/* ==========================================
+   CHATBOT CONTAINER
+   Desktop default
+   ========================================== */
+
+/* .chat-container {
+    position: fixed;
+
+    inset: 0;
+
+    width: 100%;
+
+    height: 100dvh;
+
+    margin: 0;
+
+    border-radius: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    background: #fff;
+} */
+
+
+/* ==========================================
+   HEADER
+   ========================================== */
+
+/* .header {
+  flex-shrink: 0;
+
+  background: #0057B8;
+
+  color: #ffffff;
+
+  padding:
+    30px
+    15px;
+
+  font-size: 50px;
+
+  line-height: 1.3;
+
+  font-weight: 700;
+
+  text-align: center;
+} */
+
+
+/* ==========================================
+   MOBILE
+   Full-screen chatbot
+   ========================================== */
+
+@media (max-width: 600px) {
+
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+
+  /* .chat-container {
+      width: 100%;
+      height: 100dvh;
+      margin: 0;
+      border-radius: 0;
+      box-shadow: none;
+  } */
+
+
+/* .header{
+
+    font-size: 50px;
+
+    position: sticky;
+
+    top:0;
+
+    z-index:50;
+
+    background:#0057B8;
+} */
 
 }
 
-.chat-container{
 
-width:420px;
-height:650px;
+/* #chat {
+  flex: 1;
 
-margin:30px auto;
+  min-height: 0;
 
-background:white;
+  overflow-y: auto;
+  overflow-x: hidden;
 
-border-radius:15px;
+  padding: 16px;
 
-overflow:hidden;
+  scroll-behavior: smooth;
 
-box-shadow:0 10px 25px rgba(0,0,0,.15);
+  -webkit-overflow-scrolling: touch;
 
-display:flex;
+  overscroll-behavior: contain;
+} */
 
-flex-direction:column;
 
+/* @media (max-width: 600px) {
+
+  button {
+    min-height: 44px;
+
+    font-size: 35px;
+
+    touch-action: manipulation;
+  }
+
+
+  .menu button {
+    width: 100%;
+
+    min-height: 48px;
+
+    padding: 12px 14px;
+  }
+
+} */
+
+.profile-card {
+  width: 100%;
+  max-width: 100%;
 }
 
-.header{
 
-background:#0057B8;
-
-color:white;
-
-padding:18px;
-
-font-size:22px;
-
-font-weight:bold;
-
-text-align:center;
-
+.profile-card img,
+.profile-photo {
+  max-width: 100%;
+  height: auto;
 }
 
-#chat{
 
-flex:1;
-
-overflow-y:auto;
-
-padding:15px;
-
-background:#fafafa;
-
+.profile-details {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-.bot{
+
+/* input,
+select,
+textarea {
+  max-width: 100%;
+
+  font-size: 35px;
+} */
+
+/* .chat-input,
+.chat-footer,
+.input-area {
+  flex-shrink: 0;
+
+  padding-bottom:
+    max(
+      10px,
+      env(safe-area-inset-bottom)
+    );
+} */
+
+/* .bot{
 
 background:#ECEFF1;
 
-padding:12px;
+padding:20px;
 
 border-radius:15px;
 
 margin-bottom:10px;
 
 width:80%;
+
+font-size:35px;
+
+margin-top: 15px;
 
 }
 
 .user{
 
-background:#0057B8;
+  font-size:35px;
 
-color:white;
+  margin-top:10px;
 
-padding:12px;
+  background:#0057B8;
 
-border-radius:15px;
+  color:white;
 
-margin-bottom:10px;
+  padding:15px;
 
-margin-left:auto;
+  border-radius:15px;
 
-width:80%;
+  margin-bottom:10px;
 
-}
+  margin-left:auto;
 
-.bottom{
+  width:80%;
 
-display:flex;
+} */
 
-padding:10px;
+/* .bottom{
 
-border-top:1px solid #ddd;
+    position: sticky;
 
-}
+    bottom: 0;
 
-.bottom input{
+    left: 0;
+
+    right: 0;
+
+    background:#fff;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:12px;
+
+    border-top:1px solid #ddd;
+
+    z-index:50;
+} */
+
+/* .bottom input{
 
 flex:1;
 
-padding:12px;
+padding:25px;
 
-font-size:16px;
+font-size:35px;
 
 border:1px solid #ccc;
 
@@ -117,13 +271,15 @@ border-radius:8px;
 
 outline:none;
 
+font-size:35px;
+
 }
 
 .bottom button{
 
 margin-left:10px;
 
-padding:12px 18px;
+padding:25px 50px;
 
 background:#0057B8;
 
@@ -134,6 +290,8 @@ border:none;
 border-radius:8px;
 
 cursor:pointer;
+
+font-size:35px;
 
 }
 
@@ -151,7 +309,7 @@ margin-top:15px;
 
 .menu button{
 
-padding:12px;
+padding:20px;
 
 border-radius:8px;
 
@@ -161,7 +319,7 @@ background:white;
 
 cursor:pointer;
 
-font-size:15px;
+font-size:35px;
 
 }
 
@@ -171,9 +329,9 @@ background:#0057B8;
 
 color:white;
 
-}
+} */
 
-.chat-action-button {
+/* .chat-action-button {
 
   display: inline-block;
 
@@ -198,7 +356,7 @@ color:white;
 
   opacity: 0.9;
 
-}
+} */
 
 
 .profile-filter-menu {
@@ -208,7 +366,7 @@ color:white;
 }
 
 
-.profile-card {
+/* .profile-card {
 
   background: #ffffff;
 
@@ -218,14 +376,14 @@ color:white;
 
   padding: 14px;
 
-  margin-top: 5px;
+  margin-top: 10px;
 
 }
 
 
 .profile-card-title {
 
-  font-size: 13px;
+  font-size: 35px;
 
   font-weight: 600;
 
@@ -238,7 +396,7 @@ color:white;
 
 .profile-name {
 
-  font-size: 17px;
+  font-size: 35px;
 
   font-weight: 700;
 
@@ -251,7 +409,7 @@ color:white;
 
   line-height: 1.7;
 
-  font-size: 14px;
+  font-size: 35px;
 
 }
 
@@ -260,13 +418,13 @@ color:white;
 
   margin-bottom: 3px;
 
-}
+} */
 
 /* =========================================
    PROFILE PHOTO CONTAINER
 ========================================= */
 
-.profile-photo-container {
+/* .profile-photo-container {
 
   width: 100%;
 
@@ -290,14 +448,14 @@ color:white;
 
   justify-content: center;
 
-}
+} */
 
 
 /* =========================================
    ACTUAL PROFILE PHOTO
 ========================================= */
 
-.profile-photo {
+/* .profile-photo {
 
   width: 100%;
 
@@ -309,14 +467,14 @@ color:white;
 
   display: block;
 
-}
+} */
 
 
 /* =========================================
    PLACEHOLDER - IF PHOTO NOT AVAILABLE
 ========================================= */
 
-.profile-photo-placeholder {
+/* .profile-photo-placeholder {
 
   width: 100%;
 
@@ -332,6 +490,332 @@ color:white;
 
   background: #f3f4f6;
 
+} */
+
+/* =========================================
+   SELECTED SEARCH FILTERS
+========================================= */
+
+/* .selected-filters {
+
+  background: #f8fafc;
+
+  border: 1px solid #e2e8f0;
+
+  border-radius: 10px;
+
+  padding: 12px 14px;
+
+  margin: 8px 0 12px 0;
+
+} */
+
+
+.selected-filters-title {
+
+  font-size: 35px;
+
+  margin-bottom: 10px;
+
+  padding-bottom: 7px;
+
+  border-bottom: 1px solid #e2e8f0;
+
 }
+
+
+.selected-filter-row {
+
+  font-size: 35px;
+
+  line-height: 1.7;
+
+}
+
+
+.result-count {
+
+  font-size: 35px;
+
+  line-height: 1.6;
+
+}
+
+/* =========================================
+   VIEW FULL PROFILE BUTTON
+========================================= */
+
+/* .profile-actions {
+
+  font-size: 35px;
+
+  margin-top: 15px;
+
+  padding-top: 12px;
+
+  border-top: 1px solid #e5e7eb;
+
+}
+
+
+.view-profile-btn {
+
+  width: 100%;
+
+  padding: 25px;
+
+  border: none;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font-size: 35px;
+
+  font-weight: 600;
+
+}
+
+
+.view-profile-btn:hover {
+
+  opacity: 0.9;
+
+}
+
+
+.view-profile-btn:active {
+
+  transform: scale(0.98);
+
+} */
+
+/* =========================================
+   FULL PROFILE
+========================================= */
+
+/* .full-profile-card {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.full-profile-title {
+  font-size: 35px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.full-profile-photo {
+  width: 100%;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: center;
+}
+
+.full-profile-photo img {
+  width: 100%;
+  max-width: 350px;
+  height: auto;
+  max-height: 500px;
+  object-fit: contain;
+  border-radius: 10px;
+  display: block;
+}
+
+.full-profile-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.full-profile-section-title {
+  font-size: 35px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.full-profile-row {
+  margin-bottom: 9px;
+  line-height: 1.5;
+}
+
+.full-profile-label {
+  font-size: 35px;
+  margin-bottom: 2px;
+}
+
+.full-profile-value {
+  font-size: 35px;
+  word-break: break-word;
+} */
+
+/* =========================================
+   PROFILE CONTACT CARD
+========================================= */
+
+/* .profile-contact-card {
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+}
+
+
+.profile-contact-name {
+
+  font-size: 35px;
+
+  font-weight: 600;
+
+  text-align: center;
+
+  margin-bottom: 15px;
+
+}
+
+
+.profile-contact-card a {
+
+  text-decoration: none;
+
+  font-weight: 600;
+
+} */
+
+
+/* =========================================
+   PROFILE LIKE / DISLIKE
+========================================= */
+
+/* .profile-reaction-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.profile-reaction-btn {
+  flex: 1;
+  padding: 25px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  background: #fff;
+  font-size:35px;
+}
+
+.profile-reaction-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+} */
+
+/* =========================================
+   LIKED PROFILES
+========================================= */
+
+/* .liked-profile-card {
+  position: relative;
+}
+
+.liked-active {
+  cursor: default;
+  font-weight: 700;
+}
+
+.liked-active:disabled {
+  opacity: 1;
+} */
+
+
+/* =========================================
+   DISLIKED PROFILES
+========================================= */
+
+/* .disliked-profile-card {
+  position: relative;
+}
+
+.disliked-active {
+  cursor: default;
+  font-weight: 700;
+}
+
+.disliked-active:disabled {
+  opacity: 1;
+} */
+
+.profile-list-section {
+  scroll-margin-top: 10px;
+}
+
+.sent-view-profile-btn , 
+  option-btn, view-profile-btn{
+    font-size: 35px;
+}
+
+.send-interest-btn {
+    width: 100%;
+    padding: 25px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 35px;
+    font-weight: 600;
+}
+
+.received-view-profile-btn {
+    font-size:35px;
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* .profile-reaction-btn.liked{
+    background:#1976d2;
+    color:#fff;
+    border-color:#1976d2;
+} */
+
+/* .profile-reaction-btn.mutual{
+    background:#28a745;
+    color:#fff;
+    border-color:#28a745;
+    font-weight:bold;
+} */
+
+/* .liked-active{
+
+    background:#1976d2;
+
+    color:#fff;
+
+} */
+
+/* .matched-active{
+
+    background:#2e7d32;
+
+    color:#fff;
+
+    font-weight:600;
+
+}
+
+.disliked-active{
+
+    background:#d32f2f;
+
+    color:#fff;
+
+    border-color:#d32f2f;
+
+    font-weight:600;
+
+} */
 
 </style>

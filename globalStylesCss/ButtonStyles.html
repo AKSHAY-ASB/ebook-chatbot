@@ -1,0 +1,113 @@
+<!--
+==========================================
+FILE : ButtonStyles.html
+MODULE : Styles
+PURPOSE : Button Styles
+
+RESPONSIBILITY
+
+- Reaction Buttons
+- Button States
+- Like / Dislike / Match
+
+USED BY
+
+ProfileActions
+
+VERSION : 1.0.0
+STATUS : APPROVED
+==========================================
+-->
+
+<style>
+
+/* ==========================================
+   PROFILE REACTION BUTTONS
+========================================== */
+
+.profile-reaction-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.profile-reaction-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    background: #fff;
+    font-size: 35px;
+}
+
+.profile-reaction-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+
+/* ==========================================
+   LIKED PROFILE
+========================================== */
+
+.liked-active {
+    cursor: default;
+    font-weight: 700;
+    background: #1976d2;
+    color: #fff;
+}
+
+.liked-active:disabled {
+    opacity: 1;
+}
+
+
+/* ==========================================
+   DISLIKED PROFILE
+========================================== */
+
+.disliked-active {
+
+    cursor: default;
+
+    font-weight: 600;
+
+    background: #d32f2f;
+
+    color: #fff;
+
+    border-color: #d32f2f;
+
+}
+
+.disliked-active:disabled {
+    opacity: 1;
+}
+
+
+/* ==========================================
+   PROFILE BUTTON STATES
+========================================== */
+
+.profile-reaction-btn.liked {
+    background: #1976d2;
+    color: #fff;
+    border-color: #1976d2;
+}
+
+.profile-reaction-btn.mutual {
+    background: #28a745;
+    color: #fff;
+    border-color: #28a745;
+    font-weight: bold;
+}
+
+.matched-active {
+    background: #2e7d32;
+    color: #fff;
+    font-weight: 600;
+}
+
+</style>

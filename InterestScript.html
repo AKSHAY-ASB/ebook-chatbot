@@ -1,0 +1,573 @@
+<script>
+  // ==========================================
+// INTEREST MODULE
+// ==========================================
+
+
+// ==========================================
+// OPEN SEND INTEREST CONFIRMATION
+// ==========================================
+
+function openSendInterestConfirmation(
+  profileType,
+  profileId,
+  profileName
+) {
+
+    console.log(
+      "SEND INTEREST CLICKED:",
+      {
+        type: profileType,
+        id: profileId,
+        name: profileName
+      }
+    );
+  // ========================================
+  // USER MUST BE VERIFIED
+  // ========================================
+
+  if (
+    !profileAccessVerified ||
+    !profileUserMobile
+  ) {
+
+    botMessage(`
+
+      🔐 <b>Verification Required</b>
+
+      <br><br>
+
+      💌 Interest पाठवण्यासाठी प्रथम
+      Registered Mobile Number Verify करा.
+
+    `);
+
+    return;
+
+  }
+
+
+  profileType =
+    String(profileType || "")
+      .trim()
+      .toLowerCase();
+
+
+  profileId =
+    String(profileId || "")
+      .trim();
+
+
+  profileName =
+    String(profileName || "")
+      .trim();
+
+
+  if (
+    !profileType ||
+    !profileId
+  ) {
+
+    botMessage(
+      "⚠️ Profile information missing."
+    );
+
+    return;
+
+  }
+
+
+  // ========================================
+  // SAFE VALUES FOR HTML onclick
+  // ========================================
+
+  const safeType =
+    escapeJsValue(
+      profileType
+    );
+
+
+  const safeId =
+    escapeJsValue(
+      profileId
+    );
+
+
+  const safeName =
+    escapeJsValue(
+      profileName
+    );
+
+
+  // ========================================
+  // CONFIRMATION MESSAGE
+  // ========================================
+
+  botMessage(`
+
+    <div class="interest-confirm-card">
+
+      <div class="interest-confirm-icon">
+        💌
+      </div>
+
+      <div class="interest-confirm-title">
+        Send Interest
+      </div>
+
+      <div class="interest-confirm-text">
+
+        तुम्हाला
+
+        <b>
+          ${escapeHtml(profileName || profileId)}
+        </b>
+
+        या Profile ला Interest Request
+        पाठवायची आहे का?
+
+      </div>
+
+
+      <div class="interest-confirm-actions">
+
+        <button
+          type="button"
+          class="interest-confirm-btn"
+          onclick="
+            confirmSendInterest(
+              '${safeType}',
+              '${safeId}',
+              '${safeName}',
+              this
+            )
+          "
+        >
+          💌 Yes, Send Interest
+        </button>
+
+
+        <button
+          type="button"
+          class="interest-cancel-btn"
+          onclick="
+            cancelSendInterest(this)
+          "
+        >
+          Cancel
+        </button>
+
+      </div>
+
+    </div>
+
+  `);
+
+
+  scrollChat();
+
+}
+
+
+
+// ==========================================
+// CONFIRM SEND INTEREST
+// ==========================================
+
+function confirmSendInterest(
+  profileType,
+  profileId,
+  profileName,
+  button
+) {
+
+  // ========================================
+  // DOUBLE CLICK PROTECTION
+  // ========================================
+
+  if (
+    button &&
+    button.dataset.sending === "true"
+  ) {
+
+    return;
+
+  }
+
+
+  if (button) {
+
+    button.dataset.sending =
+      "true";
+
+
+    button.disabled =
+      true;
+
+
+    button.innerHTML =
+      "Sending...";
+
+  }
+
+  console.log(
+  "CONFIRM SEND INTEREST INPUT:",
+  {
+    senderMobile: profileUserMobile,
+    profileType: profileType,
+    profileId: profileId,
+    profileName: profileName
+  }
+);
+
+
+  showTyping();
+
+
+  // ========================================
+  // CALL BACKEND
+  // ========================================
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+
+        console.log(
+          "SEND INTEREST RESULT:",
+          result
+        );
+
+
+        // ==================================
+        // INVALID RESPONSE
+        // ==================================
+
+        if (!result) {
+
+          resetInterestButton(
+            button
+          );
+
+
+          botMessage(
+            "⚠️ Interest response not received."
+          );
+
+
+          return;
+
+        }
+
+
+        // ==================================
+        // SUCCESS
+        // ==================================
+
+        if (
+          result.success === true
+        ) {
+
+          if (button) {
+
+            button.innerHTML =
+              "💌 Interest Sent";
+
+
+            button.classList.add(
+              "interest-sent-active"
+            );
+
+          }
+
+
+          botMessage(`
+
+            <div class="interest-success-message">
+
+              💌 <b>Interest Sent Successfully</b>
+
+              <br><br>
+
+              तुमची Interest Request
+
+              <b>
+                ${escapeHtml(
+                  profileName ||
+                  profileId
+                )}
+              </b>
+
+              या Profile ला पाठवण्यात आली आहे.
+
+              <br><br>
+
+              Status:
+              <b>Pending</b>
+
+            </div>
+
+          `);
+
+
+            // ==================================
+            // SHOW SEARCH AGAIN + MAIN MENU
+            // ==================================
+
+            showSearchAgainButton();
+
+          scrollChat();
+
+
+          return;
+
+        }
+
+
+        // ==================================
+        // DUPLICATE INTEREST
+        // ==================================
+
+        if (
+          result.duplicate === true ||
+          result.code ===
+            "INTEREST_ALREADY_EXISTS"
+        ) {
+
+          if (button) {
+
+            button.innerHTML =
+              "💌 Already Sent";
+
+
+            button.classList.add(
+              "interest-sent-active"
+            );
+
+          }
+
+
+          let status =
+            String(
+              result.status ||
+              "PENDING"
+            )
+            .trim()
+            .toUpperCase();
+
+
+          let statusText =
+            "⏳ Pending";
+
+
+          if (
+            status === "ACCEPTED"
+          ) {
+
+            statusText =
+              "❤️ Accepted";
+
+          }
+
+
+          else if (
+            status === "DECLINED"
+          ) {
+
+            statusText =
+              "Not Proceeding";
+
+          }
+
+
+          botMessage(`
+
+            <div class="interest-info-message">
+
+              ℹ️ <b>Interest Already Sent</b>
+
+              <br><br>
+
+              या Profile ला तुम्ही आधीच
+              Interest Request पाठवली आहे.
+
+              <br><br>
+
+              Status:
+              <b>${statusText}</b>
+
+            </div>
+
+          `);
+
+
+          scrollChat();
+
+
+          return;
+
+        }
+
+
+        // ==================================
+        // SELF INTEREST
+        // ==================================
+
+        if (
+          result.code ===
+          "SELF_INTEREST"
+        ) {
+
+          resetInterestButton(
+            button
+          );
+
+
+          botMessage(`
+
+            ⚠️ स्वतःच्या Profile ला
+            Interest पाठवता येणार नाही.
+
+          `);
+
+
+          return;
+
+        }
+
+
+        // ==================================
+        // OTHER ERROR
+        // ==================================
+
+        resetInterestButton(
+          button
+        );
+
+
+        botMessage(
+
+          "⚠️ " +
+          (
+            result.message ||
+            "Interest पाठवता आला नाही."
+          )
+
+        );
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+
+        resetInterestButton(
+          button
+        );
+
+
+        console.error(
+          "Send Interest Error:",
+          error
+        );
+
+
+        botMessage(`
+
+          ⚠️ Interest पाठवताना समस्या आली.
+
+          <br><br>
+
+          कृपया पुन्हा प्रयत्न करा.
+
+        `);
+
+      }
+    )
+
+
+    .sendProfileInterest(
+      profileUserMobile,
+      profileType,
+      profileId
+    );
+
+}
+
+
+
+// ==========================================
+// RESET INTEREST BUTTON
+// ==========================================
+
+function resetInterestButton(
+  button
+) {
+
+  if (!button) {
+    return;
+  }
+
+
+  button.dataset.sending =
+    "false";
+
+
+  button.disabled =
+    false;
+
+
+  button.innerHTML =
+    "💌 Yes, Send Interest";
+
+}
+
+
+
+// ==========================================
+// CANCEL SEND INTEREST
+// ==========================================
+
+function cancelSendInterest(
+  button
+) {
+
+  if (!button) {
+    return;
+  }
+
+
+  const card =
+    button.closest(
+      ".interest-confirm-card"
+    );
+
+
+  if (card) {
+
+    card.innerHTML = `
+
+      <div class="interest-cancelled-message">
+
+        Interest Request cancelled.
+
+      </div>
+
+    `;
+
+  }
+
+}
+
+
+console.log(
+  "INTEREST SCRIPT LOADED"
+);
+</script>

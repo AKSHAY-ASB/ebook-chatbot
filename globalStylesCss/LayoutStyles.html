@@ -1,0 +1,218 @@
+<!--
+==========================================
+FILE : LayoutStyles.html
+MODULE : Styles
+PURPOSE : Chat application layout
+
+RESPONSIBILITY
+
+- Chat Layout
+- Header
+- Footer
+- Bottom Input
+- Responsive Layout
+
+USED BY
+
+Index.html
+
+VERSION : 1.0.0
+STATUS : APPROVED
+==========================================
+-->
+
+
+<style>
+
+.chat-container {
+    position: fixed;
+
+    inset: 0;
+
+    width: 100%;
+
+    height: 100dvh;
+
+    margin: 0;
+
+    border-radius: 0;
+
+    display: flex;
+
+    flex-direction: column;
+
+    background: #fff;
+}
+
+.header {
+  flex-shrink: 0;
+
+  background: #0057B8;
+
+  color: #ffffff;
+
+  padding:
+    30px
+    15px;
+
+  font-size: 50px;
+
+  line-height: 1.3;
+
+  font-weight: 700;
+
+  text-align: center;
+}
+
+@media(max-width:600px){
+
+  .chat-container {
+      width: 100%;
+      height: 100dvh;
+      margin: 0;
+      border-radius: 0;
+      box-shadow: none;
+  }
+
+  .header{
+
+    font-size: 50px;
+
+    position: sticky;
+
+    top:0;
+
+    z-index:50;
+
+    background:#0057B8;
+}
+
+}
+
+#chat {
+  flex: 1;
+
+  min-height: 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding: 16px;
+
+  scroll-behavior: smooth;
+
+  -webkit-overflow-scrolling: touch;
+
+  overscroll-behavior: contain;
+}
+
+.chat-input,
+.chat-footer,
+.input-area {
+  flex-shrink: 0;
+
+  padding-bottom:
+    max(
+      10px,
+      env(safe-area-inset-bottom)
+    );
+}
+
+.bottom{
+
+    position: sticky;
+
+    bottom: 0;
+
+    left: 0;
+
+    right: 0;
+
+    background:#fff;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:12px;
+
+    border-top:1px solid #ddd;
+
+    z-index:50;
+}
+
+.bottom input{
+
+flex:1;
+
+padding:25px;
+
+font-size:35px;
+
+border:1px solid #ccc;
+
+border-radius:8px;
+
+outline:none;
+
+}
+
+.bottom button{
+
+margin-left:10px;
+
+padding:25px 50px;
+
+background:#0057B8;
+
+color:white;
+
+border:none;
+
+border-radius:8px;
+
+cursor:pointer;
+
+font-size:35px;
+
+}
+
+.menu{
+
+display:flex;
+
+flex-direction:column;
+
+gap:8px;
+
+margin-top:15px;
+
+}
+
+.menu button{
+
+padding:20px;
+
+border-radius:8px;
+
+border:1px solid #0057B8;
+
+background:white;
+
+cursor:pointer;
+
+font-size:35px;
+
+}
+
+.menu button:hover{
+
+background:#0057B8;
+
+color:white;
+
+}
+
+</style>

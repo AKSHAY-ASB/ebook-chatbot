@@ -1,0 +1,74 @@
+<script>
+
+// ==========================================
+// FILE : ProfileActions.html
+// MODULE : Profile Components
+// PURPOSE : Reusable profile action buttons
+// ==========================================
+
+
+// ==========================================
+// VIEW PROFILE BUTTON
+// ==========================================
+
+function buildViewProfileButton(
+    profile
+) {
+
+    profile =
+        profile || {};
+
+
+    const profileType =
+        String(
+            profile.viewerProfileType ||
+            profile.type ||
+            ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    const profileId =
+        String(
+            profile.viewerProfileId ||
+            profile.id ||
+            ""
+        )
+        .trim();
+
+
+    const safeType =
+        escapeJsValue(
+            profileType
+        );
+
+
+    const safeId =
+        escapeJsValue(
+            profileId
+        );
+
+
+    return `
+
+        <button
+            type="button"
+            class="view-profile-btn"
+            onclick="
+                viewFullProfile(
+                    '${safeType}',
+                    '${safeId}'
+                )
+            "
+        >
+
+            👀 View Profile
+
+        </button>
+
+    `;
+
+}
+
+</script>
