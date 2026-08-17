@@ -25,15 +25,15 @@ let lastRenderedProfiles = [];
 
 window.onload = function () {
 
-  botMessage(
-    "👋 Welcome to Devang Pustika"
-  );
+  // botMessage(
+  //   "👋 Welcome to Devang Pustika"
+  // );
 
-  botMessage(
-    "How can I help you today?"
-  );
+  // botMessage(
+  //   "How can I help you today?"
+  // );
 
-  showMenu();
+  // showMenu();
 
 };
 
@@ -535,6 +535,13 @@ function showMenu() {
 
         ❤️ Likes Received
 
+      </button>
+
+       <button
+        onclick="handleChatbotLogout()"
+        class="logout-menu-button"
+      >
+        🔐 Logout
       </button>
 
       
@@ -5152,6 +5159,172 @@ function buildProfileActionButtons(
         </div>
 
     `;
+
+}
+
+
+
+function handleChatbotLogout() {
+
+  // ==========================================
+  // CHECK SESSION
+  // ==========================================
+
+  if (
+    typeof authUISessionId === "undefined" ||
+    !authUISessionId
+  ) {
+
+    console.warn(
+      "No active authentication session."
+    );
+
+    return;
+
+  }
+
+
+  // ==========================================
+  // LOGOUT CONFIRMATION
+  // ==========================================
+
+  const confirmed =
+    confirm(
+      "Are you sure you want to logout?"
+    );
+
+
+  if (!confirmed) {
+
+    return;
+
+  }
+
+
+  // ==========================================
+  // SERVER-SIDE LOGOUT
+  // ==========================================
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        console.log(
+          "Logout result:",
+          result
+        );
+
+
+        if (
+          !result ||
+          result.success !== true
+        ) {
+
+          alert(
+            "Logout failed. Please try again."
+          );
+
+          return;
+
+        }
+
+
+        // ======================================
+        // CLEAR FRONTEND SESSION
+        // ======================================
+
+        authUISessionId =
+          "";
+
+        authUIRequestId =
+          "";
+
+        authUIMobile =
+          "";
+
+        authUIUser =
+          null;
+
+        authUIState =
+          "LOGIN_REQUIRED";
+
+
+        // ======================================
+        // HIDE CHATBOT
+        // ======================================
+
+        const chatbotWrapper =
+          document.getElementById(
+            "chatbotWrapper"
+          );
+
+        if (chatbotWrapper) {
+
+          chatbotWrapper.style.display =
+            "none";
+
+        }
+
+
+        // ======================================
+        // SHOW LOGIN UI
+        // ======================================
+
+        const authContainer =
+          document.getElementById(
+            "authContainer"
+          );
+
+        if (authContainer) {
+
+          authContainer.style.display =
+            "flex";
+
+        }
+
+
+        // ======================================
+        // RESET AUTH SCREEN
+        // ======================================
+
+        if (
+          typeof authShowScreen ===
+          "function"
+        ) {
+
+          authShowScreen(
+            "authLoginScreen"
+          );
+
+        }
+
+
+        console.log(
+          "✅ User logged out successfully."
+        );
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "Logout error:",
+          error
+        );
+
+        alert(
+          "Logout failed. Please try again."
+        );
+
+      }
+    )
+
+    .logoutLoginSession(
+      authUISessionId
+    );
 
 }
 

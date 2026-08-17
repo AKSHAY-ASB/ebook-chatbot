@@ -4401,3 +4401,332 @@ function requestProtectedChatbot(sessionId, message) {
   }
 
 }
+
+
+// =====================================================
+// SEC-04.1
+// FRONTEND LOGIN API
+// REQUEST OTP
+// =====================================================
+
+function requestLoginOTP(mobile) {
+
+  try {
+
+    // ---------------------------------------------------
+    // 1. Normalize mobile
+    // ---------------------------------------------------
+
+    const cleanMobile =
+      normalizeAuthMobile(
+        mobile
+      );
+
+
+    if (!cleanMobile) {
+
+      return {
+
+        success: false,
+
+        code:
+          "INVALID_MOBILE",
+
+        message:
+          "कृपया योग्य 10 अंकी मोबाईल नंबर टाका."
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 2. Check registered profile
+    // ---------------------------------------------------
+
+    const user =
+      getAuthUserFromRegisteredMobile(
+        cleanMobile
+      );
+
+
+    if (
+      !user ||
+      user.registered !== true
+    ) {
+
+      return {
+
+        success: false,
+
+        registered: false,
+
+        code:
+          user &&
+          user.code
+            ? user.code
+            : "MOBILE_NOT_REGISTERED",
+
+        message:
+          user &&
+          user.message
+            ? user.message
+            : "हा मोबाईल नंबर नोंदणीकृत नाही."
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 3. Create OTP request
+    // ---------------------------------------------------
+
+    const request =
+      createAuthOTPRequest(
+        cleanMobile
+      );
+
+
+    if (
+      !request ||
+      request.success !== true
+    ) {
+
+      return {
+
+        success: false,
+
+        registered: true,
+
+        code:
+          request &&
+          request.code
+            ? request.code
+            : "OTP_REQUEST_FAILED",
+
+        retryAfter:
+          request &&
+          request.retryAfter
+            ? request.retryAfter
+            : 0,
+
+        message:
+          request &&
+          request.message
+            ? request.message
+            : "OTP request करता आली नाही."
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 4. Generate OTP
+    // ---------------------------------------------------
+
+    const generated =
+      generateAuthOTP(
+        request.requestId
+      );
+
+
+    if (
+      !generated ||
+      generated.success !== true
+    ) {
+
+      return {
+
+        success: false,
+
+        registered: true,
+
+        code:
+          "OTP_GENERATION_FAILED",
+
+        requestId:
+          request.requestId
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 5. Send OTP through 2Factor
+    // ---------------------------------------------------
+    //
+    // IMPORTANT:
+    // OTP is NOT returned to frontend.
+    // ---------------------------------------------------
+
+    const sms =
+      sendOTPVia2Factor(
+
+        cleanMobile,
+
+        generated.otp
+
+      );
+
+
+    if (
+      !sms ||
+      sms.success !== true
+    ) {
+
+      return {
+
+        success: false,
+
+        registered: true,
+
+        code:
+          "OTP_DELIVERY_FAILED",
+
+        requestId:
+          request.requestId,
+
+        message:
+          "OTP पाठवता आला नाही. कृपया पुन्हा प्रयत्न करा."
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 6. Production-safe response
+    // ---------------------------------------------------
+
+    return {
+
+      success: true,
+
+      registered: true,
+
+      state:
+        "OTP_PENDING",
+
+      requestId:
+        request.requestId,
+
+      retryAfter:
+        AUTH_CONFIG
+          .RESEND_COOLDOWN_SECONDS,
+
+      expiresIn:
+        AUTH_CONFIG
+          .OTP_EXPIRY_SECONDS,
+
+      user: {
+
+        profileId:
+          user.profileId,
+
+        profileType:
+          user.profileType,
+
+        name:
+          user.name,
+
+        mobile:
+          user.mobile
+
+      }
+
+    };
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "requestLoginOTP Error:",
+      error
+    );
+
+
+    return {
+
+      success: false,
+
+      code:
+        "LOGIN_OTP_EXCEPTION",
+
+      message:
+        "OTP request करताना समस्या आली."
+
+    };
+
+  }
+
+}
+
+
+function testRequestLoginOTP() {
+
+  const mobile =
+    "8975593689";
+
+
+  Logger.log(
+    "========== SEC-04.1 =========="
+  );
+
+
+  const result =
+    requestLoginOTP(
+      mobile
+    );
+
+
+  Logger.log(
+    JSON.stringify(
+      result,
+      null,
+      2
+    )
+  );
+
+
+  if (
+    result.success === true &&
+    result.registered === true &&
+    result.state === "OTP_PENDING" &&
+    result.requestId &&
+    !result.otp
+  ) {
+
+    Logger.log(
+      "✅ OTP REQUEST API PASS"
+    );
+
+  }
+
+  else {
+
+    Logger.log(
+      "❌ OTP REQUEST API FAILED"
+    );
+
+    return;
+
+  }
+
+
+  Logger.log(
+    "================================"
+  );
+
+  Logger.log(
+    "SEC-04.1 PASS"
+  );
+
+  Logger.log(
+    "================================"
+  );
+
+}
