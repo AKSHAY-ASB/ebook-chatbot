@@ -1,3 +1,6 @@
+
+
+
 function doGet() {
   return HtmlService.createTemplateFromFile("index")
     .evaluate()
@@ -83,6 +86,136 @@ function askBot(question) {
       "Sorry, I couldn't answer that question right now.",
 
     action: "none"
+
+  };
+
+}
+
+
+// =====================================================
+// SEC-03.6
+// PROTECTED CHATBOT API
+// =====================================================
+
+function askBotProtected(sessionId, question) {
+
+  // ---------------------------------------------------
+  // STEP 1:
+  // Validate authenticated session
+  // ---------------------------------------------------
+
+  const access =
+    requireAuthSession(
+      sessionId
+    );
+
+
+  if (
+    !access ||
+    access.authorized !== true
+  ) {
+
+    return {
+
+      success: false,
+
+      authorized: false,
+
+      code:
+        access &&
+        access.code
+          ? access.code
+          : "ACCESS_DENIED",
+
+      message:
+        "Authentication required."
+
+    };
+
+  }
+
+
+  // ---------------------------------------------------
+  // STEP 2:
+  // Validate question
+  // ---------------------------------------------------
+
+  if (
+    !question ||
+    String(question).trim() === ""
+  ) {
+
+    return {
+
+      success: false,
+
+      authorized: true,
+
+      code:
+        "EMPTY_MESSAGE",
+
+      message:
+        "कृपया तुमचा प्रश्न टाका."
+
+    };
+
+  }
+
+
+  // ---------------------------------------------------
+  // STEP 3:
+  // SERVER-SIDE IDENTITY
+  // ---------------------------------------------------
+
+  const authenticatedUser =
+    access.user;
+
+
+  // ---------------------------------------------------
+  // STEP 4:
+  // Existing chatbot logic
+  // ---------------------------------------------------
+
+  const chatbotResult =
+    askBot(
+      String(
+        question
+      ).trim()
+    );
+
+
+  // ---------------------------------------------------
+  // STEP 5:
+  // Return protected response
+  // ---------------------------------------------------
+
+  return {
+
+    success: true,
+
+    authorized: true,
+
+    source:
+      chatbotResult.source,
+
+    found:
+      chatbotResult.found,
+
+    intent:
+      chatbotResult.intent,
+
+    answer:
+      chatbotResult.answer,
+
+    action:
+      chatbotResult.action,
+
+    // Server-validated identity
+    profileId:
+      authenticatedUser.profileId,
+
+    profileType:
+      authenticatedUser.profileType
 
   };
 
