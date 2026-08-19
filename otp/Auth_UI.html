@@ -6,6 +6,17 @@
 
 <div id="authContainer">
 
+
+  <img
+    id="loginBackgroundImage"
+    class="login-background-image"
+    alt="backgroundImage"
+  >
+
+
+    <!-- OVERLAY -->
+    <div class="login-background-overlay"></div>
+
   <!-- ================================================
        LOGIN SCREEN
   ================================================= -->
@@ -315,13 +326,42 @@
    AUTH CONTAINER
 ===================================================== */
 
+.auth-screen {
+
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+
+    /* height: 100dvh;
+
+    min-height: 100dvh; */
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding:
+        20px;
+
+    overflow-y: auto;
+
+    -webkit-overflow-scrolling: touch;
+
+    z-index: 2;
+
+}
+
 #authContainer {
 
     position: fixed;
 
     inset: 0;
 
-    width: 100%;
+    width: 100vw;
 
     height: 100dvh;
 
@@ -331,26 +371,53 @@
 
     padding: 0;
 
-    display: flex;
-
-    flex-direction: column;
-
-    background: #ffffff;
+    display: block;
 
     overflow: hidden;
+
+    background: #ffffff;
 
     font-family:
         Arial,
         Helvetica,
         sans-serif;
+
 }
 
 
-/* =====================================================
-   AUTH SCREEN
-===================================================== */
+/* ==========================================
+   LOGIN BACKGROUND IMAGE
+========================================== */
 
-.auth-screen {
+.login-background-image {
+
+    position: absolute;
+
+    inset: 0;
+
+    width: 100vw;
+
+    height: 100dvh;
+
+    max-width: none;
+
+    max-height: none;
+
+    display: block;
+
+    object-fit: cover;
+
+    object-position: center center;
+
+    z-index: 0;
+
+}
+
+/* ==========================================
+   BACKGROUND OVERLAY
+========================================== */
+
+.login-background-overlay {
 
     position: absolute;
 
@@ -358,29 +425,47 @@
 
     width: 100%;
 
-    height: 100dvh;
+    height: 100%;
 
-    min-height: 100dvh;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    padding:
-        20px
-        15px
-        max(
-            20px,
-            env(safe-area-inset-bottom)
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.05),
+            rgba(255, 255, 255, 0.25)
         );
 
-    background: #ffffff;
+    z-index: 1;
 
-    overflow-y: auto;
+    pointer-events: none;
 
-    -webkit-overflow-scrolling: touch;
+}
+
+
+/* ==========================================
+   AUTH CONTENT ABOVE IMAGE
+========================================== */
+
+#authContainer .auth-screen {
+
+    position: relative;
+
+    z-index: 2;
+
+}
+
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width: 600px) {
+
+    .login-background-image {
+
+        object-position:
+            center bottom;
+
+    }
 
 }
 
@@ -392,25 +477,104 @@
 
 .auth-card {
 
-    width: 100%;
+    position: relative;
 
-    max-width: 700px;
+    /* width: min(
+        90%,
+        430px
+    ); */
 
     margin: auto;
 
     padding:
-        30px
-        20px;
+        28px
+        24px;
 
-    background: transparent;
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            0.90
+        );
 
-    border-radius: 0;
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            0.70
+        );
 
-    box-shadow: none;
+    border-radius: 22px;
+
+    /* box-shadow:
+        0
+        15px
+        45px
+        rgba(
+            0,
+            0,
+            0,
+            0.25
+        ); */
+
+    backdrop-filter:
+        blur(8px);
+
+    -webkit-backdrop-filter:
+        blur(8px);
 
     text-align: center;
 
 }
+
+
+
+@media (max-width: 600px) {
+
+    .login-background-image {
+
+        width: 100vw;
+
+        height: 100dvh;
+
+        object-fit: cover;
+
+        object-position:
+            center center;
+
+    }
+
+
+    .auth-screen {
+
+        padding:
+            15px;
+
+    }
+
+
+    .auth-card {
+
+        width: 92%;
+
+        max-width: 400px;
+
+        padding:
+            24px
+            18px;
+
+        border-radius: 20px;
+
+    }
+
+}
+
+
+
+
 
 
 /* =====================================================
@@ -1515,6 +1679,15 @@ let authUIMobile =
 let authUIUser =
   null;
 
+/* =====================================================
+   PERSISTENT AUTH SESSION
+===================================================== */
+
+const AUTH_SESSION_STORAGE_KEY =
+  "DEVANG_PUSTIKA_AUTH_SESSION";
+
+let authSessionExpiryTimer = null;  
+
 let authUITimer =
   null;
 
@@ -1744,6 +1917,22 @@ function authRequestOTP() {
     mobile;
 
 
+  // =================================================
+  // GET TRUSTED AUTH TOKEN
+  // =================================================
+
+  const trustedToken =
+    localStorage.getItem(
+      "DEVANG_PUSTIKA_TRUSTED_TOKEN"
+    ) || "";
+
+
+  console.log(
+    "Trusted token available:",
+    !!trustedToken
+  );
+
+
   authSetLoading(
     "login",
     true
@@ -1760,6 +1949,16 @@ function authRequestOTP() {
           false
         );
 
+
+        console.log(
+          "requestLoginOTP result:",
+          result
+        );
+
+
+        // =============================================
+        // GENERAL ERROR
+        // =============================================
 
         if (
           !result ||
@@ -1779,45 +1978,129 @@ function authRequestOTP() {
         }
 
 
-        authUIRequestId =
-          result.requestId;
+        // =============================================
+        // TRUSTED AUTH LOGIN
+        // =============================================
+        //
+        // Trusted user:
+        //
+        // authenticated = true
+        // trusted = true
+        // otpRequired = false
+        //
+        // Therefore DO NOT show OTP screen.
+        // =============================================
 
+        if (
+          result.authenticated === true &&
+          result.trusted === true &&
+          result.otpRequired === false &&
+          result.authenticationMethod ===
+            "TRUSTED_AUTH"
+        ) {
 
-        authUIState =
-          "OTP_PENDING";
-
-
-        const masked =
-          document.getElementById(
-            "authMaskedMobile"
+          console.log(
+            "✅ TRUSTED AUTH LOGIN SUCCESS"
           );
 
 
-        if (masked) {
+          authUIState =
+            "SESSION_ACTIVE";
 
-          masked.textContent =
-            authMaskMobile(
-              authUIMobile
-            );
+
+          authUISessionId =
+            result.sessionId;
+
+
+          authUIUser =
+            result.user || null;
+
+
+          // Stop any OTP timer
+          authStopResendTimer();
+
+
+          // =========================================
+          // DIRECTLY OPEN CHATBOT
+          // =========================================
+
+          authContinueToChatbot();
+
+
+          return;
 
         }
 
 
-        authShowScreen(
-          "authOTPScreen"
+        // =============================================
+        // NORMAL OTP LOGIN
+        // =============================================
+
+        if (
+          result.otpRequired === true
+        ) {
+
+          authUIRequestId =
+            result.requestId;
+
+
+          authUIState =
+            "OTP_PENDING";
+
+
+          const masked =
+            document.getElementById(
+              "authMaskedMobile"
+            );
+
+
+          if (masked) {
+
+            masked.textContent =
+              authMaskMobile(
+                authUIMobile
+              );
+
+          }
+
+
+          authShowScreen(
+            "authOTPScreen"
+          );
+
+
+          authStartResendTimer(
+            result.retryAfter ||
+            60
+          );
+
+
+          authFocusFirstOTP();
+
+
+          return;
+
+        }
+
+
+        // =============================================
+        // UNEXPECTED RESPONSE
+        // =============================================
+
+        console.error(
+          "Unexpected login response:",
+          result
         );
 
 
-        authStartResendTimer(
-          result.retryAfter ||
-          60
+        authShowError(
+          "authLoginError",
+          "Authentication response invalid आहे."
         );
-
-
-        authFocusFirstOTP();
 
       }
     )
+
 
     .withFailureHandler(
       function(error) {
@@ -1842,8 +2125,14 @@ function authRequestOTP() {
       }
     )
 
+
+    // ===============================================
+    // BACKEND CALL
+    // ===============================================
+
     .requestLoginOTP(
-      mobile
+      mobile,
+      trustedToken
     );
 
 }
@@ -2017,6 +2306,59 @@ function authVerifyOTP() {
         authUIUser =
           result.user ||
           null;
+
+
+        // ==========================================
+        // SAVE TRUSTED AUTH TOKEN
+        // ==========================================
+
+        if (
+          result.trusted === true &&
+          result.trustedToken
+        ) {
+
+          localStorage.setItem(
+            "DEVANG_PUSTIKA_TRUSTED_TOKEN",
+            result.trustedToken
+          );
+
+          console.log(
+            "✅ Trusted token saved."
+          );
+
+        }
+        // ==========================================
+        // SAVE SESSION FOR PAGE REFRESH
+        // ==========================================
+
+        authSaveSession();
+
+
+        // ==========================================
+        // START SESSION EXPIRY TIMER
+        // ==========================================
+
+        if (result.expiresAt) {
+
+          authStartSessionExpiryTimer(
+            result.expiresAt
+          );
+
+        }
+        else if (result.expiresIn) {
+
+          authStartSessionExpiryTimer(
+            new Date(
+              Date.now() +
+              (
+                Number(
+                  result.expiresIn
+                ) * 1000
+              )
+            ).toISOString()
+          );
+
+        }  
 
 
         authStopResendTimer();
@@ -2217,39 +2559,46 @@ function authStopResendTimer() {
 
 function authResendOTP() {
 
-  if (
-    !authUIMobile
-  ) {
-
-    return;
-
-  }
-
-
   authShowError(
     "authOTPError",
     ""
   );
 
 
-  const button =
-    document.getElementById(
-      "authResendButton"
+  if (!authUIMobile) {
+
+    authShowError(
+      "authOTPError",
+      "मोबाईल नंबर उपलब्ध नाही."
     );
 
-
-  if (button) {
-
-    button.disabled =
-      true;
+    return;
 
   }
+
+
+  authSetLoading(
+    "resend",
+    true
+  );
 
 
   google.script.run
 
     .withSuccessHandler(
       function(result) {
+
+        authSetLoading(
+          "resend",
+          false
+        );
+
+
+        console.log(
+          "resendLoginOTP result:",
+          result
+        );
+
 
         if (
           !result ||
@@ -2261,33 +2610,30 @@ function authResendOTP() {
             result &&
             result.message
               ? result.message
-              : "OTP resend failed."
+              : "OTP पुन्हा पाठवता आला नाही."
           );
-
-
-          if (button) {
-
-            button.disabled =
-              false;
-
-          }
-
 
           return;
 
         }
 
 
-        /*
-         * IMPORTANT:
-         *
-         * The backend response must NOT
-         * contain the OTP value.
-         */
+        // ==========================================
+        // IMPORTANT
+        // New OTP request ID
+        // ==========================================
 
         authUIRequestId =
           result.requestId;
 
+
+        authUIState =
+          "OTP_PENDING";
+
+
+        // ==========================================
+        // Restart timer
+        // ==========================================
 
         authStartResendTimer(
           result.retryAfter ||
@@ -2295,7 +2641,13 @@ function authResendOTP() {
         );
 
 
-        authClearOTP();
+        authFocusFirstOTP();
+
+
+        authShowError(
+          "authOTPError",
+          "नवीन OTP पाठवला आहे."
+        );
 
       }
     )
@@ -2303,32 +2655,26 @@ function authResendOTP() {
     .withFailureHandler(
       function(error) {
 
+        authSetLoading(
+          "resend",
+          false
+        );
+
+
         console.error(
-          "Resend OTP error:",
+          "resendLoginOTP error:",
           error
         );
 
 
         authShowError(
           "authOTPError",
-          "OTP resend करताना समस्या आली."
+          "OTP पुन्हा पाठवताना समस्या आली."
         );
-
-
-        if (button) {
-
-          button.disabled =
-            false;
-
-        }
 
       }
     )
 
-    /*
-     * We will connect this to the
-     * final backend resend API.
-     */
     .resendLoginOTP(
       authUIMobile
     );
@@ -2392,19 +2738,10 @@ function authBackToLogin() {
 
 function authContinueToChatbot() {
 
-  console.log(
-    "Authenticated session:",
-    authUISessionId
-  );
-
-
-  // ==========================================
-  // SECURITY CHECK
-  // ==========================================
-
   if (
     !authUISessionId ||
-    authUIState !== "SESSION_ACTIVE"
+    authUIState !==
+      "SESSION_ACTIVE"
   ) {
 
     console.error(
@@ -2416,75 +2753,14 @@ function authContinueToChatbot() {
   }
 
 
-  // ==========================================
-  // HIDE AUTH UI
-  // ==========================================
-
-  const authContainer =
-    document.getElementById(
-      "authContainer"
-    );
-
-  if (authContainer) {
-
-    authContainer.style.display =
-      "none";
-
-  }
+  authSaveSession();
 
 
-  // ==========================================
-  // SHOW CHATBOT
-  // ==========================================
-
-  const chatbotWrapper =
-    document.getElementById(
-      "chatbotWrapper"
-    );
-
-  if (!chatbotWrapper) {
-
-    console.error(
-      "chatbotWrapper not found."
-    );
-
-    return;
-
-  }
-
-
-  chatbotWrapper.style.display =
-    "block";
-
-
-  // ==========================================
-  // START CHATBOT
-  // ==========================================
-
-  if (
-    typeof botMessage === "function"
-  ) {
-
-    botMessage(
-      "👋 Welcome to Devang Pustika"
-    );
-
-    botMessage(
-      "How can I help you today?"
-    );
-
-  }
-
-
-  if (
-    typeof showMenu === "function"
-  ) {
-
-    showMenu();
-
-  }
+  authOpenChatbot();
 
 }
+
+
 
 
 /* =====================================================
@@ -2493,15 +2769,25 @@ function authContinueToChatbot() {
 
 function authLogout() {
 
-  if (
-    !authUISessionId
-  ) {
+  // ==========================================
+  // NO SESSION
+  // ==========================================
 
-    authBackToLogin();
+  if (!authUISessionId) {
+
+    authClearSession();
+
+    authShowScreen(
+      "authLoginScreen"
+    );
 
     return;
 
   }
+
+
+  const sessionId =
+    authUISessionId;
 
 
   google.script.run
@@ -2515,23 +2801,53 @@ function authLogout() {
         );
 
 
-        authStopResendTimer();
+        authStopSessionExpiryTimer();
 
-
-        authUISessionId =
-          "";
+        authClearSession();
 
 
         authUIRequestId =
           "";
 
-
-        authUIUser =
-          null;
-
+        authUIMobile =
+          "";
 
         authUIState =
           "LOGIN_REQUIRED";
+
+
+        // ======================================
+        // HIDE CHATBOT
+        // ======================================
+
+        const chatbotWrapper =
+          document.getElementById(
+            "chatbotWrapper"
+          );
+
+        if (chatbotWrapper) {
+
+          chatbotWrapper.style.display =
+            "none";
+
+        }
+
+
+        // ======================================
+        // SHOW LOGIN
+        // ======================================
+
+        const authContainer =
+          document.getElementById(
+            "authContainer"
+          );
+
+        if (authContainer) {
+
+          authContainer.style.display =
+            "flex";
+
+        }
 
 
         authShowScreen(
@@ -2549,14 +2865,31 @@ function authLogout() {
           error
         );
 
+        // Even if server already removed
+        // the session, clear local session.
+
+        authStopSessionExpiryTimer();
+
+        authClearSession();
+
+        authUIState =
+          "LOGIN_REQUIRED";
+
+
+        authShowScreen(
+          "authLoginScreen"
+        );
+
       }
     )
 
-    .logoutLoginSession(
-      authUISessionId
+    .logoutAuthSession(
+      sessionId
     );
 
 }
+
+
 
 
 /* =====================================================
@@ -2569,10 +2902,16 @@ function initAuthUI() {
     "LOGIN_REQUIRED";
 
 
-  authShowScreen(
-    "authLoginScreen"
-  );
+  // ==========================================
+  // RESTORE EXISTING SESSION FIRST
+  // ==========================================
 
+  authRestoreSession();
+
+
+  // ==========================================
+  // MOBILE INPUT
+  // ==========================================
 
   const mobile =
     document.getElementById(
@@ -2596,6 +2935,10 @@ function initAuthUI() {
 
   }
 
+
+  // ==========================================
+  // OTP INPUTS
+  // ==========================================
 
   const otpInputs =
     document.querySelectorAll(
@@ -2659,5 +3002,648 @@ function initAuthUI() {
 
 
 initAuthUI();
+
+
+
+
+
+/* =====================================================
+   LOGIN BACKGROUND IMAGE
+   Uses same Google Drive thumbnail method
+   as profile photos
+===================================================== */
+
+function authConvertDriveImageUrl(url) {
+
+    if (!url) {
+        return "";
+    }
+
+
+    url =
+        String(url)
+            .trim();
+
+
+    let fileId = "";
+
+
+    // ==========================================
+    // FORMAT 1
+    // /file/d/FILE_ID/view
+    // ==========================================
+
+    let match =
+        url.match(
+            /\/file\/d\/([a-zA-Z0-9_-]+)/
+        );
+
+
+    if (
+        match &&
+        match[1]
+    ) {
+
+        fileId =
+            match[1];
+
+    }
+
+
+    // ==========================================
+    // FORMAT 2
+    // ?id=FILE_ID
+    // ==========================================
+
+    if (!fileId) {
+
+        match =
+            url.match(
+                /[?&]id=([a-zA-Z0-9_-]+)/
+            );
+
+
+        if (
+            match &&
+            match[1]
+        ) {
+
+            fileId =
+                match[1];
+
+        }
+
+    }
+
+
+    // ==========================================
+    // GOOGLE DRIVE THUMBNAIL
+    // ==========================================
+
+    if (fileId) {
+
+        return (
+            "https://drive.google.com/thumbnail" +
+            "?id=" +
+            encodeURIComponent(fileId) +
+            "&sz=w1600"
+        );
+
+    }
+
+
+    // ==========================================
+    // NORMAL IMAGE URL
+    // ==========================================
+
+    return url;
+
+}
+
+
+/* =====================================================
+   LOAD LOGIN BACKGROUND
+===================================================== */
+
+function authLoadLoginBackground() {
+
+    const originalUrl =
+        "https://drive.google.com/file/d/1SFB9CClvrWwW1_FiE4rQLxXfrb9mqU6t/view";
+
+
+    const imageUrl =
+        authConvertDriveImageUrl(
+            originalUrl
+        );
+
+
+    console.log(
+        "Login background URL:",
+        imageUrl
+    );
+
+
+    const image =
+        document.getElementById(
+            "loginBackgroundImage"
+        );
+
+
+    if (!image) {
+
+        console.error(
+            "❌ loginBackgroundImage not found."
+        );
+
+        return;
+
+    }
+
+
+    image.onload =
+        function() {
+
+            console.log(
+                "✅ Login background loaded."
+            );
+
+        };
+
+
+    image.onerror =
+        function() {
+
+            console.error(
+                "❌ Login background failed to load."
+            );
+
+            console.error(
+                "Image URL:",
+                imageUrl
+            );
+
+        };
+
+
+    image.src =
+        imageUrl;
+
+}
+
+
+/* =====================================================
+   SAVE SESSION
+===================================================== */
+
+function authSaveSession() {
+
+  if (!authUISessionId) {
+    return;
+  }
+
+  try {
+
+    localStorage.setItem(
+      AUTH_SESSION_STORAGE_KEY,
+      authUISessionId
+    );
+
+    console.log(
+      "✅ Auth session saved."
+    );
+
+  }
+  catch (error) {
+
+    console.error(
+      "Session storage error:",
+      error
+    );
+
+  }
+
+}
+
+
+
+/* =====================================================
+   CLEAR SESSION
+===================================================== */
+
+function authClearSession() {
+
+  try {
+
+    localStorage.removeItem(
+      AUTH_SESSION_STORAGE_KEY
+    );
+
+  }
+  catch (error) {
+
+    console.error(
+      "Session clear error:",
+      error
+    );
+
+  }
+
+  authUISessionId = "";
+
+  authUIUser = null;
+
+}
+
+
+/* =====================================================
+   GET STORED SESSION
+===================================================== */
+
+function authGetStoredSession() {
+
+  try {
+
+    return (
+      localStorage.getItem(
+        AUTH_SESSION_STORAGE_KEY
+      ) || ""
+    );
+
+  }
+  catch (error) {
+
+    console.error(
+      "Session read error:",
+      error
+    );
+
+    return "";
+
+  }
+
+}
+
+/* =====================================================
+   SESSION EXPIRY TIMER
+===================================================== */
+
+function authStartSessionExpiryTimer(
+  expiresAt
+) {
+
+  authStopSessionExpiryTimer();
+
+
+  if (!expiresAt) {
+    return;
+  }
+
+
+  const expiryTime =
+    new Date(
+      expiresAt
+    ).getTime();
+
+
+  const remaining =
+    expiryTime -
+    Date.now();
+
+
+  if (remaining <= 0) {
+
+    authHandleSessionExpired();
+
+    return;
+
+  }
+
+
+  console.log(
+    "Session expires in:",
+    Math.ceil(
+      remaining / 1000
+    ),
+    "seconds"
+  );
+
+
+  authSessionExpiryTimer =
+    setTimeout(
+      function() {
+
+        authHandleSessionExpired();
+
+      },
+      remaining
+    );
+
+}
+
+
+function authStopSessionExpiryTimer() {
+
+  if (
+    authSessionExpiryTimer
+  ) {
+
+    clearTimeout(
+      authSessionExpiryTimer
+    );
+
+    authSessionExpiryTimer =
+      null;
+
+  }
+
+}
+
+
+/* =====================================================
+   HANDLE SESSION EXPIRY
+===================================================== */
+
+function authHandleSessionExpired() {
+
+  console.warn(
+    "🔒 Authentication session expired."
+  );
+
+
+  authStopSessionExpiryTimer();
+
+
+  authClearSession();
+
+
+  authUIState =
+    "LOGIN_REQUIRED";
+
+  authUIRequestId =
+    "";
+
+  authUIMobile =
+    "";
+
+
+  authShowScreen(
+    "authLoginScreen"
+  );
+
+
+  const authContainer =
+    document.getElementById(
+      "authContainer"
+    );
+
+
+  const chatbotWrapper =
+    document.getElementById(
+      "chatbotWrapper"
+    );
+
+
+  if (authContainer) {
+
+    authContainer.style.display =
+      "flex";
+
+  }
+
+
+  if (chatbotWrapper) {
+
+    chatbotWrapper.style.display =
+      "none";
+
+  }
+
+
+  authShowError(
+    "authLoginError",
+    "तुमचे session expire झाले आहे. कृपया पुन्हा Login करा."
+  );
+
+}
+
+
+/* =====================================================
+   RESTORE EXISTING SESSION
+===================================================== */
+
+function authRestoreSession() {
+
+  const storedSessionId =
+    authGetStoredSession();
+
+
+  // ==========================================
+  // NO STORED SESSION
+  // ==========================================
+
+  if (!storedSessionId) {
+
+    console.log(
+      "No saved authentication session."
+    );
+
+    authShowScreen(
+      "authLoginScreen"
+    );
+
+    const authContainer =
+      document.getElementById(
+        "authContainer"
+      );
+
+    if (authContainer) {
+      authContainer.style.display =
+        "flex";
+    }
+
+    return;
+
+  }
+
+
+  console.log(
+    "🔄 Restoring existing session..."
+  );
+
+
+  // ==========================================
+  // Temporarily hide auth UI
+  // ==========================================
+
+  const authContainer =
+    document.getElementById(
+      "authContainer"
+    );
+
+  if (authContainer) {
+
+    authContainer.style.display =
+      "none";
+
+  }
+
+
+  // ==========================================
+  // SERVER VALIDATION
+  // ==========================================
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        console.log(
+          "SESSION RESTORE RESULT:",
+          result
+        );
+
+
+        // ======================================
+        // VALID SESSION
+        // ======================================
+
+        if (
+          result &&
+          result.success === true &&
+          result.authenticated === true &&
+          result.state ===
+            "SESSION_ACTIVE"
+        ) {
+
+          authUISessionId =
+            result.sessionId ||
+            storedSessionId;
+
+
+          authUIState =
+            "SESSION_ACTIVE";
+
+
+          authUIUser =
+            result.user ||
+            null;
+
+
+          // ------------------------------------
+          // Start expiry timer
+          // ------------------------------------
+
+          authStartSessionExpiryTimer(
+            result.expiresAt
+          );
+
+
+          console.log(
+            "✅ Existing session restored."
+          );
+
+
+          // ------------------------------------
+          // Open chatbot directly
+          // ------------------------------------
+
+          authOpenChatbot();
+
+
+          return;
+
+        }
+
+
+        // ======================================
+        // INVALID / EXPIRED SESSION
+        // ======================================
+
+        console.warn(
+          "Stored session invalid:",
+          result &&
+          result.code
+        );
+
+
+        authHandleSessionExpired();
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "Session restore failed:",
+          error
+        );
+
+
+        // Fail closed
+        authHandleSessionExpired();
+
+      }
+    )
+
+    .validateAuthSession(
+      storedSessionId
+    );
+
+}
+
+
+
+/* =====================================================
+   OPEN CHATBOT
+===================================================== */
+
+function authOpenChatbot() {
+
+  if (
+    !authUISessionId ||
+    authUIState !==
+      "SESSION_ACTIVE"
+  ) {
+
+    console.error(
+      "Cannot open chatbot. Session inactive."
+    );
+
+    return;
+
+  }
+
+
+  const authContainer =
+    document.getElementById(
+      "authContainer"
+    );
+
+  if (authContainer) {
+
+    authContainer.style.display =
+      "none";
+
+  }
+
+
+  const chatbotWrapper =
+    document.getElementById(
+      "chatbotWrapper"
+    );
+
+  if (!chatbotWrapper) {
+
+    console.error(
+      "chatbotWrapper not found."
+    );
+
+    return;
+
+  }
+
+
+  chatbotWrapper.style.display =
+    "block";
+
+
+  if (
+    typeof showMenu ===
+    "function"
+  ) {
+
+    showMenu();
+
+  }
+
+}
+
+/* =====================================================
+   LOAD AFTER AUTH UI
+===================================================== */
+
+authLoadLoginBackground();
+
 
 </script>

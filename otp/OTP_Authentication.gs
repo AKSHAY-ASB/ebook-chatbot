@@ -28,6 +28,16 @@ const AUTH_CONFIG = {
   // Session
   SESSION_EXPIRY_SECONDS: 3600,  // 1 hour
 
+  // ==========================================
+  // TRUSTED AUTHENTICATION
+  // ==========================================
+
+  TRUSTED_AUTH_EXPIRY_SECONDS:
+    30 * 24 * 60 * 60, // 30 days
+
+  TRUSTED_AUTH_CACHE_PREFIX:
+    "DP_TRUSTED_AUTH_",
+
   // Cache prefixes
   OTP_CACHE_PREFIX: "DP_OTP_",
   SESSION_CACHE_PREFIX: "DP_SESSION_",
@@ -524,26 +534,254 @@ function writeAuthLog(logData) {
 // - Registration remains the source of truth.
 // =====================================================
 
-function createAuthOTPRequest(mobile) {
 
-  // ---------------------------------------------------
-  // 1. Identify registered profile
-  // ---------------------------------------------------
+function createAuthOTPRequest(user) {
 
-  const identity =
-    getAuthUserFromRegisteredMobile(
-      mobile
+  try {
+
+    // =================================================
+    // 1. Validate user identity
+    // =================================================
+
+    if (
+      !user ||
+      !user.mobile ||
+      !user.profileId
+    ) {
+
+      return {
+
+        success: false,
+
+        code:
+          "INVALID_AUTH_IDENTITY",
+
+        message:
+          "नोंदणीकृत प्रोफाईलची ओळख उपलब्ध नाही."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 2. Normalize mobile
+    // =================================================
+
+    const cleanMobile =
+      normalizeAuthMobile(
+        user.mobile
+      );
+
+
+    if (!cleanMobile) {
+
+      return {
+
+        success: false,
+
+        code:
+          "INVALID_MOBILE",
+
+        message:
+          "कृपया योग्य 10 अंकी मोबाईल नंबर टाका."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 3. Normalize identity
+    // =================================================
+
+    const profileId =
+      String(
+        user.profileId || ""
+      ).trim();
+
+    const profileType =
+      String(
+        user.profileType || ""
+      ).trim();
+
+    const name =
+      String(
+        user.name || ""
+      ).trim();
+
+    const registeredSheet =
+      String(
+        user.registeredSheet || ""
+      ).trim();
+
+
+    // =================================================
+    // 4. Final identity validation
+    // =================================================
+
+    if (
+      !profileId ||
+      !cleanMobile
+    ) {
+
+      return {
+
+        success: false,
+
+        code:
+          "INCOMPLETE_AUTH_IDENTITY",
+
+        message:
+          "नोंदणीकृत प्रोफाईलची माहिती अपूर्ण आहे."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 5. Create request ID
+    // =================================================
+
+    const requestId =
+      Utilities.getUuid();
+
+
+    // =================================================
+    // 6. Create timestamps
+    // =================================================
+
+    const createdAt =
+      new Date();
+
+    const expiresAt =
+      new Date(
+        createdAt.getTime() +
+        (
+          AUTH_CONFIG
+            .OTP_EXPIRY_SECONDS *
+          1000
+        )
+      );
+
+
+    // =================================================
+    // 7. Build server-side OTP request
+    // =================================================
+
+    const request = {
+
+      requestId:
+        requestId,
+
+      state:
+        AUTH_STATES.OTP_PENDING,
+
+      channel:
+        AUTH_CHANNELS.SMS,
+
+      createdAt:
+        createdAt.toISOString(),
+
+      expiresAt:
+        expiresAt.toISOString(),
+
+      otpRequired:
+        true,
+
+      authenticated:
+        false,
+
+      trusted:
+        false,
+
+      user: {
+
+        profileId:
+          profileId,
+
+        profileType:
+          profileType,
+
+        name:
+          name,
+
+        mobile:
+          cleanMobile,
+
+        registeredSheet:
+          registeredSheet
+
+      }
+
+    };
+
+
+    // =================================================
+    // 8. Store request server-side
+    // =================================================
+    //
+    // IMPORTANT:
+    //
+    // Use the SAME cache prefix that
+    // verifyAuthOTP() / createAuthSession()
+    // use to retrieve the request.
+    // =================================================
+
+    const cache =
+      CacheService
+        .getScriptCache();
+
+
+    const requestCacheKey =
+      AUTH_CONFIG
+        .OTP_CACHE_PREFIX +
+      requestId;
+
+
+    cache.put(
+
+      requestCacheKey,
+
+      JSON.stringify(
+        request
+      ),
+
+      AUTH_CONFIG
+        .OTP_EXPIRY_SECONDS
+
     );
 
 
-  // ---------------------------------------------------
-  // 2. Reject unregistered mobile
-  // ---------------------------------------------------
+    // =================================================
+    // 9. Start resend cooldown
+    // =================================================
 
-  if (
-    !identity ||
-    identity.registered !== true
-  ) {
+    const cooldownKey =
+      AUTH_CONFIG
+        .OTP_CACHE_PREFIX +
+      "COOLDOWN_" +
+      cleanMobile;
+
+
+    cache.put(
+
+      cooldownKey,
+
+      String(
+        Date.now()
+      ),
+
+      AUTH_CONFIG
+        .RESEND_COOLDOWN_SECONDS
+
+    );
+
+
+    // =================================================
+    // 10. Audit log
+    // =================================================
 
     writeAuthLog({
 
@@ -551,18 +789,92 @@ function createAuthOTPRequest(mobile) {
         AUTH_EVENTS.OTP_REQUEST,
 
       status:
-        "FAILED",
+        "SUCCESS",
 
       mobile:
-        mobile,
+        cleanMobile,
+
+      profileId:
+        profileId,
+
+      profileType:
+        profileType,
+
+      userName:
+        name,
+
+      requestId:
+        requestId,
 
       reason:
-        "MOBILE_NOT_REGISTERED",
+        "OTP_REQUEST_CREATED",
 
       channel:
         AUTH_CHANNELS.SMS
 
     });
+
+
+    // =================================================
+    // 11. Safe response
+    // =================================================
+
+    return {
+
+      success: true,
+
+      registered: true,
+
+      authenticated: false,
+
+      trusted: false,
+
+      otpRequired: true,
+
+      state:
+        AUTH_STATES.OTP_PENDING,
+
+      code:
+        "OTP_REQUEST_CREATED",
+
+      requestId:
+        requestId,
+
+      retryAfter:
+        AUTH_CONFIG
+          .RESEND_COOLDOWN_SECONDS,
+
+      expiresIn:
+        AUTH_CONFIG
+          .OTP_EXPIRY_SECONDS,
+
+      user: {
+
+        profileId:
+          profileId,
+
+        profileType:
+          profileType,
+
+        name:
+          name,
+
+        mobile:
+          cleanMobile
+
+      }
+
+    };
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "createAuthOTPRequest Error:",
+      error
+    );
+
 
     return {
 
@@ -570,181 +882,21 @@ function createAuthOTPRequest(mobile) {
 
       registered: false,
 
-      state:
-        AUTH_STATES.IDLE,
+      authenticated: false,
+
+      trusted: false,
+
+      otpRequired: false,
 
       code:
-        "MOBILE_NOT_REGISTERED",
+        "OTP_REQUEST_CREATION_EXCEPTION",
 
       message:
-        "हा मोबाईल नंबर नोंदणीकृत नाही."
+        "OTP request तयार करता आली नाही."
 
     };
 
   }
-
-
-  // ---------------------------------------------------
-  // 3. Create unique request ID
-  // ---------------------------------------------------
-
-  const requestId =
-    Utilities.getUuid();
-
-
-  // ---------------------------------------------------
-  // 4. Build OTP request
-  // ---------------------------------------------------
-
-  const request = {
-
-    requestId:
-      requestId,
-
-    state:
-      AUTH_STATES.OTP_PENDING,
-
-    channel:
-      AUTH_CHANNELS.SMS,
-
-    createdAt:
-      new Date().toISOString(),
-
-    user: {
-
-      profileId:
-        identity.user.profileId,
-
-      profileType:
-        identity.user.profileType,
-
-      name:
-        identity.user.name,
-
-      mobile:
-        identity.user.mobile,
-
-      registeredSheet:
-        identity.user.registeredSheet
-
-    }
-
-  };
-
-
-  // ---------------------------------------------------
-  // 5. Store temporary request
-  // ---------------------------------------------------
-  //
-  // OTP is NOT stored here.
-  // This is only the request metadata.
-  //
-
-  const cache =
-    CacheService
-      .getScriptCache();
-
-  cache.put(
-
-    AUTH_CONFIG.OTP_CACHE_PREFIX +
-      requestId,
-
-    JSON.stringify(request),
-
-    AUTH_CONFIG.OTP_EXPIRY_SECONDS
-
-  );
-
-
-  // ---------------------------------------------------
-  // Start resend cooldown for this mobile
-  // ---------------------------------------------------
-
-  const cooldownKey =
-    AUTH_CONFIG.OTP_CACHE_PREFIX +
-    "COOLDOWN_" +
-    identity.user.mobile;
-
-  cache.put(
-
-    cooldownKey,
-
-    String(Date.now()),
-
-    AUTH_CONFIG.RESEND_COOLDOWN_SECONDS
-
-  );
-
-
-  // ---------------------------------------------------
-  // 6. Write audit log
-  // ---------------------------------------------------
-
-  writeAuthLog({
-
-    event:
-      AUTH_EVENTS.OTP_REQUEST,
-
-    status:
-      "SUCCESS",
-
-    mobile:
-      identity.user.mobile,
-
-    profileId:
-      identity.user.profileId,
-
-    profileType:
-      identity.user.profileType,
-
-    userName:
-      identity.user.name,
-
-    requestId:
-      requestId,
-
-    reason:
-      "OTP_REQUEST_CREATED",
-
-    channel:
-      AUTH_CHANNELS.SMS
-
-  });
-
-
-  // ---------------------------------------------------
-  // 7. Return request information
-  // ---------------------------------------------------
-
-  return {
-
-    success: true,
-
-    registered: true,
-
-    state:
-      AUTH_STATES.OTP_PENDING,
-
-    requestId:
-      requestId,
-
-    user: {
-
-      profileId:
-        identity.user.profileId,
-
-      profileType:
-        identity.user.profileType,
-
-      name:
-        identity.user.name,
-
-      mobile:
-        identity.user.mobile
-
-    }
-
-  };
 
 }
 
@@ -1933,7 +2085,7 @@ function requestAuthOTPResend(mobile) {
 
     const request =
       createAuthOTPRequest(
-        cleanMobile
+        identity.user
       );
 
 
@@ -2980,9 +3132,15 @@ function createAuthSession(requestId) {
 
   try {
 
-    // ---------------------------------------------------
+    console.log(
+      "🔥 createAuthSession CALLED:",
+      requestId
+    );
+
+
+    // =================================================
     // 1. Validate request ID
-    // ---------------------------------------------------
+    // =================================================
 
     if (!requestId) {
 
@@ -2993,25 +3151,38 @@ function createAuthSession(requestId) {
         authenticated: false,
 
         code:
-          "INVALID_REQUEST_ID"
+          "INVALID_REQUEST_ID",
+
+        message:
+          "Authentication request ID उपलब्ध नाही."
 
       };
 
     }
 
 
-    // ---------------------------------------------------
-    // 2. Get verified OTP request
-    // ---------------------------------------------------
+    // =================================================
+    // 2. Get OTP request
+    // =================================================
 
     const cache =
       CacheService
         .getScriptCache();
 
 
+    // IMPORTANT:
+    // Same prefix used by createAuthOTPRequest()
+    //
+
     const otpCacheKey =
       AUTH_CONFIG.OTP_CACHE_PREFIX +
       requestId;
+
+
+    console.log(
+      "OTP CACHE KEY:",
+      otpCacheKey
+    );
 
 
     const cachedRequest =
@@ -3020,7 +3191,19 @@ function createAuthSession(requestId) {
       );
 
 
+    console.log(
+      "CACHED REQUEST EXISTS:",
+      !!cachedRequest
+    );
+
+
     if (!cachedRequest) {
+
+      console.error(
+        "❌ OTP REQUEST NOT FOUND:",
+        requestId
+      );
+
 
       return {
 
@@ -3032,18 +3215,19 @@ function createAuthSession(requestId) {
           "OTP_REQUEST_EXPIRED",
 
         message:
-          "Authentication request उपलब्ध नाही."
+          "Authentication request उपलब्ध नाही किंवा expire झाले आहे."
 
       };
 
     }
 
 
-    // ---------------------------------------------------
+    // =================================================
     // 3. Parse request
-    // ---------------------------------------------------
+    // =================================================
 
     let request;
+
 
     try {
 
@@ -3054,7 +3238,13 @@ function createAuthSession(requestId) {
 
     }
 
-    catch (error) {
+    catch (parseError) {
+
+      console.error(
+        "❌ OTP REQUEST PARSE ERROR:",
+        parseError
+      );
+
 
       cache.remove(
         otpCacheKey
@@ -3068,65 +3258,43 @@ function createAuthSession(requestId) {
         authenticated: false,
 
         code:
-          "INVALID_AUTH_REQUEST"
+          "INVALID_AUTH_REQUEST",
+
+        message:
+          "Authentication request invalid आहे."
 
       };
 
     }
 
 
-    // ---------------------------------------------------
-    // 4. ONLY OTP_VERIFIED can create a session
-    // ---------------------------------------------------
+    console.log(
+      "OTP REQUEST DATA:",
+      JSON.stringify(
+        request
+      )
+    );
+
+
+    // =================================================
+    // 4. Validate OTP verified state
+    // =================================================
+
+    console.log(
+      "REQUEST STATE:",
+      request.state
+    );
+
 
     if (
       request.state !==
       AUTH_STATES.OTP_VERIFIED
     ) {
 
-      writeAuthLog({
-
-        event:
-          AUTH_EVENTS.ACCESS_DENIED,
-
-        status:
-          "FAILED",
-
-        mobile:
-          request.user &&
-          request.user.mobile
-            ? request.user.mobile
-            : "",
-
-        profileId:
-          request.user &&
-          request.user.profileId
-            ? request.user.profileId
-            : "",
-
-        profileType:
-          request.user &&
-          request.user.profileType
-            ? request.user.profileType
-            : "",
-
-        userName:
-          request.user &&
-          request.user.name
-            ? request.user.name
-            : "",
-
-        requestId:
-          requestId,
-
-        reason:
-          "SESSION_CREATION_REQUIRES_OTP_VERIFIED",
-
-        channel:
-          request.channel ||
-          AUTH_CHANNELS.SMS
-
-      });
+      console.error(
+        "❌ OTP NOT VERIFIED. STATE:",
+        request.state
+      );
 
 
       return {
@@ -3139,22 +3307,38 @@ function createAuthSession(requestId) {
           "OTP_NOT_VERIFIED",
 
         message:
-          "Session तयार करण्यापूर्वी OTP verification आवश्यक आहे."
+          "OTP verification पूर्ण झालेली नाही."
 
       };
 
     }
 
 
-    // ---------------------------------------------------
-    // 5. Validate verified user identity
-    // ---------------------------------------------------
+    // =================================================
+    // 5. Validate user identity
+    // =================================================
+
+    console.log(
+      "REQUEST USER:",
+      JSON.stringify(
+        request.user
+      )
+    );
+
 
     if (
       !request.user ||
       !request.user.profileId ||
       !request.user.mobile
     ) {
+
+      console.error(
+        "❌ INVALID USER IDENTITY:",
+        JSON.stringify(
+          request.user
+        )
+      );
+
 
       return {
 
@@ -3163,16 +3347,95 @@ function createAuthSession(requestId) {
         authenticated: false,
 
         code:
-          "INCOMPLETE_USER_IDENTITY"
+          "INCOMPLETE_USER_IDENTITY",
+
+        message:
+          "Verified user identity उपलब्ध नाही."
 
       };
 
     }
 
 
-    // ---------------------------------------------------
-    // 6. Prevent duplicate session creation
-    // ---------------------------------------------------
+    // =================================================
+    // 6. Normalize identity
+    // =================================================
+
+    const cleanMobile =
+      normalizeAuthMobile(
+        request.user.mobile
+      );
+
+
+    const profileId =
+      String(
+        request.user.profileId || ""
+      ).trim();
+
+
+    const profileType =
+      String(
+        request.user.profileType || ""
+      ).trim();
+
+
+    const name =
+      String(
+        request.user.name || ""
+      ).trim();
+
+
+    const registeredSheet =
+      String(
+        request.user.registeredSheet || ""
+      ).trim();
+
+
+    if (
+      !cleanMobile ||
+      !profileId
+    ) {
+
+      console.error(
+        "❌ NORMALIZED IDENTITY INVALID:",
+        JSON.stringify({
+
+          mobile:
+            cleanMobile,
+
+          profileId:
+            profileId,
+
+          profileType:
+            profileType,
+
+          name:
+            name
+
+        })
+      );
+
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        code:
+          "INVALID_SESSION_IDENTITY",
+
+        message:
+          "Verified user identity अपूर्ण आहे."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 7. Prevent duplicate session
+    // =================================================
 
     if (
       request.sessionCreated === true
@@ -3195,20 +3458,17 @@ function createAuthSession(requestId) {
     }
 
 
-    // ---------------------------------------------------
-    // 7. Create NEW session ID
-    // ---------------------------------------------------
-    //
-    // Do NOT reuse requestId.
-    //
+    // =================================================
+    // 8. Create session ID
+    // =================================================
 
     const sessionId =
       Utilities.getUuid();
 
 
-    // ---------------------------------------------------
-    // 8. Session timestamps
-    // ---------------------------------------------------
+    // =================================================
+    // 9. Session timestamps
+    // =================================================
 
     const createdAt =
       new Date();
@@ -3228,9 +3488,9 @@ function createAuthSession(requestId) {
       );
 
 
-    // ---------------------------------------------------
-    // 9. Build session object
-    // ---------------------------------------------------
+    // =================================================
+    // 10. Build session
+    // =================================================
 
     const session = {
 
@@ -3252,38 +3512,28 @@ function createAuthSession(requestId) {
       user: {
 
         profileId:
-          String(
-            request.user.profileId
-          ).trim(),
+          profileId,
 
         profileType:
-          String(
-            request.user.profileType || ""
-          ).trim(),
+          profileType,
 
         name:
-          String(
-            request.user.name || ""
-          ).trim(),
+          name,
 
         mobile:
-          normalizeAuthMobile(
-            request.user.mobile
-          ),
+          cleanMobile,
 
         registeredSheet:
-          String(
-            request.user.registeredSheet || ""
-          ).trim()
+          registeredSheet
 
       }
 
     };
 
 
-    // ---------------------------------------------------
-    // 10. Validate session identity
-    // ---------------------------------------------------
+    // =================================================
+    // 11. Validate session
+    // =================================================
 
     if (
       !session.user.profileId ||
@@ -3297,16 +3547,19 @@ function createAuthSession(requestId) {
         authenticated: false,
 
         code:
-          "INVALID_SESSION_IDENTITY"
+          "INVALID_SESSION_IDENTITY",
+
+        message:
+          "Session user identity तयार करता आली नाही."
 
       };
 
     }
 
 
-    // ---------------------------------------------------
-    // 11. Store session server-side
-    // ---------------------------------------------------
+    // =================================================
+    // 12. Store session
+    // =================================================
 
     const sessionCacheKey =
       AUTH_CONFIG.SESSION_CACHE_PREFIX +
@@ -3327,13 +3580,15 @@ function createAuthSession(requestId) {
     );
 
 
-    // ---------------------------------------------------
-    // 12. Mark OTP request as consumed
-    // ---------------------------------------------------
-    //
-    // The OTP verification transaction is complete.
-    // The requestId cannot create another session.
-    //
+    console.log(
+      "✅ SESSION STORED:",
+      sessionCacheKey
+    );
+
+
+    // =================================================
+    // 13. Mark request as session created
+    // =================================================
 
     request.sessionCreated =
       true;
@@ -3348,14 +3603,18 @@ function createAuthSession(requestId) {
       createdAt.toISOString();
 
 
+    // =================================================
+    // 14. Remove OTP request
+    // =================================================
+
     cache.remove(
       otpCacheKey
     );
 
 
-    // ---------------------------------------------------
-    // 13. Authentication audit log
-    // ---------------------------------------------------
+    // =================================================
+    // 15. Audit log
+    // =================================================
 
     writeAuthLog({
 
@@ -3393,13 +3652,17 @@ function createAuthSession(requestId) {
     });
 
 
-    // ---------------------------------------------------
-    // 14. Safe response
-    // ---------------------------------------------------
-    //
-    // Session ID is returned.
-    // OTP is NOT returned.
-    //
+    // =================================================
+    // 16. SUCCESS
+    // =================================================
+
+    console.log(
+      "✅ AUTH SESSION CREATED:",
+      JSON.stringify(
+        session.user
+      )
+    );
+
 
     return {
 
@@ -3412,6 +3675,9 @@ function createAuthSession(requestId) {
 
       sessionId:
         sessionId,
+
+      expiresAt:
+        session.expiresAt,
 
       expiresIn:
         AUTH_CONFIG
@@ -3426,7 +3692,13 @@ function createAuthSession(requestId) {
           session.user.profileType,
 
         name:
-          session.user.name
+          session.user.name,
+
+        mobile:
+          session.user.mobile,
+
+        registeredSheet:
+          session.user.registeredSheet
 
       },
 
@@ -3440,7 +3712,7 @@ function createAuthSession(requestId) {
   catch (error) {
 
     console.error(
-      "Session Creation Error:",
+      "❌ createAuthSession ERROR:",
       error
     );
 
@@ -4403,19 +4675,1060 @@ function requestProtectedChatbot(sessionId, message) {
 }
 
 
+
+
+
 // =====================================================
-// SEC-04.1
-// FRONTEND LOGIN API
-// REQUEST OTP
+// SEC-04.x.9
+// LOGIN OTP REQUEST
+// =====================================================
+//
+// Flow:
+//
+// Mobile
+//   ↓
+// Registered Profile
+//   ↓
+// Trusted Auth?
+//   ├── YES → Trusted Session → NO OTP
+//   │                         → NO 2Factor
+//   │
+//   └── NO  → Existing OTP Flow
+//             ↓
+//           Generate OTP
+//             ↓
+//           2Factor SMS
+//
 // =====================================================
 
-function requestLoginOTP(mobile) {
+
+// =====================================================
+// SEC-04.x
+// TRUSTED AUTHENTICATION CREATION
+// =====================================================
+//
+// Purpose:
+// - Create trusted authentication after successful OTP
+// - Store trusted record server-side
+// - Trusted authentication expires after configured period
+// - Never trust mobile number alone
+// - Never store OTP
+//
+// IMPORTANT:
+// This function does NOT create the normal session.
+// Session creation remains handled by createAuthSession().
+// =====================================================
+
+function createTrustedAuth(user) {
 
   try {
 
     // ---------------------------------------------------
-    // 1. Normalize mobile
+    // 1. Validate user object
     // ---------------------------------------------------
+
+    if (
+      !user ||
+      !user.mobile ||
+      !user.profileId
+    ) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "INVALID_TRUSTED_USER"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 2. Normalize mobile
+    // ---------------------------------------------------
+
+    const cleanMobile =
+      normalizeAuthMobile(
+        user.mobile
+      );
+
+
+    if (
+      !cleanMobile ||
+      cleanMobile.length !== 10
+    ) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "INVALID_TRUSTED_MOBILE"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 3. Validate profile identity
+    // ---------------------------------------------------
+
+    const profileId =
+      String(
+        user.profileId || ""
+      ).trim();
+
+
+    const profileType =
+      String(
+        user.profileType || ""
+      ).trim();
+
+
+    const name =
+      String(
+        user.name || ""
+      ).trim();
+
+
+    if (!profileId) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "INVALID_PROFILE_ID"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 4. Generate random trusted token
+    // ---------------------------------------------------
+
+    const trustedToken =
+      Utilities.getUuid();
+
+
+    // ---------------------------------------------------
+    // 5. Create timestamps
+    // ---------------------------------------------------
+
+    const createdAt =
+      new Date();
+
+
+    const expiresAt =
+      new Date(
+        createdAt.getTime() +
+        (
+          AUTH_CONFIG
+            .TRUSTED_AUTH_EXPIRY_SECONDS
+          *
+          1000
+        )
+      );
+
+
+    // ---------------------------------------------------
+    // 6. Build trusted record
+    // ---------------------------------------------------
+
+    const trustedRecord = {
+
+      trustedToken:
+        trustedToken,
+
+      mobile:
+        cleanMobile,
+
+      profileId:
+        profileId,
+
+      profileType:
+        profileType,
+
+      name:
+        name,
+
+      createdAt:
+        createdAt.toISOString(),
+
+      expiresAt:
+        expiresAt.toISOString(),
+
+      state:
+        "TRUSTED_ACTIVE"
+
+    };
+
+
+    // ---------------------------------------------------
+    // 7. Server-side cache key
+    // ---------------------------------------------------
+
+    const cache =
+      CacheService
+        .getScriptCache();
+
+
+    const cacheKey =
+      AUTH_CONFIG
+        .TRUSTED_AUTH_CACHE_PREFIX +
+      cleanMobile;
+
+
+    // ---------------------------------------------------
+    // 8. Store server-side
+    // ---------------------------------------------------
+
+    cache.put(
+
+      cacheKey,
+
+      JSON.stringify(
+        trustedRecord
+      ),
+
+      AUTH_CONFIG
+        .TRUSTED_AUTH_EXPIRY_SECONDS
+
+    );
+
+
+    // ---------------------------------------------------
+    // 9. Safe response
+    // ---------------------------------------------------
+
+     return {
+
+        success: true,
+
+        trusted: true,
+
+        trustedToken:
+          trustedRecord.trustedToken,
+
+        expiresAt:
+          trustedRecord.expiresAt,
+
+        user: {
+
+          profileId:
+            profileId,
+
+          profileType:
+            profileType,
+
+          name:
+            name,
+
+          mobile:
+            cleanMobile
+
+        }
+
+      };
+
+  }
+  catch (error) {
+
+    console.error(
+      "Trusted Auth Creation Error:",
+      error
+    );
+
+
+    return {
+
+      success: false,
+
+      trusted: false,
+
+      code:
+        "TRUSTED_AUTH_CREATION_EXCEPTION"
+
+    };
+
+  }
+
+}
+
+
+
+// =====================================================
+// SEC-04.x.2
+// TRUSTED AUTHENTICATION VALIDATION
+// =====================================================
+//
+// Rules:
+// - Mobile is mandatory
+// - Trusted token is mandatory
+// - Trusted record must exist server-side
+// - Token must match
+// - Mobile must match
+// - Profile ID must match
+// - State must be TRUSTED_ACTIVE
+// - Expiry must be valid
+// - Client cannot override server-side identity
+// =====================================================
+
+function validateTrustedAuth(
+  mobile,
+  trustedToken,
+  profileId
+) {
+
+  try {
+
+    // ---------------------------------------------------
+    // 1. Validate input
+    // ---------------------------------------------------
+
+    if (
+      !mobile ||
+      !trustedToken
+    ) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "INVALID_TRUSTED_AUTH_INPUT"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 2. Normalize mobile
+    // ---------------------------------------------------
+
+    const cleanMobile =
+      normalizeAuthMobile(
+        mobile
+      );
+
+
+    if (
+      !cleanMobile ||
+      cleanMobile.length !== 10
+    ) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "INVALID_TRUSTED_MOBILE"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 3. Clean token
+    // ---------------------------------------------------
+
+    const cleanToken =
+      String(
+        trustedToken
+      ).trim();
+
+
+    if (!cleanToken) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "INVALID_TRUSTED_TOKEN"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 4. Get server-side cache
+    // ---------------------------------------------------
+
+    const cache =
+      CacheService
+        .getScriptCache();
+
+
+    const cacheKey =
+      AUTH_CONFIG
+        .TRUSTED_AUTH_CACHE_PREFIX +
+      cleanMobile;
+
+
+    const cachedRecord =
+      cache.get(
+        cacheKey
+      );
+
+
+    // ---------------------------------------------------
+    // 5. Trusted record must exist
+    // ---------------------------------------------------
+
+    if (!cachedRecord) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "TRUSTED_AUTH_NOT_FOUND",
+
+        message:
+          "Trusted authentication उपलब्ध नाही."
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 6. Parse server-side record
+    // ---------------------------------------------------
+
+    let trustedRecord;
+
+
+    try {
+
+      trustedRecord =
+        JSON.parse(
+          cachedRecord
+        );
+
+    }
+    catch (parseError) {
+
+      cache.remove(
+        cacheKey
+      );
+
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "TRUSTED_AUTH_CORRUPTED"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 7. Check state
+    // ---------------------------------------------------
+
+    if (
+      trustedRecord.state !==
+      "TRUSTED_ACTIVE"
+    ) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "TRUSTED_AUTH_INACTIVE"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 8. Check token
+    // ---------------------------------------------------
+
+    if (
+      trustedRecord.trustedToken !==
+      cleanToken
+    ) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "TRUSTED_TOKEN_INVALID",
+
+        message:
+          "Trusted authentication token invalid आहे."
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 9. Check mobile binding
+    // ---------------------------------------------------
+
+    if (
+      trustedRecord.mobile !==
+      cleanMobile
+    ) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "TRUSTED_MOBILE_MISMATCH"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 10. Check profile binding
+    // ---------------------------------------------------
+
+    if (
+      profileId &&
+      String(
+        trustedRecord.profileId
+      ).trim() !==
+      String(
+        profileId
+      ).trim()
+    ) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "TRUSTED_PROFILE_MISMATCH"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 11. Check expiry
+    // ---------------------------------------------------
+
+    if (
+      !trustedRecord.expiresAt
+    ) {
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "TRUSTED_EXPIRY_MISSING"
+
+      };
+
+    }
+
+
+    const expiryTime =
+      new Date(
+        trustedRecord.expiresAt
+      ).getTime();
+
+
+    if (
+      !Number.isFinite(
+        expiryTime
+      )
+    ) {
+
+      cache.remove(
+        cacheKey
+      );
+
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "TRUSTED_EXPIRY_INVALID"
+
+      };
+
+    }
+
+
+    if (
+      Date.now() >=
+      expiryTime
+    ) {
+
+      // -----------------------------------------------
+      // Expired trusted authentication is removed
+      // -----------------------------------------------
+
+      cache.remove(
+        cacheKey
+      );
+
+
+      return {
+
+        success: false,
+
+        trusted: false,
+
+        code:
+          "TRUSTED_AUTH_EXPIRED",
+
+        message:
+          "Trusted authentication expire झाले आहे."
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 12. SUCCESS
+    // ---------------------------------------------------
+
+    return {
+
+      success: true,
+
+      trusted: true,
+
+      code:
+        "TRUSTED_AUTH_VALID",
+
+      expiresAt:
+        trustedRecord.expiresAt,
+
+      user: {
+
+        profileId:
+          trustedRecord.profileId,
+
+        profileType:
+          trustedRecord.profileType,
+
+        name:
+          trustedRecord.name,
+
+        mobile:
+          trustedRecord.mobile
+
+      }
+
+    };
+
+  }
+  catch (error) {
+
+    console.error(
+      "Trusted Auth Validation Error:",
+      error
+    );
+
+
+    return {
+
+      success: false,
+
+      trusted: false,
+
+      code:
+        "TRUSTED_AUTH_VALIDATION_EXCEPTION"
+
+    };
+
+  }
+
+}
+
+
+
+
+// =====================================================
+// SEC-04.x.7
+// TRUSTED AUTH -> SESSION CREATION
+// =====================================================
+//
+// Rules:
+// - Trusted authentication must be valid.
+// - Trusted identity comes ONLY from server-side record.
+// - Client cannot provide/override profile identity.
+// - New session ID is always generated.
+// - Existing createAuthSession() is NOT modified.
+// - No OTP is generated.
+// - No 2Factor API is called.
+// - Session still expires using SESSION_EXPIRY_SECONDS.
+// =====================================================
+
+function createTrustedAuthSession(
+  mobile,
+  trustedToken
+) {
+
+  try {
+
+    // ---------------------------------------------------
+    // 1. Validate trusted authentication
+    // ---------------------------------------------------
+
+    const trustedResult =
+      validateTrustedAuth(
+        mobile,
+        trustedToken
+      );
+
+
+    if (
+      !trustedResult ||
+      trustedResult.success !== true ||
+      trustedResult.trusted !== true
+    ) {
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        code:
+          trustedResult &&
+          trustedResult.code
+            ? trustedResult.code
+            : "TRUSTED_AUTH_INVALID"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 2. Get SERVER-VALIDATED identity
+    // ---------------------------------------------------
+
+    const user =
+      trustedResult.user;
+
+
+    if (
+      !user ||
+      !user.profileId ||
+      !user.mobile
+    ) {
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        code:
+          "INVALID_TRUSTED_IDENTITY"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 3. Generate NEW session ID
+    // ---------------------------------------------------
+
+    const sessionId =
+      Utilities.getUuid();
+
+
+    // ---------------------------------------------------
+    // 4. Session timestamps
+    // ---------------------------------------------------
+
+    const createdAt =
+      new Date();
+
+
+    const expiresAt =
+      new Date(
+        createdAt.getTime() +
+        (
+          AUTH_CONFIG
+            .SESSION_EXPIRY_SECONDS
+          *
+          1000
+        )
+      );
+
+
+    // ---------------------------------------------------
+    // 5. Build session
+    // ---------------------------------------------------
+
+    const session = {
+
+      sessionId:
+        sessionId,
+
+      requestId:
+        "",
+
+      authenticationMethod:
+        "TRUSTED_AUTH",
+
+      state:
+        AUTH_STATES.SESSION_ACTIVE,
+
+      createdAt:
+        createdAt.toISOString(),
+
+      expiresAt:
+        expiresAt.toISOString(),
+
+      user: {
+
+        profileId:
+          String(
+            user.profileId
+          ).trim(),
+
+        profileType:
+          String(
+            user.profileType || ""
+          ).trim(),
+
+        name:
+          String(
+            user.name || ""
+          ).trim(),
+
+        mobile:
+          normalizeAuthMobile(
+            user.mobile
+          ),
+
+        registeredSheet:
+          String(
+            user.registeredSheet || ""
+          ).trim()
+
+      }
+
+    };
+
+
+    // ---------------------------------------------------
+    // 6. Final identity validation
+    // ---------------------------------------------------
+
+    if (
+      !session.user.profileId ||
+      !session.user.mobile
+    ) {
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        code:
+          "INVALID_SESSION_IDENTITY"
+
+      };
+
+    }
+
+
+    // ---------------------------------------------------
+    // 7. Store server-side
+    // ---------------------------------------------------
+
+    const cache =
+      CacheService
+        .getScriptCache();
+
+
+    const sessionCacheKey =
+      AUTH_CONFIG
+        .SESSION_CACHE_PREFIX +
+      sessionId;
+
+
+    cache.put(
+
+      sessionCacheKey,
+
+      JSON.stringify(
+        session
+      ),
+
+      AUTH_CONFIG
+        .SESSION_EXPIRY_SECONDS
+
+    );
+
+
+    // ---------------------------------------------------
+    // 8. Audit log
+    // ---------------------------------------------------
+
+    writeAuthLog({
+
+      event:
+        AUTH_EVENTS.SESSION_CREATED,
+
+      status:
+        "SUCCESS",
+
+      mobile:
+        session.user.mobile,
+
+      profileId:
+        session.user.profileId,
+
+      profileType:
+        session.user.profileType,
+
+      userName:
+        session.user.name,
+
+      requestId:
+        "",
+
+      sessionId:
+        sessionId,
+
+      reason:
+        "TRUSTED_AUTH_SESSION_CREATED",
+
+      channel:
+        "TRUSTED_AUTH"
+
+    });
+
+
+    // ---------------------------------------------------
+    // 9. Safe response
+    // ---------------------------------------------------
+
+    return {
+
+      success: true,
+
+      authenticated: true,
+
+      state:
+        AUTH_STATES.SESSION_ACTIVE,
+
+      sessionId:
+        sessionId,
+
+      expiresAt:
+        session.expiresAt,
+
+      expiresIn:
+        AUTH_CONFIG
+          .SESSION_EXPIRY_SECONDS,
+
+      authenticationMethod:
+        "TRUSTED_AUTH",
+
+      user: {
+
+        profileId:
+          session.user.profileId,
+
+        profileType:
+          session.user.profileType,
+
+        name:
+          session.user.name
+
+      }
+
+    };
+
+  }
+  catch (error) {
+
+    console.error(
+      "Trusted Auth Session Creation Error:",
+      error
+    );
+
+
+    return {
+
+      success: false,
+
+      authenticated: false,
+
+      code:
+        "TRUSTED_SESSION_CREATION_EXCEPTION"
+
+    };
+
+  }
+
+}
+
+
+function resendLoginOTP(mobile) {
+
+  try {
+
+    // =================================================
+    // 1. Normalize mobile
+    // =================================================
 
     const cleanMobile =
       normalizeAuthMobile(
@@ -4440,19 +5753,64 @@ function requestLoginOTP(mobile) {
     }
 
 
-    // ---------------------------------------------------
-    // 2. Check registered profile
-    // ---------------------------------------------------
+    // =================================================
+    // 2. Check resend cooldown
+    // =================================================
 
-    const user =
+    const cache =
+      CacheService
+        .getScriptCache();
+
+
+    const cooldownKey =
+      AUTH_CONFIG.OTP_CACHE_PREFIX +
+      "COOLDOWN_" +
+      cleanMobile;
+
+
+    const cooldownValue =
+      cache.get(
+        cooldownKey
+      );
+
+
+    if (cooldownValue) {
+
+      return {
+
+        success: false,
+
+        registered: true,
+
+        code:
+          "OTP_RESEND_COOLDOWN",
+
+        retryAfter:
+          AUTH_CONFIG
+            .RESEND_COOLDOWN_SECONDS,
+
+        message:
+          "कृपया काही सेकंदांनी पुन्हा OTP मागा."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 3. Get registered user
+    // =================================================
+
+    const userResult =
       getAuthUserFromRegisteredMobile(
         cleanMobile
       );
 
 
     if (
-      !user ||
-      user.registered !== true
+      !userResult ||
+      userResult.registered !== true ||
+      !userResult.user
     ) {
 
       return {
@@ -4462,29 +5820,53 @@ function requestLoginOTP(mobile) {
         registered: false,
 
         code:
-          user &&
-          user.code
-            ? user.code
-            : "MOBILE_NOT_REGISTERED",
+          "MOBILE_NOT_REGISTERED",
 
         message:
-          user &&
-          user.message
-            ? user.message
-            : "हा मोबाईल नंबर नोंदणीकृत नाही."
+          "हा मोबाईल नंबर नोंदणीकृत नाही."
 
       };
 
     }
 
 
-    // ---------------------------------------------------
-    // 3. Create OTP request
-    // ---------------------------------------------------
+    const user =
+      userResult.user;
+
+
+    // =================================================
+    // 4. Validate identity
+    // =================================================
+
+    if (
+      !user.profileId ||
+      !user.mobile
+    ) {
+
+      return {
+
+        success: false,
+
+        registered: true,
+
+        code:
+          "INCOMPLETE_PROFILE_IDENTITY",
+
+        message:
+          "नोंदणीकृत प्रोफाईलची माहिती अपूर्ण आहे."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 5. Create NEW OTP request
+    // =================================================
 
     const request =
       createAuthOTPRequest(
-        cleanMobile
+        user
       );
 
 
@@ -4522,9 +5904,9 @@ function requestLoginOTP(mobile) {
     }
 
 
-    // ---------------------------------------------------
-    // 4. Generate OTP
-    // ---------------------------------------------------
+    // =================================================
+    // 6. Generate OTP
+    // =================================================
 
     const generated =
       generateAuthOTP(
@@ -4547,20 +5929,19 @@ function requestLoginOTP(mobile) {
           "OTP_GENERATION_FAILED",
 
         requestId:
-          request.requestId
+          request.requestId,
+
+        message:
+          "OTP तयार करता आला नाही."
 
       };
 
     }
 
 
-    // ---------------------------------------------------
-    // 5. Send OTP through 2Factor
-    // ---------------------------------------------------
-    //
-    // IMPORTANT:
-    // OTP is NOT returned to frontend.
-    // ---------------------------------------------------
+    // =================================================
+    // 7. Send OTP
+    // =================================================
 
     const sms =
       sendOTPVia2Factor(
@@ -4597,9 +5978,9 @@ function requestLoginOTP(mobile) {
     }
 
 
-    // ---------------------------------------------------
-    // 6. Production-safe response
-    // ---------------------------------------------------
+    // =================================================
+    // 8. Success
+    // =================================================
 
     return {
 
@@ -4607,8 +5988,17 @@ function requestLoginOTP(mobile) {
 
       registered: true,
 
+      authenticated: false,
+
+      trusted: false,
+
+      otpRequired: true,
+
       state:
         "OTP_PENDING",
+
+      code:
+        "OTP_RESENT",
 
       requestId:
         request.requestId,
@@ -4644,7 +6034,7 @@ function requestLoginOTP(mobile) {
   catch (error) {
 
     console.error(
-      "requestLoginOTP Error:",
+      "resendLoginOTP Error:",
       error
     );
 
@@ -4654,79 +6044,13 @@ function requestLoginOTP(mobile) {
       success: false,
 
       code:
-        "LOGIN_OTP_EXCEPTION",
+        "RESEND_OTP_EXCEPTION",
 
       message:
-        "OTP request करताना समस्या आली."
+        "OTP पुन्हा पाठवताना समस्या आली."
 
     };
 
   }
-
-}
-
-
-function testRequestLoginOTP() {
-
-  const mobile =
-    "8975593689";
-
-
-  Logger.log(
-    "========== SEC-04.1 =========="
-  );
-
-
-  const result =
-    requestLoginOTP(
-      mobile
-    );
-
-
-  Logger.log(
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
-  );
-
-
-  if (
-    result.success === true &&
-    result.registered === true &&
-    result.state === "OTP_PENDING" &&
-    result.requestId &&
-    !result.otp
-  ) {
-
-    Logger.log(
-      "✅ OTP REQUEST API PASS"
-    );
-
-  }
-
-  else {
-
-    Logger.log(
-      "❌ OTP REQUEST API FAILED"
-    );
-
-    return;
-
-  }
-
-
-  Logger.log(
-    "================================"
-  );
-
-  Logger.log(
-    "SEC-04.1 PASS"
-  );
-
-  Logger.log(
-    "================================"
-  );
 
 }
