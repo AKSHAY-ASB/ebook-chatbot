@@ -25,15 +25,15 @@ let lastRenderedProfiles = [];
 
 window.onload = function () {
 
-  botMessage(
-    "👋 Welcome to Devang Pustika"
-  );
+  // botMessage(
+  //   "👋 Welcome to Devang Pustika"
+  // );
 
-  botMessage(
-    "How can I help you today?"
-  );
+  // botMessage(
+  //   "How can I help you today?"
+  // );
 
-  showMenu();
+  // showMenu();
 
 };
 
@@ -537,6 +537,13 @@ function showMenu() {
 
       </button>
 
+       <button
+        onclick="handleChatbotLogout()"
+        class="logout-menu-button"
+      >
+        🔐 Logout
+      </button>
+
       
 
     </div>
@@ -550,56 +557,71 @@ function showMenu() {
 
     function showLikesReceived() {
 
-      if (!profileAccessVerified) {
+        if (!profileAccessVerified) {
 
-        botMessage(`
+          pendingProfileCategory =
+            "likesReceived";
 
-          🔐 <b>Verification Required</b>
+          botMessage(`
+            🔐 <b>Verification Required</b>
 
-          <br><br>
+            <br><br>
 
-          Likes पाहण्यासाठी
-          प्रथम Registered Mobile Number Verify करा.
+            Likes पाहण्यासाठी
+            प्रथम Registered Mobile Number Verify करा.
+          `);
 
-        `);
+              chatbotState =
+                "profile_mobile_verification";
 
-        return;
 
-      }
+              const input =
+                document.getElementById("message");
 
-          botMessage("⏳ Loading Likes...");
 
-              google.script.run
+              input.placeholder =
+                "Enter registered mobile number...";
 
-                .withSuccessHandler(function(result){
 
-                    if (!result.success) {
+              input.focus();
 
-                        botMessage("तुम्हाला अद्याप कोणतीही Like मिळालेली नाही.");
+              return;
+        }
 
-                        return;
+        botMessage("⏳ Loading Likes...");
 
-                    }
+        google.script.run
 
-                    renderLikesReceived(result);
+          .withSuccessHandler(function(result) {
 
-                })
+            if (!result || !result.success) {
 
-            .withFailureHandler(function(error){
+              botMessage(
+                "तुम्हाला अद्याप कोणतीही Like मिळालेली नाही."
+              );
 
-                console.error(error);
+              return;
+            }
 
-                botMessage(
-                    "❌ Likes load करण्यात अडचण आली."
-                );
+            renderLikesReceived(result);
 
-            })
+          })
 
-            .getLikedReceivedProfiles(
-                profileUserMobile
+          .withFailureHandler(function(error) {
+
+            console.error(error);
+
+            botMessage(
+              "❌ Likes load करण्यात अडचण आली."
             );
 
-    }
+          })
+
+          .getLikedReceivedProfiles(
+            profileUserMobile
+          );
+
+      }
 
 
   function renderLikesReceived(result) {
@@ -1272,6 +1294,41 @@ function verifyProfileMobile(mobile) {
 
       return;
 
+    }
+
+
+    // ========================================
+    // LIKES RECEIVED AFTER VERIFICATION
+    // ========================================
+
+    if (
+        pendingProfileCategory ===
+        "likesReceived"
+    ) {
+
+        pendingProfileCategory = "";
+
+        showLikesReceived();
+
+        return;
+    }
+
+
+
+    // ========================================
+    // LIKES RECEIVED AFTER VERIFICATION
+    // ========================================
+
+    if (
+        pendingProfileCategory ===
+        "likesReceived"
+    ) {
+
+        pendingProfileCategory = "";
+
+        showLikesReceived();
+
+        return;
     }
 
 
@@ -5102,6 +5159,172 @@ function buildProfileActionButtons(
         </div>
 
     `;
+
+}
+
+
+
+function handleChatbotLogout() {
+
+  // ==========================================
+  // CHECK SESSION
+  // ==========================================
+
+  if (
+    typeof authUISessionId === "undefined" ||
+    !authUISessionId
+  ) {
+
+    console.warn(
+      "No active authentication session."
+    );
+
+    return;
+
+  }
+
+
+  // ==========================================
+  // LOGOUT CONFIRMATION
+  // ==========================================
+
+  const confirmed =
+    confirm(
+      "Are you sure you want to logout?"
+    );
+
+
+  if (!confirmed) {
+
+    return;
+
+  }
+
+
+  // ==========================================
+  // SERVER-SIDE LOGOUT
+  // ==========================================
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        console.log(
+          "Logout result:",
+          result
+        );
+
+
+        if (
+          !result ||
+          result.success !== true
+        ) {
+
+          alert(
+            "Logout failed. Please try again."
+          );
+
+          return;
+
+        }
+
+
+        // ======================================
+        // CLEAR FRONTEND SESSION
+        // ======================================
+
+        authUISessionId =
+          "";
+
+        authUIRequestId =
+          "";
+
+        authUIMobile =
+          "";
+
+        authUIUser =
+          null;
+
+        authUIState =
+          "LOGIN_REQUIRED";
+
+
+        // ======================================
+        // HIDE CHATBOT
+        // ======================================
+
+        const chatbotWrapper =
+          document.getElementById(
+            "chatbotWrapper"
+          );
+
+        if (chatbotWrapper) {
+
+          chatbotWrapper.style.display =
+            "none";
+
+        }
+
+
+        // ======================================
+        // SHOW LOGIN UI
+        // ======================================
+
+        const authContainer =
+          document.getElementById(
+            "authContainer"
+          );
+
+        if (authContainer) {
+
+          authContainer.style.display =
+            "flex";
+
+        }
+
+
+        // ======================================
+        // RESET AUTH SCREEN
+        // ======================================
+
+        if (
+          typeof authShowScreen ===
+          "function"
+        ) {
+
+          authShowScreen(
+            "authLoginScreen"
+          );
+
+        }
+
+
+        console.log(
+          "✅ User logged out successfully."
+        );
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "Logout error:",
+          error
+        );
+
+        alert(
+          "Logout failed. Please try again."
+        );
+
+      }
+    )
+
+    .logoutLoginSession(
+      authUISessionId
+    );
 
 }
 

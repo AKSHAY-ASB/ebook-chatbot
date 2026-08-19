@@ -1,0 +1,3649 @@
+<!-- =====================================================
+     DEVANG PUSTIKA
+     AUTHENTICATION UI
+     SEC-04.3
+====================================================== -->
+
+<div id="authContainer">
+
+
+  <img
+    id="loginBackgroundImage"
+    class="login-background-image"
+    alt="backgroundImage"
+  >
+
+
+    <!-- OVERLAY -->
+    <div class="login-background-overlay"></div>
+
+  <!-- ================================================
+       LOGIN SCREEN
+  ================================================= -->
+
+  <div id="authLoginScreen" class="auth-screen">
+
+    <div class="auth-card">
+
+      <h1 class="auth-title">
+        Welcome to Devang Chatbot
+      </h1>
+
+      <div class="auth-logo">
+        🔐
+      </div>
+
+      <h2 class="auth-title">
+        Secure Login
+      </h2>
+
+      <p class="auth-subtitle">
+        Continue using your registered mobile number.
+      </p>
+
+
+      <div class="auth-field">
+
+        <label for="authMobile">
+          Registered Mobile Number
+        </label>
+
+        <div class="auth-mobile-wrapper">
+
+          <span class="auth-country-code">
+            +91
+          </span>
+
+          <input
+            id="authMobile"
+            type="tel"
+            inputmode="numeric"
+            maxlength="10"
+            autocomplete="tel"
+            placeholder="Enter mobile number"
+          />
+
+        </div>
+
+      </div>
+
+
+      <div
+        id="authLoginError"
+        class="auth-error"
+        style="display:none;"
+      ></div>
+
+
+      <button
+        id="authSendOTPButton"
+        class="auth-primary-button"
+        type="button"
+        onclick="authRequestOTP()"
+      >
+        Send OTP
+      </button>
+
+
+      <div
+        id="authLoginLoader"
+        class="auth-loader"
+        style="display:none;"
+      >
+        <span class="auth-spinner"></span>
+        Sending OTP...
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ================================================
+       OTP SCREEN
+  ================================================= -->
+
+  <div
+    id="authOTPScreen"
+    class="auth-screen"
+    style="display:none;"
+  >
+
+    <div class="auth-card">
+
+      <div class="auth-logo">
+        🔐
+      </div>
+
+      <h2 class="auth-title">
+        Verify OTP
+      </h2>
+
+      <p class="auth-subtitle">
+
+        Enter the 6-digit OTP sent to
+
+        <strong id="authMaskedMobile">
+          +91 XXXXX XXXXX
+        </strong>
+
+      </p>
+
+
+      <div
+        id="authOTPInputs"
+        class="auth-otp-container"
+      >
+
+        <input
+          class="auth-otp-input"
+          type="tel"
+          inputmode="numeric"
+          maxlength="1"
+          autocomplete="one-time-code"
+        />
+
+        <input
+          class="auth-otp-input"
+          type="tel"
+          inputmode="numeric"
+          maxlength="1"
+        />
+
+        <input
+          class="auth-otp-input"
+          type="tel"
+          inputmode="numeric"
+          maxlength="1"
+        />
+
+        <input
+          class="auth-otp-input"
+          type="tel"
+          inputmode="numeric"
+          maxlength="1"
+        />
+
+        <input
+          class="auth-otp-input"
+          type="tel"
+          inputmode="numeric"
+          maxlength="1"
+        />
+
+        <input
+          class="auth-otp-input"
+          type="tel"
+          inputmode="numeric"
+          maxlength="1"
+        />
+
+      </div>
+
+
+      <div
+        id="authOTPError"
+        class="auth-error"
+        style="display:none;"
+      ></div>
+
+
+      <button
+        id="authVerifyOTPButton"
+        class="auth-primary-button"
+        type="button"
+        onclick="authVerifyOTP()"
+      >
+        Verify OTP
+      </button>
+
+
+      <div
+        id="authOTPLoader"
+        class="auth-loader"
+        style="display:none;"
+      >
+        <span class="auth-spinner"></span>
+        Verifying OTP...
+      </div>
+
+
+      <div class="auth-resend-section">
+
+        <button
+          id="authResendButton"
+          class="auth-link-button"
+          type="button"
+          onclick="authResendOTP()"
+          disabled
+        >
+          Resend OTP
+        </button>
+
+        <span
+          id="authResendTimer"
+          class="auth-resend-timer"
+        >
+          Wait 60 seconds
+        </span>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="auth-back-button"
+        onclick="authBackToLogin()"
+      >
+        ← Change mobile number
+      </button>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ================================================
+       AUTHENTICATED SCREEN
+  ================================================= -->
+
+  <div
+    id="authSuccessScreen"
+    class="auth-screen"
+    style="display:none;"
+  >
+
+    <div class="auth-card auth-success-card">
+
+      <div class="auth-success-icon">
+        ✓
+      </div>
+
+      <h2 class="auth-title">
+        Login Successful
+      </h2>
+
+      <p class="auth-subtitle">
+
+        Welcome,
+
+        <strong id="authUserName">
+          User
+        </strong>
+
+      </p>
+
+
+      <div class="auth-session-badge">
+
+        🔐 Secure Session Active
+
+      </div>
+
+
+      <button
+        type="button"
+        class="auth-primary-button"
+        onclick="authContinueToChatbot()"
+      >
+        Continue to Chatbot
+      </button>
+
+
+      <!-- <button
+        type="button"
+        class="auth-logout-button"
+        onclick="authLogout()"
+      >
+        Logout
+      </button> -->
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<style>
+
+/* =====================================================
+   DEVANG PUSTIKA
+   AUTH UI — FULL SCREEN RESPONSIVE
+   Matches Chatbot LayoutStyles
+===================================================== */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+
+/* =====================================================
+   AUTH CONTAINER
+===================================================== */
+
+.auth-screen {
+
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+
+    /* height: 100dvh;
+
+    min-height: 100dvh; */
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding:
+        20px;
+
+    overflow-y: auto;
+
+    -webkit-overflow-scrolling: touch;
+
+    z-index: 2;
+
+}
+
+#authContainer {
+
+    position: fixed;
+
+    inset: 0;
+
+    width: 100vw;
+
+    height: 100dvh;
+
+    min-height: 100dvh;
+
+    margin: 0;
+
+    padding: 0;
+
+    display: block;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+}
+
+
+/* ==========================================
+   LOGIN BACKGROUND IMAGE
+========================================== */
+
+.login-background-image {
+
+    position: absolute;
+
+    inset: 0;
+
+    width: 100vw;
+
+    height: 100dvh;
+
+    max-width: none;
+
+    max-height: none;
+
+    display: block;
+
+    object-fit: cover;
+
+    object-position: center center;
+
+    z-index: 0;
+
+}
+
+/* ==========================================
+   BACKGROUND OVERLAY
+========================================== */
+
+.login-background-overlay {
+
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+
+    height: 100%;
+
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.05),
+            rgba(255, 255, 255, 0.25)
+        );
+
+    z-index: 1;
+
+    pointer-events: none;
+
+}
+
+
+/* ==========================================
+   AUTH CONTENT ABOVE IMAGE
+========================================== */
+
+#authContainer .auth-screen {
+
+    position: relative;
+
+    z-index: 2;
+
+}
+
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width: 600px) {
+
+    .login-background-image {
+
+        object-position:
+            center bottom;
+
+    }
+
+}
+
+
+/* =====================================================
+   AUTH CARD
+   Full width — NOT a floating card
+===================================================== */
+
+.auth-card {
+
+    position: relative;
+
+    /* width: min(
+        90%,
+        430px
+    ); */
+
+    margin: auto;
+
+    padding:
+        28px
+        24px;
+
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            0.90
+        );
+
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            0.70
+        );
+
+    border-radius: 22px;
+
+    /* box-shadow:
+        0
+        15px
+        45px
+        rgba(
+            0,
+            0,
+            0,
+            0.25
+        ); */
+
+    backdrop-filter:
+        blur(8px);
+
+    -webkit-backdrop-filter:
+        blur(8px);
+
+    text-align: center;
+
+}
+
+
+
+@media (max-width: 600px) {
+
+    .login-background-image {
+
+        width: 100vw;
+
+        height: 100dvh;
+
+        object-fit: cover;
+
+        object-position:
+            center center;
+
+    }
+
+
+    .auth-screen {
+
+        padding:
+            15px;
+
+    }
+
+
+    .auth-card {
+
+        width: 92%;
+
+        max-width: 400px;
+
+        padding:
+            24px
+            18px;
+
+        border-radius: 20px;
+
+    }
+
+}
+
+
+
+
+
+
+/* =====================================================
+   LOGO / ICON
+===================================================== */
+
+.auth-logo {
+
+    width: 90px;
+
+    height: 90px;
+
+    margin:
+        0
+        auto
+        25px;
+
+    border-radius: 50%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #f1f5ff;
+
+    font-size: 42px;
+
+}
+
+
+/* =====================================================
+   TITLE
+===================================================== */
+
+.auth-title {
+
+    margin:
+        0
+        0
+        12px;
+
+    font-size: 38px;
+
+    line-height: 1.25;
+
+    font-weight: 700;
+
+    color: #172554;
+
+}
+
+
+/* =====================================================
+   SUBTITLE
+===================================================== */
+
+.auth-subtitle {
+
+    margin:
+        0
+        0
+        30px;
+
+    font-size: 22px;
+
+    line-height: 1.5;
+
+    color: #64748b;
+
+}
+
+
+/* =====================================================
+   FIELD
+===================================================== */
+
+.auth-field {
+
+    width: 100%;
+
+    max-width: 650px;
+
+    margin:
+        0
+        auto
+        20px;
+
+    text-align: left;
+
+}
+
+
+.auth-field label {
+
+    display: block;
+
+    margin-bottom: 10px;
+
+    font-size: 20px;
+
+    line-height: 1.4;
+
+    font-weight: 600;
+
+    color: #334155;
+
+}
+
+
+/* =====================================================
+   MOBILE INPUT
+===================================================== */
+
+.auth-mobile-wrapper {
+
+    width: 100%;
+
+    min-height: 70px;
+
+    display: flex;
+
+    align-items: center;
+
+    border:
+        2px
+        solid
+        #cbd5e1;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+}
+
+
+.auth-mobile-wrapper:focus-within {
+
+    border-color: #0057B8;
+
+    box-shadow:
+        0
+        0
+        0
+        3px
+        rgba(
+            0,
+            87,
+            184,
+            0.12
+        );
+
+}
+
+
+.auth-country-code {
+
+    height: 70px;
+
+    padding:
+        0
+        18px;
+
+    display: flex;
+
+    align-items: center;
+
+    background: #f8fafc;
+
+    border-right:
+        1px
+        solid
+        #e2e8f0;
+
+    color: #475569;
+
+    font-size: 20px;
+
+}
+
+
+.auth-mobile-wrapper input {
+
+    flex: 1;
+
+    min-width: 0;
+
+    width: 100%;
+
+    height: 70px;
+
+    border: 0;
+
+    outline: 0;
+
+    padding:
+        0
+        18px;
+
+    background: transparent;
+
+    color: #172554;
+
+    font-size: 22px;
+
+}
+
+
+.auth-mobile-wrapper input::placeholder {
+
+    color: #94a3b8;
+
+}
+
+
+/* =====================================================
+   PRIMARY BUTTON
+===================================================== */
+
+.auth-primary-button {
+
+    width: 100%;
+
+    max-width: 650px;
+
+    min-height: 70px;
+
+    margin:
+        10px
+        auto
+        0;
+
+    display: block;
+
+    padding:
+        18px
+        25px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #0057B8;
+
+    color: #ffffff;
+
+    font-size: 24px;
+
+    line-height: 1.2;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    touch-action: manipulation;
+
+}
+
+
+.auth-primary-button:disabled {
+
+    opacity: 0.6;
+
+    cursor: not-allowed;
+
+}
+
+
+/* =====================================================
+   ERROR
+===================================================== */
+
+.auth-error {
+
+    width: 100%;
+
+    max-width: 650px;
+
+    margin:
+        12px
+        auto;
+
+    padding:
+        12px
+        15px;
+
+    border-radius: 8px;
+
+    background: #fef2f2;
+
+    color: #b91c1c;
+
+    font-size: 17px;
+
+    line-height: 1.5;
+
+    text-align: left;
+
+    overflow-wrap: anywhere;
+
+}
+
+
+/* =====================================================
+   LOADER
+===================================================== */
+
+.auth-loader {
+
+    margin-top: 15px;
+
+    font-size: 17px;
+
+    color: #64748b;
+
+}
+
+
+.auth-spinner {
+
+    width: 18px;
+
+    height: 18px;
+
+    display: inline-block;
+
+    margin-right: 7px;
+
+    border:
+        2px
+        solid
+        #cbd5e1;
+
+    border-top-color:
+        #0057B8;
+
+    border-radius: 50%;
+
+    vertical-align: -4px;
+
+    animation:
+        authSpin
+        0.8s
+        linear
+        infinite;
+
+}
+
+
+@keyframes authSpin {
+
+    to {
+
+        transform:
+            rotate(360deg);
+
+    }
+
+}
+
+
+/* =====================================================
+   OTP
+===================================================== */
+
+.auth-otp-container {
+
+    width: 100%;
+
+    max-width: 650px;
+
+    margin:
+        25px
+        auto
+        20px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            6,
+            minmax(
+                0,
+                1fr
+            )
+        );
+
+    gap: 12px;
+
+}
+
+
+.auth-otp-input {
+
+    width: 100%;
+
+    height: 75px;
+
+    min-width: 0;
+
+    border:
+        2px
+        solid
+        #cbd5e1;
+
+    border-radius: 10px;
+
+    outline: none;
+
+    text-align: center;
+
+    font-size: 30px;
+
+    font-weight: 600;
+
+    color: #172554;
+
+    background: #ffffff;
+
+}
+
+
+.auth-otp-input:focus {
+
+    border-color:
+        #0057B8;
+
+    box-shadow:
+        0
+        0
+        0
+        3px
+        rgba(
+            0,
+            87,
+            184,
+            0.12
+        );
+
+}
+
+
+/* =====================================================
+   RESEND
+===================================================== */
+
+.auth-resend-section {
+
+    margin-top: 20px;
+
+    font-size: 17px;
+
+}
+
+
+.auth-link-button {
+
+    min-height: 45px;
+
+    padding:
+        8px
+        12px;
+
+    border: none;
+
+    background: transparent;
+
+    color: #0057B8;
+
+    font-size: 18px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+}
+
+
+.auth-link-button:disabled {
+
+    color: #94a3b8;
+
+    cursor: not-allowed;
+
+}
+
+
+.auth-resend-timer {
+
+    display: block;
+
+    margin-top: 5px;
+
+    color: #64748b;
+
+    font-size: 16px;
+
+}
+
+
+/* =====================================================
+   BACK BUTTON
+===================================================== */
+
+.auth-back-button {
+
+    min-height: 45px;
+
+    margin-top: 15px;
+
+    padding:
+        8px
+        12px;
+
+    border: none;
+
+    background: transparent;
+
+    color: #64748b;
+
+    font-size: 17px;
+
+    cursor: pointer;
+
+}
+
+
+/* =====================================================
+   SUCCESS
+===================================================== */
+
+.auth-success-card {
+
+    padding-top: 30px;
+
+}
+
+
+.auth-success-icon {
+
+    width: 90px;
+
+    height: 90px;
+
+    margin:
+        0
+        auto
+        20px;
+
+    border-radius: 50%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #dcfce7;
+
+    color: #15803d;
+
+    font-size: 42px;
+
+    font-weight: 700;
+
+}
+
+
+.auth-session-badge {
+
+    width: 100%;
+
+    max-width: 650px;
+
+    margin:
+        20px
+        auto;
+
+    padding:
+        14px
+        15px;
+
+    border-radius: 10px;
+
+    background: #eff6ff;
+
+    color: #1e40af;
+
+    font-size: 17px;
+
+    font-weight: 600;
+
+}
+
+
+.auth-logout-button {
+
+    width: 100%;
+
+    max-width: 650px;
+
+    min-height: 60px;
+
+    margin:
+        10px
+        auto;
+
+    padding:
+        14px
+        20px;
+
+    border:
+        1px
+        solid
+        #fecaca;
+
+    border-radius: 10px;
+
+    background: #ffffff;
+
+    color: #b91c1c;
+
+    font-size: 18px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+}
+
+
+/* =====================================================
+   MOBILE — SAME FULL SCREEN APPROACH
+===================================================== */
+
+@media (max-width: 600px) {
+
+    #authContainer {
+
+        position: fixed;
+
+        inset: 0;
+
+        width: 100%;
+
+        height: 100dvh;
+
+        min-height: 100dvh;
+
+        padding: 0;
+
+        overflow: hidden;
+
+    }
+
+
+    .auth-screen {
+
+        position: absolute;
+
+        inset: 0;
+
+        width: 100%;
+
+        height: 100dvh;
+
+        min-height: 100dvh;
+
+        padding:
+            20px
+            15px
+            max(
+                20px,
+                env(safe-area-inset-bottom)
+            );
+
+        align-items: center;
+
+        justify-content: center;
+
+        overflow-y: auto;
+
+    }
+
+
+    .auth-card {
+
+        width: 100%;
+
+        max-width: none;
+
+        padding:
+            25px
+            15px;
+
+    }
+
+
+    .auth-logo {
+
+        width: 80px;
+
+        height: 80px;
+
+        font-size: 36px;
+
+        margin-bottom: 20px;
+
+    }
+
+
+    .auth-title {
+
+        font-size: 34px;
+
+    }
+
+
+    .auth-subtitle {
+
+        font-size: 20px;
+
+        margin-bottom: 25px;
+
+    }
+
+
+    .auth-field label {
+
+        font-size: 19px;
+
+    }
+
+
+    .auth-mobile-wrapper {
+
+        min-height: 65px;
+
+    }
+
+
+    .auth-country-code {
+
+        height: 65px;
+
+        padding:
+            0
+            14px;
+
+        font-size: 19px;
+
+    }
+
+
+    .auth-mobile-wrapper input {
+
+        height: 65px;
+
+        font-size: 21px;
+
+    }
+
+
+    .auth-primary-button {
+
+        min-height: 65px;
+
+        font-size: 22px;
+
+    }
+
+
+    .auth-otp-container {
+
+        gap: 7px;
+
+        margin-top: 20px;
+
+    }
+
+
+    .auth-otp-input {
+
+        height: 60px;
+
+        font-size: 25px;
+
+        border-radius: 9px;
+
+    }
+
+}
+
+
+/* =====================================================
+   SMALL MOBILE — 320px to 380px
+===================================================== */
+
+@media (max-width: 380px) {
+
+    .auth-screen {
+
+        padding:
+            15px
+            10px
+            max(
+                15px,
+                env(safe-area-inset-bottom)
+            );
+
+    }
+
+
+    .auth-card {
+
+        padding:
+            18px
+            10px;
+
+    }
+
+
+    .auth-logo {
+
+        width: 65px;
+
+        height: 65px;
+
+        font-size: 30px;
+
+        margin-bottom: 14px;
+
+    }
+
+
+    .auth-title {
+
+        font-size: 27px;
+
+    }
+
+
+    .auth-subtitle {
+
+        font-size: 16px;
+
+        margin-bottom: 18px;
+
+    }
+
+
+    .auth-field label {
+
+        font-size: 16px;
+
+    }
+
+
+    .auth-mobile-wrapper {
+
+        min-height: 55px;
+
+    }
+
+
+    .auth-country-code {
+
+        height: 55px;
+
+        padding:
+            0
+            10px;
+
+        font-size: 16px;
+
+    }
+
+
+    .auth-mobile-wrapper input {
+
+        height: 55px;
+
+        padding:
+            0
+            10px;
+
+        font-size: 18px;
+
+    }
+
+
+    .auth-primary-button {
+
+        min-height: 55px;
+
+        font-size: 19px;
+
+    }
+
+
+    .auth-otp-container {
+
+        gap: 4px;
+
+    }
+
+
+    .auth-otp-input {
+
+        height: 50px;
+
+        font-size: 21px;
+
+        border-radius: 7px;
+
+    }
+
+
+    .auth-link-button,
+    .auth-back-button {
+
+        font-size: 15px;
+
+    }
+
+}
+
+
+/* =====================================================
+   VERY SMALL MOBILE — 320px
+===================================================== */
+
+@media (max-width: 320px) {
+
+    .auth-otp-container {
+
+        gap: 3px;
+
+    }
+
+
+    .auth-otp-input {
+
+        height: 46px;
+
+        font-size: 19px;
+
+    }
+
+}
+
+
+/* =====================================================
+   LANDSCAPE MOBILE
+===================================================== */
+
+@media (
+    max-height: 520px
+) and (
+    orientation: landscape
+) {
+
+    .auth-screen {
+
+        align-items:
+            flex-start;
+
+        padding-top: 15px;
+
+        padding-bottom: 15px;
+
+    }
+
+
+    .auth-card {
+
+        padding-top: 15px;
+
+        padding-bottom: 15px;
+
+    }
+
+
+    .auth-logo {
+
+        width: 50px;
+
+        height: 50px;
+
+        font-size: 24px;
+
+        margin-bottom: 10px;
+
+    }
+
+
+    .auth-title {
+
+        font-size: 24px;
+
+    }
+
+
+    .auth-subtitle {
+
+        font-size: 14px;
+
+        margin-bottom: 12px;
+
+    }
+
+
+    .auth-mobile-wrapper,
+    .auth-mobile-wrapper input {
+
+        min-height: 48px;
+
+        height: 48px;
+
+    }
+
+
+    .auth-country-code {
+
+        height: 48px;
+
+    }
+
+
+    .auth-primary-button {
+
+        min-height: 48px;
+
+        font-size: 17px;
+
+    }
+
+
+    .auth-otp-input {
+
+        height: 45px;
+
+    }
+
+}
+
+
+/* =====================================================
+   SAFE AREA
+===================================================== */
+
+@supports (
+    padding:
+        max(
+            0px,
+            env(safe-area-inset-top)
+        )
+) {
+
+    #authContainer {
+
+        padding-top:
+            env(safe-area-inset-top);
+
+        padding-right:
+            env(safe-area-inset-right);
+
+        padding-bottom:
+            env(safe-area-inset-bottom);
+
+        padding-left:
+            env(safe-area-inset-left);
+
+    }
+
+}
+
+</style>
+
+
+<script>
+
+/* =====================================================
+   AUTH UI STATE
+===================================================== */
+
+let authUIState =
+  "LOGIN_REQUIRED";
+
+let authUIRequestId =
+  "";
+
+let authUISessionId =
+  "";
+
+let authUIMobile =
+  "";
+
+let authUIUser =
+  null;
+
+/* =====================================================
+   PERSISTENT AUTH SESSION
+===================================================== */
+
+const AUTH_SESSION_STORAGE_KEY =
+  "DEVANG_PUSTIKA_AUTH_SESSION";
+
+let authSessionExpiryTimer = null;  
+
+let authUITimer =
+  null;
+
+let authUISeconds =
+  0;
+
+
+/* =====================================================
+   HELPERS
+===================================================== */
+
+function authShowScreen(
+  screen
+) {
+
+  const screens = [
+
+    "authLoginScreen",
+
+    "authOTPScreen",
+
+    "authSuccessScreen"
+
+  ];
+
+
+  screens.forEach(
+    function(id) {
+
+      const element =
+        document.getElementById(id);
+
+
+      if (!element) {
+        return;
+      }
+
+
+      element.style.display =
+        id === screen
+          ? "flex"
+          : "none";
+
+    }
+  );
+
+}
+
+
+function authShowError(
+  elementId,
+  message
+) {
+
+  const element =
+    document.getElementById(
+      elementId
+    );
+
+
+  if (!element) {
+    return;
+  }
+
+
+  element.textContent =
+    message || "";
+
+
+  element.style.display =
+    message
+      ? "block"
+      : "none";
+
+}
+
+
+function authSetLoading(
+  type,
+  loading
+) {
+
+  const button =
+    document.getElementById(
+      type === "login"
+        ? "authSendOTPButton"
+        : "authVerifyOTPButton"
+    );
+
+
+  const loader =
+    document.getElementById(
+      type === "login"
+        ? "authLoginLoader"
+        : "authOTPLoader"
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      loading;
+
+  }
+
+
+  if (loader) {
+
+    loader.style.display =
+      loading
+        ? "block"
+        : "none";
+
+  }
+
+}
+
+
+/* =====================================================
+   MOBILE VALIDATION
+===================================================== */
+
+function authNormalizeMobile(
+  value
+) {
+
+  let mobile =
+    String(
+      value || ""
+    )
+      .replace(/\D/g, "");
+
+
+  if (
+    mobile.length === 12 &&
+    mobile.startsWith("91")
+  ) {
+
+    mobile =
+      mobile.substring(2);
+
+  }
+
+
+  return mobile;
+
+}
+
+
+function authIsValidMobile(
+  mobile
+) {
+
+  return /^[6-9]\d{9}$/
+    .test(mobile);
+
+}
+
+
+function authMaskMobile(
+  mobile
+) {
+
+  if (
+    !mobile ||
+    mobile.length !== 10
+  ) {
+
+    return "+91 XXXXX XXXXX";
+
+  }
+
+
+  return (
+    "+91 " +
+    mobile.substring(0, 2) +
+    "XXXXXX" +
+    mobile.substring(8)
+  );
+
+}
+
+
+/* =====================================================
+   REQUEST OTP
+===================================================== */
+
+function authRequestOTP() {
+
+  const input =
+    document.getElementById(
+      "authMobile"
+    );
+
+
+  const mobile =
+    authNormalizeMobile(
+      input
+        ? input.value
+        : ""
+    );
+
+
+  authShowError(
+    "authLoginError",
+    ""
+  );
+
+
+  if (
+    !authIsValidMobile(
+      mobile
+    )
+  ) {
+
+    authShowError(
+      "authLoginError",
+      "कृपया योग्य 10 अंकी registered mobile number टाका."
+    );
+
+    return;
+
+  }
+
+
+  authUIMobile =
+    mobile;
+
+
+  // =================================================
+  // GET TRUSTED AUTH TOKEN
+  // =================================================
+
+  const trustedToken =
+    localStorage.getItem(
+      "DEVANG_PUSTIKA_TRUSTED_TOKEN"
+    ) || "";
+
+
+  console.log(
+    "Trusted token available:",
+    !!trustedToken
+  );
+
+
+  authSetLoading(
+    "login",
+    true
+  );
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        authSetLoading(
+          "login",
+          false
+        );
+
+
+        console.log(
+          "requestLoginOTP result:",
+          result
+        );
+
+
+        // =============================================
+        // GENERAL ERROR
+        // =============================================
+
+        if (
+          !result ||
+          result.success !== true
+        ) {
+
+          authShowError(
+            "authLoginError",
+            result &&
+            result.message
+              ? result.message
+              : "OTP request failed."
+          );
+
+          return;
+
+        }
+
+
+        // =============================================
+        // TRUSTED AUTH LOGIN
+        // =============================================
+        //
+        // Trusted user:
+        //
+        // authenticated = true
+        // trusted = true
+        // otpRequired = false
+        //
+        // Therefore DO NOT show OTP screen.
+        // =============================================
+
+        if (
+          result.authenticated === true &&
+          result.trusted === true &&
+          result.otpRequired === false &&
+          result.authenticationMethod ===
+            "TRUSTED_AUTH"
+        ) {
+
+          console.log(
+            "✅ TRUSTED AUTH LOGIN SUCCESS"
+          );
+
+
+          authUIState =
+            "SESSION_ACTIVE";
+
+
+          authUISessionId =
+            result.sessionId;
+
+
+          authUIUser =
+            result.user || null;
+
+
+          // Stop any OTP timer
+          authStopResendTimer();
+
+
+          // =========================================
+          // DIRECTLY OPEN CHATBOT
+          // =========================================
+
+          authContinueToChatbot();
+
+
+          return;
+
+        }
+
+
+        // =============================================
+        // NORMAL OTP LOGIN
+        // =============================================
+
+        if (
+          result.otpRequired === true
+        ) {
+
+          authUIRequestId =
+            result.requestId;
+
+
+          authUIState =
+            "OTP_PENDING";
+
+
+          const masked =
+            document.getElementById(
+              "authMaskedMobile"
+            );
+
+
+          if (masked) {
+
+            masked.textContent =
+              authMaskMobile(
+                authUIMobile
+              );
+
+          }
+
+
+          authShowScreen(
+            "authOTPScreen"
+          );
+
+
+          authStartResendTimer(
+            result.retryAfter ||
+            60
+          );
+
+
+          authFocusFirstOTP();
+
+
+          return;
+
+        }
+
+
+        // =============================================
+        // UNEXPECTED RESPONSE
+        // =============================================
+
+        console.error(
+          "Unexpected login response:",
+          result
+        );
+
+
+        authShowError(
+          "authLoginError",
+          "Authentication response invalid आहे."
+        );
+
+      }
+    )
+
+
+    .withFailureHandler(
+      function(error) {
+
+        authSetLoading(
+          "login",
+          false
+        );
+
+
+        console.error(
+          "requestLoginOTP error:",
+          error
+        );
+
+
+        authShowError(
+          "authLoginError",
+          "OTP request करताना समस्या आली."
+        );
+
+      }
+    )
+
+
+    // ===============================================
+    // BACKEND CALL
+    // ===============================================
+
+    .requestLoginOTP(
+      mobile,
+      trustedToken
+    );
+
+}
+
+
+/* =====================================================
+   OTP INPUT
+===================================================== */
+
+function authGetOTP() {
+
+  const inputs =
+    document.querySelectorAll(
+      ".auth-otp-input"
+    );
+
+
+  let otp = "";
+
+
+  inputs.forEach(
+    function(input) {
+
+      otp +=
+        String(
+          input.value || ""
+        )
+        .replace(/\D/g, "");
+
+    }
+  );
+
+
+  return otp;
+
+}
+
+
+function authClearOTP() {
+
+  const inputs =
+    document.querySelectorAll(
+      ".auth-otp-input"
+    );
+
+
+  inputs.forEach(
+    function(input) {
+
+      input.value =
+        "";
+
+    }
+  );
+
+
+  authFocusFirstOTP();
+
+}
+
+
+function authFocusFirstOTP() {
+
+  const first =
+    document.querySelector(
+      ".auth-otp-input"
+    );
+
+
+  if (first) {
+
+    first.focus();
+
+  }
+
+}
+
+
+/* =====================================================
+   VERIFY OTP
+===================================================== */
+
+function authVerifyOTP() {
+
+  const otp =
+    authGetOTP();
+
+
+  authShowError(
+    "authOTPError",
+    ""
+  );
+
+
+  if (
+    !/^\d{6}$/.test(
+      otp
+    )
+  ) {
+
+    authShowError(
+      "authOTPError",
+      "कृपया 6 अंकी OTP टाका."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !authUIRequestId
+  ) {
+
+    authShowError(
+      "authOTPError",
+      "OTP request session सापडली नाही."
+    );
+
+    return;
+
+  }
+
+
+  authSetLoading(
+    "otp",
+    true
+  );
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        authSetLoading(
+          "otp",
+          false
+        );
+
+
+        if (
+          !result ||
+          result.success !== true ||
+          result.verified !== true
+        ) {
+
+          authShowError(
+            "authOTPError",
+            result &&
+            result.message
+              ? result.message
+              : "Invalid OTP."
+          );
+
+          authClearOTP();
+
+          return;
+
+        }
+
+
+        authUIState =
+          "SESSION_ACTIVE";
+
+
+        authUISessionId =
+          result.sessionId;
+
+
+        authUIUser =
+          result.user ||
+          null;
+
+
+        // ==========================================
+        // SAVE TRUSTED AUTH TOKEN
+        // ==========================================
+
+        if (
+          result.trusted === true &&
+          result.trustedToken
+        ) {
+
+          localStorage.setItem(
+            "DEVANG_PUSTIKA_TRUSTED_TOKEN",
+            result.trustedToken
+          );
+
+          console.log(
+            "✅ Trusted token saved."
+          );
+
+        }
+        // ==========================================
+        // SAVE SESSION FOR PAGE REFRESH
+        // ==========================================
+
+        authSaveSession();
+
+
+        // ==========================================
+        // START SESSION EXPIRY TIMER
+        // ==========================================
+
+        if (result.expiresAt) {
+
+          authStartSessionExpiryTimer(
+            result.expiresAt
+          );
+
+        }
+        else if (result.expiresIn) {
+
+          authStartSessionExpiryTimer(
+            new Date(
+              Date.now() +
+              (
+                Number(
+                  result.expiresIn
+                ) * 1000
+              )
+            ).toISOString()
+          );
+
+        }  
+
+
+        authStopResendTimer();
+
+
+        const name =
+          document.getElementById(
+            "authUserName"
+          );
+
+
+        if (name) {
+
+          name.textContent =
+            authUIUser &&
+            authUIUser.name
+              ? authUIUser.name
+              : "User";
+
+        }
+
+
+        authShowScreen(
+          "authSuccessScreen"
+        );
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        authSetLoading(
+          "otp",
+          false
+        );
+
+
+        console.error(
+          "verifyLoginOTP error:",
+          error
+        );
+
+
+        authShowError(
+          "authOTPError",
+          "OTP verification करताना समस्या आली."
+        );
+
+      }
+    )
+
+    .verifyLoginOTP(
+
+      authUIRequestId,
+
+      otp
+
+    );
+
+}
+
+
+/* =====================================================
+   RESEND TIMER
+===================================================== */
+
+function authStartResendTimer(
+  seconds
+) {
+
+  authStopResendTimer();
+
+
+  authUISeconds =
+    Number(
+      seconds
+    ) || 60;
+
+
+  const button =
+    document.getElementById(
+      "authResendButton"
+    );
+
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+  }
+
+
+  authUpdateResendTimer();
+
+
+  authUITimer =
+    setInterval(
+      function() {
+
+        authUISeconds--;
+
+
+        authUpdateResendTimer();
+
+
+        if (
+          authUISeconds <= 0
+        ) {
+
+          authStopResendTimer();
+
+        }
+
+      },
+      1000
+    );
+
+}
+
+
+function authUpdateResendTimer() {
+
+  const timer =
+    document.getElementById(
+      "authResendTimer"
+    );
+
+
+  const button =
+    document.getElementById(
+      "authResendButton"
+    );
+
+
+  if (!timer) {
+    return;
+  }
+
+
+  if (
+    authUISeconds > 0
+  ) {
+
+    timer.textContent =
+      "Resend OTP in " +
+      authUISeconds +
+      " seconds";
+
+
+    if (button) {
+
+      button.disabled =
+        true;
+
+    }
+
+  }
+
+  else {
+
+    timer.textContent =
+      "You can request a new OTP now.";
+
+
+    if (button) {
+
+      button.disabled =
+        false;
+
+    }
+
+  }
+
+}
+
+
+function authStopResendTimer() {
+
+  if (authUITimer) {
+
+    clearInterval(
+      authUITimer
+    );
+
+    authUITimer =
+      null;
+
+  }
+
+}
+
+
+/* =====================================================
+   RESEND OTP
+===================================================== */
+
+function authResendOTP() {
+
+  authShowError(
+    "authOTPError",
+    ""
+  );
+
+
+  if (!authUIMobile) {
+
+    authShowError(
+      "authOTPError",
+      "मोबाईल नंबर उपलब्ध नाही."
+    );
+
+    return;
+
+  }
+
+
+  authSetLoading(
+    "resend",
+    true
+  );
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        authSetLoading(
+          "resend",
+          false
+        );
+
+
+        console.log(
+          "resendLoginOTP result:",
+          result
+        );
+
+
+        if (
+          !result ||
+          result.success !== true
+        ) {
+
+          authShowError(
+            "authOTPError",
+            result &&
+            result.message
+              ? result.message
+              : "OTP पुन्हा पाठवता आला नाही."
+          );
+
+          return;
+
+        }
+
+
+        // ==========================================
+        // IMPORTANT
+        // New OTP request ID
+        // ==========================================
+
+        authUIRequestId =
+          result.requestId;
+
+
+        authUIState =
+          "OTP_PENDING";
+
+
+        // ==========================================
+        // Restart timer
+        // ==========================================
+
+        authStartResendTimer(
+          result.retryAfter ||
+          60
+        );
+
+
+        authFocusFirstOTP();
+
+
+        authShowError(
+          "authOTPError",
+          "नवीन OTP पाठवला आहे."
+        );
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        authSetLoading(
+          "resend",
+          false
+        );
+
+
+        console.error(
+          "resendLoginOTP error:",
+          error
+        );
+
+
+        authShowError(
+          "authOTPError",
+          "OTP पुन्हा पाठवताना समस्या आली."
+        );
+
+      }
+    )
+
+    .resendLoginOTP(
+      authUIMobile
+    );
+
+}
+
+
+/* =====================================================
+   BACK TO LOGIN
+===================================================== */
+
+function authBackToLogin() {
+
+  authStopResendTimer();
+
+
+  authUIState =
+    "LOGIN_REQUIRED";
+
+
+  authUIRequestId =
+    "";
+
+
+  authUIMobile =
+    "";
+
+
+  authClearOTP();
+
+
+  authShowError(
+    "authOTPError",
+    ""
+  );
+
+
+  authShowScreen(
+    "authLoginScreen"
+  );
+
+
+  const mobile =
+    document.getElementById(
+      "authMobile"
+    );
+
+
+  if (mobile) {
+
+    mobile.focus();
+
+  }
+
+}
+
+
+/* =====================================================
+   CONTINUE TO CHATBOT
+===================================================== */
+
+function authContinueToChatbot() {
+
+  if (
+    !authUISessionId ||
+    authUIState !==
+      "SESSION_ACTIVE"
+  ) {
+
+    console.error(
+      "No active authenticated session."
+    );
+
+    return;
+
+  }
+
+
+  authSaveSession();
+
+
+  authOpenChatbot();
+
+}
+
+
+
+
+/* =====================================================
+   LOGOUT
+===================================================== */
+
+function authLogout() {
+
+  // ==========================================
+  // NO SESSION
+  // ==========================================
+
+  if (!authUISessionId) {
+
+    authClearSession();
+
+    authShowScreen(
+      "authLoginScreen"
+    );
+
+    return;
+
+  }
+
+
+  const sessionId =
+    authUISessionId;
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        console.log(
+          "Logout:",
+          result
+        );
+
+
+        authStopSessionExpiryTimer();
+
+        authClearSession();
+
+
+        authUIRequestId =
+          "";
+
+        authUIMobile =
+          "";
+
+        authUIState =
+          "LOGIN_REQUIRED";
+
+
+        // ======================================
+        // HIDE CHATBOT
+        // ======================================
+
+        const chatbotWrapper =
+          document.getElementById(
+            "chatbotWrapper"
+          );
+
+        if (chatbotWrapper) {
+
+          chatbotWrapper.style.display =
+            "none";
+
+        }
+
+
+        // ======================================
+        // SHOW LOGIN
+        // ======================================
+
+        const authContainer =
+          document.getElementById(
+            "authContainer"
+          );
+
+        if (authContainer) {
+
+          authContainer.style.display =
+            "flex";
+
+        }
+
+
+        authShowScreen(
+          "authLoginScreen"
+        );
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "Logout error:",
+          error
+        );
+
+        // Even if server already removed
+        // the session, clear local session.
+
+        authStopSessionExpiryTimer();
+
+        authClearSession();
+
+        authUIState =
+          "LOGIN_REQUIRED";
+
+
+        authShowScreen(
+          "authLoginScreen"
+        );
+
+      }
+    )
+
+    .logoutAuthSession(
+      sessionId
+    );
+
+}
+
+
+
+
+/* =====================================================
+   INITIAL STATE
+===================================================== */
+
+function initAuthUI() {
+
+  authUIState =
+    "LOGIN_REQUIRED";
+
+
+  // ==========================================
+  // RESTORE EXISTING SESSION FIRST
+  // ==========================================
+
+  authRestoreSession();
+
+
+  // ==========================================
+  // MOBILE INPUT
+  // ==========================================
+
+  const mobile =
+    document.getElementById(
+      "authMobile"
+    );
+
+
+  if (mobile) {
+
+    mobile.addEventListener(
+      "input",
+      function() {
+
+        this.value =
+          this.value
+            .replace(/\D/g, "")
+            .substring(0, 10);
+
+      }
+    );
+
+  }
+
+
+  // ==========================================
+  // OTP INPUTS
+  // ==========================================
+
+  const otpInputs =
+    document.querySelectorAll(
+      ".auth-otp-input"
+    );
+
+
+  otpInputs.forEach(
+    function(input, index) {
+
+      input.addEventListener(
+        "input",
+        function() {
+
+          this.value =
+            this.value
+              .replace(/\D/g, "")
+              .substring(0, 1);
+
+
+          if (
+            this.value &&
+            index <
+              otpInputs.length - 1
+          ) {
+
+            otpInputs[
+              index + 1
+            ].focus();
+
+          }
+
+        }
+      );
+
+
+      input.addEventListener(
+        "keydown",
+        function(event) {
+
+          if (
+            event.key ===
+              "Backspace" &&
+            !this.value &&
+            index > 0
+          ) {
+
+            otpInputs[
+              index - 1
+            ].focus();
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+}
+
+
+initAuthUI();
+
+
+
+
+
+/* =====================================================
+   LOGIN BACKGROUND IMAGE
+   Uses same Google Drive thumbnail method
+   as profile photos
+===================================================== */
+
+function authConvertDriveImageUrl(url) {
+
+    if (!url) {
+        return "";
+    }
+
+
+    url =
+        String(url)
+            .trim();
+
+
+    let fileId = "";
+
+
+    // ==========================================
+    // FORMAT 1
+    // /file/d/FILE_ID/view
+    // ==========================================
+
+    let match =
+        url.match(
+            /\/file\/d\/([a-zA-Z0-9_-]+)/
+        );
+
+
+    if (
+        match &&
+        match[1]
+    ) {
+
+        fileId =
+            match[1];
+
+    }
+
+
+    // ==========================================
+    // FORMAT 2
+    // ?id=FILE_ID
+    // ==========================================
+
+    if (!fileId) {
+
+        match =
+            url.match(
+                /[?&]id=([a-zA-Z0-9_-]+)/
+            );
+
+
+        if (
+            match &&
+            match[1]
+        ) {
+
+            fileId =
+                match[1];
+
+        }
+
+    }
+
+
+    // ==========================================
+    // GOOGLE DRIVE THUMBNAIL
+    // ==========================================
+
+    if (fileId) {
+
+        return (
+            "https://drive.google.com/thumbnail" +
+            "?id=" +
+            encodeURIComponent(fileId) +
+            "&sz=w1600"
+        );
+
+    }
+
+
+    // ==========================================
+    // NORMAL IMAGE URL
+    // ==========================================
+
+    return url;
+
+}
+
+
+/* =====================================================
+   LOAD LOGIN BACKGROUND
+===================================================== */
+
+function authLoadLoginBackground() {
+
+    const originalUrl =
+        "https://drive.google.com/file/d/1SFB9CClvrWwW1_FiE4rQLxXfrb9mqU6t/view";
+
+
+    const imageUrl =
+        authConvertDriveImageUrl(
+            originalUrl
+        );
+
+
+    console.log(
+        "Login background URL:",
+        imageUrl
+    );
+
+
+    const image =
+        document.getElementById(
+            "loginBackgroundImage"
+        );
+
+
+    if (!image) {
+
+        console.error(
+            "❌ loginBackgroundImage not found."
+        );
+
+        return;
+
+    }
+
+
+    image.onload =
+        function() {
+
+            console.log(
+                "✅ Login background loaded."
+            );
+
+        };
+
+
+    image.onerror =
+        function() {
+
+            console.error(
+                "❌ Login background failed to load."
+            );
+
+            console.error(
+                "Image URL:",
+                imageUrl
+            );
+
+        };
+
+
+    image.src =
+        imageUrl;
+
+}
+
+
+/* =====================================================
+   SAVE SESSION
+===================================================== */
+
+function authSaveSession() {
+
+  if (!authUISessionId) {
+    return;
+  }
+
+  try {
+
+    localStorage.setItem(
+      AUTH_SESSION_STORAGE_KEY,
+      authUISessionId
+    );
+
+    console.log(
+      "✅ Auth session saved."
+    );
+
+  }
+  catch (error) {
+
+    console.error(
+      "Session storage error:",
+      error
+    );
+
+  }
+
+}
+
+
+
+/* =====================================================
+   CLEAR SESSION
+===================================================== */
+
+function authClearSession() {
+
+  try {
+
+    localStorage.removeItem(
+      AUTH_SESSION_STORAGE_KEY
+    );
+
+  }
+  catch (error) {
+
+    console.error(
+      "Session clear error:",
+      error
+    );
+
+  }
+
+  authUISessionId = "";
+
+  authUIUser = null;
+
+}
+
+
+/* =====================================================
+   GET STORED SESSION
+===================================================== */
+
+function authGetStoredSession() {
+
+  try {
+
+    return (
+      localStorage.getItem(
+        AUTH_SESSION_STORAGE_KEY
+      ) || ""
+    );
+
+  }
+  catch (error) {
+
+    console.error(
+      "Session read error:",
+      error
+    );
+
+    return "";
+
+  }
+
+}
+
+/* =====================================================
+   SESSION EXPIRY TIMER
+===================================================== */
+
+function authStartSessionExpiryTimer(
+  expiresAt
+) {
+
+  authStopSessionExpiryTimer();
+
+
+  if (!expiresAt) {
+    return;
+  }
+
+
+  const expiryTime =
+    new Date(
+      expiresAt
+    ).getTime();
+
+
+  const remaining =
+    expiryTime -
+    Date.now();
+
+
+  if (remaining <= 0) {
+
+    authHandleSessionExpired();
+
+    return;
+
+  }
+
+
+  console.log(
+    "Session expires in:",
+    Math.ceil(
+      remaining / 1000
+    ),
+    "seconds"
+  );
+
+
+  authSessionExpiryTimer =
+    setTimeout(
+      function() {
+
+        authHandleSessionExpired();
+
+      },
+      remaining
+    );
+
+}
+
+
+function authStopSessionExpiryTimer() {
+
+  if (
+    authSessionExpiryTimer
+  ) {
+
+    clearTimeout(
+      authSessionExpiryTimer
+    );
+
+    authSessionExpiryTimer =
+      null;
+
+  }
+
+}
+
+
+/* =====================================================
+   HANDLE SESSION EXPIRY
+===================================================== */
+
+function authHandleSessionExpired() {
+
+  console.warn(
+    "🔒 Authentication session expired."
+  );
+
+
+  authStopSessionExpiryTimer();
+
+
+  authClearSession();
+
+
+  authUIState =
+    "LOGIN_REQUIRED";
+
+  authUIRequestId =
+    "";
+
+  authUIMobile =
+    "";
+
+
+  authShowScreen(
+    "authLoginScreen"
+  );
+
+
+  const authContainer =
+    document.getElementById(
+      "authContainer"
+    );
+
+
+  const chatbotWrapper =
+    document.getElementById(
+      "chatbotWrapper"
+    );
+
+
+  if (authContainer) {
+
+    authContainer.style.display =
+      "flex";
+
+  }
+
+
+  if (chatbotWrapper) {
+
+    chatbotWrapper.style.display =
+      "none";
+
+  }
+
+
+  authShowError(
+    "authLoginError",
+    "तुमचे session expire झाले आहे. कृपया पुन्हा Login करा."
+  );
+
+}
+
+
+/* =====================================================
+   RESTORE EXISTING SESSION
+===================================================== */
+
+function authRestoreSession() {
+
+  const storedSessionId =
+    authGetStoredSession();
+
+
+  // ==========================================
+  // NO STORED SESSION
+  // ==========================================
+
+  if (!storedSessionId) {
+
+    console.log(
+      "No saved authentication session."
+    );
+
+    authShowScreen(
+      "authLoginScreen"
+    );
+
+    const authContainer =
+      document.getElementById(
+        "authContainer"
+      );
+
+    if (authContainer) {
+      authContainer.style.display =
+        "flex";
+    }
+
+    return;
+
+  }
+
+
+  console.log(
+    "🔄 Restoring existing session..."
+  );
+
+
+  // ==========================================
+  // Temporarily hide auth UI
+  // ==========================================
+
+  const authContainer =
+    document.getElementById(
+      "authContainer"
+    );
+
+  if (authContainer) {
+
+    authContainer.style.display =
+      "none";
+
+  }
+
+
+  // ==========================================
+  // SERVER VALIDATION
+  // ==========================================
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        console.log(
+          "SESSION RESTORE RESULT:",
+          result
+        );
+
+
+        // ======================================
+        // VALID SESSION
+        // ======================================
+
+        if (
+          result &&
+          result.success === true &&
+          result.authenticated === true &&
+          result.state ===
+            "SESSION_ACTIVE"
+        ) {
+
+          authUISessionId =
+            result.sessionId ||
+            storedSessionId;
+
+
+          authUIState =
+            "SESSION_ACTIVE";
+
+
+          authUIUser =
+            result.user ||
+            null;
+
+
+          // ------------------------------------
+          // Start expiry timer
+          // ------------------------------------
+
+          authStartSessionExpiryTimer(
+            result.expiresAt
+          );
+
+
+          console.log(
+            "✅ Existing session restored."
+          );
+
+
+          // ------------------------------------
+          // Open chatbot directly
+          // ------------------------------------
+
+          authOpenChatbot();
+
+
+          return;
+
+        }
+
+
+        // ======================================
+        // INVALID / EXPIRED SESSION
+        // ======================================
+
+        console.warn(
+          "Stored session invalid:",
+          result &&
+          result.code
+        );
+
+
+        authHandleSessionExpired();
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "Session restore failed:",
+          error
+        );
+
+
+        // Fail closed
+        authHandleSessionExpired();
+
+      }
+    )
+
+    .validateAuthSession(
+      storedSessionId
+    );
+
+}
+
+
+
+/* =====================================================
+   OPEN CHATBOT
+===================================================== */
+
+function authOpenChatbot() {
+
+  if (
+    !authUISessionId ||
+    authUIState !==
+      "SESSION_ACTIVE"
+  ) {
+
+    console.error(
+      "Cannot open chatbot. Session inactive."
+    );
+
+    return;
+
+  }
+
+
+  const authContainer =
+    document.getElementById(
+      "authContainer"
+    );
+
+  if (authContainer) {
+
+    authContainer.style.display =
+      "none";
+
+  }
+
+
+  const chatbotWrapper =
+    document.getElementById(
+      "chatbotWrapper"
+    );
+
+  if (!chatbotWrapper) {
+
+    console.error(
+      "chatbotWrapper not found."
+    );
+
+    return;
+
+  }
+
+
+  chatbotWrapper.style.display =
+    "block";
+
+
+  if (
+    typeof showMenu ===
+    "function"
+  ) {
+
+    showMenu();
+
+  }
+
+}
+
+/* =====================================================
+   LOAD AFTER AUTH UI
+===================================================== */
+
+authLoadLoginBackground();
+
+
+</script>
