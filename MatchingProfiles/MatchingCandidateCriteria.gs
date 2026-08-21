@@ -109,7 +109,12 @@ function normalizeCandidateCriteria(
     rashi:
       normalizeCandidateRashi(
         profile.rashiRaw
-      )
+      ),
+
+    expectation:
+      normalizeCandidateExpectation(
+        profile.expectationRaw || ""
+      ),
 
   };
 
@@ -836,6 +841,55 @@ function normalizeCandidateRashi(
 }
 
 
+// ============================================================
+// EXPECTATION
+//
+// Purpose:
+// Normalize candidate's free-text expectation.
+//
+// IMPORTANT:
+// - Keeps original expectation text.
+// - Does NOT decide match.
+// - Does NOT score.
+// - Does NOT reject candidate.
+// - Soft preference parsing is handled separately.
+// ============================================================
+
+function normalizeCandidateExpectation(
+  value
+) {
+
+  const raw =
+    String(
+      value || ""
+    )
+    .replace(
+      /<br\s*\/?>/gi,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+
+
+  return {
+
+    enabled:
+      raw.length > 0,
+
+    raw:
+      raw,
+
+    normalizedText:
+      normalizeMatchingText(
+        raw
+      )
+
+  };
+
+}
 
 // ============================================================
 // NORMALIZE ALL CANDIDATES

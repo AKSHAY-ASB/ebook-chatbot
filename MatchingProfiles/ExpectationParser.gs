@@ -24,6 +24,93 @@
 // ============================================================
 
 
+// ============================================================
+// EXPECTATION SOFT PREFERENCE RULES
+// ============================================================
+
+const EXPECTATION_SOFT_PREFERENCE_RULES = {
+
+  educated: [
+    "सुशिक्षित",
+    "शिक्षित",
+    "well educated",
+    "educated"
+  ],
+
+  understanding: [
+    "समजूतदार",
+    "समजून घेणारी",
+    "समजून घेणारा",
+    "understanding"
+  ],
+
+  cultured: [
+    "संस्कारी",
+    "संस्कार",
+    "cultured"
+  ],
+
+  loving: [
+    "प्रेमळ",
+    "loving",
+    "caring"
+  ],
+
+  respectful: [
+    "आदर",
+    "आदर करणारी",
+    "आदर करणारा",
+    "respectful",
+    "respect",
+    "mutual respect"
+  ],
+
+  honest: [
+    "प्रामाणिक",
+    "honest"
+  ],
+
+  responsible: [
+    "जबाबदार",
+    "जबाबदारीची जाणीव",
+    "responsible"
+  ],
+
+  familyOriented: [
+    "कुटुंबवत्सल",
+    "कुटुंबाला महत्त्व",
+    "कुटुंबाला महत्व",
+    "family oriented",
+    "values family"
+  ],
+
+  dreamSupportive: [
+    "स्वप्नांचा आदर",
+    "स्वप्नांना पाठिंबा",
+    "स्वप्नांना साथ",
+    "dream support",
+    "supports my dreams",
+    "support my dreams"
+  ],
+
+  careerSupportive: [
+    "करिअरचा आदर",
+    "करिअरचा आणि स्वप्नांचा आदर",
+    "करिअरला पाठिंबा",
+    "करिअरला साथ",
+    "career support",
+    "career supportive",
+    "support my career",
+    "supports my career"
+  ],
+
+  communication: [
+    "संवाद",
+    "चांगला संवाद",
+    "communication"
+  ]
+
+};
 
 // ============================================================
 // EXPECTATION PARSER VERSION
@@ -1023,104 +1110,60 @@ function parseExpectations(
     );
 
 
+
+  // ============================================================
+// PARSE SOFT PREFERENCES
+// ============================================================
+
+function parseExpectationSoftPreferences(
+  expectationText
+) {
+
+  const normalizedText =
+    normalizeExpectationText(
+      expectationText
+    );
+
+  const softPreferences = {};
+
+  Object.keys(
+    EXPECTATION_SOFT_PREFERENCE_RULES
+  ).forEach(
+    function(preference) {
+
+      const keywords =
+        EXPECTATION_SOFT_PREFERENCE_RULES[
+          preference
+        ] || [];
+
+      softPreferences[preference] =
+        keywords.some(
+          function(keyword) {
+
+            return expectationKeywordExists(
+              normalizedText,
+              keyword
+            );
+
+          }
+        );
+
+    }
+  );
+
+  return softPreferences;
+
+}
+
+
   // ==========================================================
   // SOFT PREFERENCES
   // ==========================================================
 
-  const softPreferences = {
-
-    educated:
-      expectationKeywordExists(
-        normalizedText,
-        "सुशिक्षित"
-      ) ||
-      expectationKeywordExists(
-        normalizedText,
-        "शिक्षित"
-      ),
-
-
-    understanding:
-      expectationKeywordExists(
-        normalizedText,
-        "समजूतदार"
-      ) ||
-      expectationKeywordExists(
-        normalizedText,
-        "समजून घेणारी"
-      ) ||
-      expectationKeywordExists(
-        normalizedText,
-        "समजून घेणारा"
-      ),
-
-
-    cultured:
-      expectationKeywordExists(
-        normalizedText,
-        "संस्कारी"
-      ),
-
-
-    loving:
-      expectationKeywordExists(
-        normalizedText,
-        "प्रेमळ"
-      ),
-
-
-    careerSupportive:
-      expectationKeywordExists(
-        normalizedText,
-        "करिअरचा आदर"
-      ) ||
-      expectationKeywordExists(
-        normalizedText,
-        "career"
-      ),
-
-
-    dreamSupportive:
-      expectationKeywordExists(
-        normalizedText,
-        "स्वप्नांचा आदर"
-      ) ||
-      expectationKeywordExists(
-        normalizedText,
-        "dream"
-      ),
-
-
-    familyOriented:
-      expectationKeywordExists(
-        normalizedText,
-        "कुटुंब"
-      ) ||
-      expectationKeywordExists(
-        normalizedText,
-        "कुटुंबाला"
-      ) ||
-      expectationKeywordExists(
-        normalizedText,
-        "मिळून मिसळून"
-      ),
-
-
-    goodNature:
-      expectationKeywordExists(
-        normalizedText,
-        "चांगला स्वभाव"
-      ) ||
-      expectationKeywordExists(
-        normalizedText,
-        "चांगली"
-      ) ||
-      expectationKeywordExists(
-        normalizedText,
-        "मनमिळाऊ"
-      )
-
-  };
+    const softPreferences =
+      parseExpectationSoftPreferences(
+        normalizedText
+      );
 
 
   // ==========================================================
@@ -1448,5 +1491,81 @@ function testAkshayExpectation() {
 
 
   return result;
+
+}
+
+
+
+
+function testMatchingExpectationParser() {
+
+  const testCases = [
+
+    {
+      label: "ID001 Expectation",
+
+      input:
+        "आयुष्यभराची विश्वासू मैत्रीण, सुशिक्षित, समजूतदार, संस्कारी आणि प्रेमळ व करिअरचा आणि स्वप्नांचा आदर करणारी जीवनसाथी असावी."
+    },
+
+    {
+      label: "Simple Education",
+
+      input:
+        "सुशिक्षित मुलगी हवी."
+    },
+
+    {
+      label: "Government Job",
+
+      input:
+        "सुशिक्षित आणि सरकारी नोकरी करणारी मुलगी हवी."
+    },
+
+    {
+      label: "English",
+
+      input:
+        "Looking for an honest, caring, respectful and family-oriented partner."
+    }
+
+  ];
+
+
+  const results = testCases.map(
+    function(testCase) {
+
+      const result =
+        parseExpectationCriteria(
+          testCase.input
+        );
+
+      return {
+
+        label:
+          testCase.label,
+
+        input:
+          testCase.input,
+
+        output:
+          result
+
+      };
+
+    }
+  );
+
+
+  console.log(
+    JSON.stringify(
+      results,
+      null,
+      2
+    )
+  );
+
+
+  return results;
 
 }

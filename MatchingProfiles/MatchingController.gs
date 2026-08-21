@@ -606,6 +606,11 @@ function normalizeMatchingCandidateProfile(
     expectationRaw:
       expectationRaw,
 
+    expectation:
+      parseExpectationCriteria(
+        expectationRaw
+      ),
+
     education:
       normalizedEducation,
 
@@ -2083,5 +2088,24 @@ function testRealProfileMatchingV3() {
 
 
   return output;
+
+}
+
+
+function testID001toID628() {
+
+  return testMatchingByIds(
+    "ID001",
+    "ID628"
+  );
+
+}
+
+function testID001toID003() {
+
+  return testMatchingByIds(
+    "ID001",
+    "ID003"
+  );
 
 }
