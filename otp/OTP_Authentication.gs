@@ -6054,3 +6054,416 @@ function resendLoginOTP(mobile) {
   }
 
 }
+
+
+//  SEC-06.1 — Protected API Integration just added this function but not in use
+
+
+function requireAuthSession(sessionId) {
+
+  try {
+
+    // =================================================
+    // 1. Validate session ID
+    // =================================================
+
+    const cleanSessionId =
+      String(
+        sessionId || ""
+      ).trim();
+
+
+    if (!cleanSessionId) {
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        authorized: false,
+
+        code:
+          "SESSION_REQUIRED",
+
+        message:
+          "Authentication session आवश्यक आहे."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 2. Get session from server-side cache
+    // =================================================
+
+    const cache =
+      CacheService
+        .getScriptCache();
+
+
+    const sessionCacheKey =
+      AUTH_CONFIG.SESSION_CACHE_PREFIX +
+      cleanSessionId;
+
+
+    const cachedSession =
+      cache.get(
+        sessionCacheKey
+      );
+
+
+    if (!cachedSession) {
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        authorized: false,
+
+        code:
+          "SESSION_NOT_FOUND",
+
+        message:
+          "Session उपलब्ध नाही किंवा expire झाली आहे."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 3. Parse session
+    // =================================================
+
+    let session;
+
+    try {
+
+      session =
+        JSON.parse(
+          cachedSession
+        );
+
+    }
+    catch (error) {
+
+      cache.remove(
+        sessionCacheKey
+      );
+
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        authorized: false,
+
+        code:
+          "INVALID_SESSION",
+
+        message:
+          "Invalid authentication session."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 4. Validate session state
+    // =================================================
+
+    if (
+      session.state !==
+      AUTH_STATES.SESSION_ACTIVE
+    ) {
+
+      cache.remove(
+        sessionCacheKey
+      );
+
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        authorized: false,
+
+        code:
+          "SESSION_INACTIVE",
+
+        message:
+          "Authentication session active नाही."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 5. Validate expiry
+    // =================================================
+
+    if (
+      !session.expiresAt
+    ) {
+
+      cache.remove(
+        sessionCacheKey
+      );
+
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        authorized: false,
+
+        code:
+          "SESSION_EXPIRY_MISSING",
+
+        message:
+          "Session expiry माहिती उपलब्ध नाही."
+
+      };
+
+    }
+
+
+    const expiryTime =
+      new Date(
+        session.expiresAt
+      ).getTime();
+
+
+    if (
+      !Number.isFinite(
+        expiryTime
+      )
+    ) {
+
+      cache.remove(
+        sessionCacheKey
+      );
+
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        authorized: false,
+
+        code:
+          "SESSION_EXPIRY_INVALID",
+
+        message:
+          "Invalid session expiry."
+
+      };
+
+    }
+
+
+    if (
+      Date.now() >=
+      expiryTime
+    ) {
+
+      cache.remove(
+        sessionCacheKey
+      );
+
+
+      writeAuthLog({
+
+        event:
+          AUTH_EVENTS.ACCESS_DENIED,
+
+        status:
+          "FAILED",
+
+        mobile:
+          session.user &&
+          session.user.mobile
+            ? session.user.mobile
+            : "",
+
+        profileId:
+          session.user &&
+          session.user.profileId
+            ? session.user.profileId
+            : "",
+
+        profileType:
+          session.user &&
+          session.user.profileType
+            ? session.user.profileType
+            : "",
+
+        userName:
+          session.user &&
+          session.user.name
+            ? session.user.name
+            : "",
+
+        sessionId:
+          cleanSessionId,
+
+        reason:
+          "SESSION_EXPIRED",
+
+        channel:
+          AUTH_CHANNELS.SMS
+
+      });
+
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        authorized: false,
+
+        code:
+          "SESSION_EXPIRED",
+
+        message:
+          "Session expire झाली आहे. कृपया पुन्हा login करा."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 6. Validate session user identity
+    // =================================================
+
+    if (
+      !session.user ||
+      !session.user.profileId ||
+      !session.user.mobile
+    ) {
+
+      cache.remove(
+        sessionCacheKey
+      );
+
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        authorized: false,
+
+        code:
+          "INVALID_SESSION_IDENTITY",
+
+        message:
+          "Session user identity उपलब्ध नाही."
+
+      };
+
+    }
+
+
+    // =================================================
+    // 7. SUCCESS
+    // =================================================
+
+    return {
+
+      success: true,
+
+      authenticated: true,
+
+      authorized: true,
+
+      code:
+        "SESSION_VALID",
+
+      sessionId:
+        cleanSessionId,
+
+      expiresAt:
+        session.expiresAt,
+
+      expiresIn:
+        Math.max(
+          0,
+          Math.floor(
+            (
+              expiryTime -
+              Date.now()
+            ) / 1000
+          )
+        ),
+
+      user: {
+
+        profileId:
+          session.user.profileId,
+
+        profileType:
+          session.user.profileType,
+
+        name:
+          session.user.name,
+
+        mobile:
+          session.user.mobile,
+
+        registeredSheet:
+          session.user.registeredSheet
+
+      }
+
+    };
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "requireAuthSession Error:",
+      error
+    );
+
+
+    return {
+
+      success: false,
+
+      authenticated: false,
+
+      authorized: false,
+
+      code:
+        "SESSION_VALIDATION_EXCEPTION",
+
+      message:
+        "Session validation करताना समस्या आली."
+
+    };
+
+  }
+
+}
+
+
