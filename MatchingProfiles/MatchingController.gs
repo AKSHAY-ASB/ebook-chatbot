@@ -269,17 +269,49 @@ function getMatchingRawCell(
 // This function does NOT decide whether profile matches.
 // ============================================================
 
+
 function normalizeMatchingCandidateProfile(
   headers,
   row,
   profileType
 ) {
 
+  // ==========================================================
+  // DEBUG
+  // ==========================================================
+
+  console.log(
+    "AVAILABLE HEADERS:",
+    JSON.stringify(
+      headers,
+      null,
+      2
+    )
+  );
+
+  console.log(
+    "CANDIDATE RAW ROW:",
+    JSON.stringify(
+      row,
+      null,
+      2
+    )
+  );
+
+
+  // ==========================================================
+  // NORMALIZE PROFILE TYPE
+  // ==========================================================
+
   profileType =
     normalizeMatchingProfileType(
       profileType
     );
 
+
+  // ==========================================================
+  // VALIDATION
+  // ==========================================================
 
   if (
     !Array.isArray(headers) ||
@@ -291,9 +323,9 @@ function normalizeMatchingCandidateProfile(
   }
 
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // BASIC PROFILE DATA
-  // ----------------------------------------------------------
+  // ==========================================================
 
   const id =
     getMatchingRawCell(
@@ -344,7 +376,11 @@ function normalizeMatchingCandidateProfile(
     );
 
 
-  const district =
+  // ==========================================================
+  // DISTRICT
+  // ==========================================================
+
+  const districtRaw =
     getMatchingRawCell(
       headers,
       row,
@@ -355,6 +391,10 @@ function normalizeMatchingCandidateProfile(
       ]
     );
 
+
+  // ==========================================================
+  // ADDRESS
+  // ==========================================================
 
   const address =
     getMatchingRawCell(
@@ -369,6 +409,10 @@ function normalizeMatchingCandidateProfile(
     );
 
 
+  // ==========================================================
+  // EDUCATION
+  // ==========================================================
+
   const educationRaw =
     getMatchingRawCell(
       headers,
@@ -382,12 +426,15 @@ function normalizeMatchingCandidateProfile(
     );
 
 
+  // ==========================================================
+  // PROFESSION
+  // ==========================================================
+
   const professionRaw =
     getMatchingRawCell(
       headers,
       row,
       [
-        "नोकरी / व्यवसाय व ठिकाण",
         "नोकरी / व्यवसाय व ठिकाण",
         "Profession",
         "profession",
@@ -395,6 +442,10 @@ function normalizeMatchingCandidateProfile(
       ]
     );
 
+
+  // ==========================================================
+  // EXPECTATION
+  // ==========================================================
 
   const expectationRaw =
     getMatchingRawCell(
@@ -409,6 +460,10 @@ function normalizeMatchingCandidateProfile(
     );
 
 
+  // ==========================================================
+  // AGE
+  // ==========================================================
+
   const ageRaw =
     getMatchingRawCell(
       headers,
@@ -420,6 +475,10 @@ function normalizeMatchingCandidateProfile(
       ]
     );
 
+
+  // ==========================================================
+  // HEIGHT
+  // ==========================================================
 
   const heightRaw =
     getMatchingRawCell(
@@ -434,6 +493,10 @@ function normalizeMatchingCandidateProfile(
     );
 
 
+  // ==========================================================
+  // INCOME
+  // ==========================================================
+
   const incomeRaw =
     getMatchingRawCell(
       headers,
@@ -445,6 +508,10 @@ function normalizeMatchingCandidateProfile(
       ]
     );
 
+
+  // ==========================================================
+  // CASTE
+  // ==========================================================
 
   const casteRaw =
     getMatchingRawCell(
@@ -459,6 +526,10 @@ function normalizeMatchingCandidateProfile(
     );
 
 
+  // ==========================================================
+  // RASHI
+  // ==========================================================
+
   const rashiRaw =
     getMatchingRawCell(
       headers,
@@ -472,6 +543,10 @@ function normalizeMatchingCandidateProfile(
     );
 
 
+  // ==========================================================
+  // GENDER
+  // ==========================================================
+
   const genderRaw =
     getMatchingRawCell(
       headers,
@@ -484,12 +559,11 @@ function normalizeMatchingCandidateProfile(
     );
 
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // EDUCATION NORMALIZATION
-  // ----------------------------------------------------------
+  // ==========================================================
 
-  let normalizedEducation =
-    null;
+  let normalizedEducation = null;
 
 
   try {
@@ -507,7 +581,6 @@ function normalizeMatchingCandidateProfile(
     }
 
   }
-
   catch (error) {
 
     console.error(
@@ -518,12 +591,11 @@ function normalizeMatchingCandidateProfile(
   }
 
 
-  // ----------------------------------------------------------
+  // ==========================================================
   // PROFESSION NORMALIZATION
-  // ----------------------------------------------------------
+  // ==========================================================
 
-  let normalizedProfession =
-    null;
+  let normalizedProfession = null;
 
 
   try {
@@ -541,7 +613,6 @@ function normalizeMatchingCandidateProfile(
     }
 
   }
-
   catch (error) {
 
     console.error(
@@ -552,9 +623,375 @@ function normalizeMatchingCandidateProfile(
   }
 
 
-  // ----------------------------------------------------------
+  // ==========================================================
+  // AGE NORMALIZATION
+  // ==========================================================
+
+  let normalizedAge = null;
+
+
+  try {
+
+    if (
+      typeof parseAge ===
+      "function"
+    ) {
+
+      normalizedAge =
+        parseAge(
+          ageRaw
+        );
+
+    }
+    else if (
+      typeof normalizeAge ===
+      "function"
+    ) {
+
+      normalizedAge =
+        normalizeAge(
+          ageRaw
+        );
+
+    }
+
+  }
+  catch (error) {
+
+    console.error(
+      "Age normalization error:",
+      error
+    );
+
+  }
+
+
+  // ==========================================================
+  // HEIGHT NORMALIZATION
+  // ==========================================================
+
+  let normalizedHeight = null;
+
+
+  try {
+
+    if (
+      typeof parseHeight ===
+      "function"
+    ) {
+
+      normalizedHeight =
+        parseHeight(
+          heightRaw
+        );
+
+    }
+    else if (
+      typeof normalizeHeight ===
+      "function"
+    ) {
+
+      normalizedHeight =
+        normalizeHeight(
+          heightRaw
+        );
+
+    }
+
+  }
+  catch (error) {
+
+    console.error(
+      "Height normalization error:",
+      error
+    );
+
+  }
+
+
+  // ==========================================================
+  // INCOME NORMALIZATION
+  // ==========================================================
+
+  let normalizedIncome = null;
+
+
+  try {
+
+    if (
+      typeof parseIncome ===
+      "function"
+    ) {
+
+      normalizedIncome =
+        parseIncome(
+          incomeRaw
+        );
+
+    }
+    else if (
+      typeof normalizeIncome ===
+      "function"
+    ) {
+
+      normalizedIncome =
+        normalizeIncome(
+          incomeRaw
+        );
+
+    }
+
+  }
+  catch (error) {
+
+    console.error(
+      "Income normalization error:",
+      error
+    );
+
+  }
+
+
+  // ==========================================================
+  // DISTRICT NORMALIZATION
+  // ==========================================================
+
+  let normalizedDistrict = null;
+
+
+  try {
+
+    const rawDistrict =
+      String(
+        districtRaw || ""
+      ).trim();
+
+
+    normalizedDistrict = {
+
+      enabled:
+        rawDistrict.length > 0,
+
+      raw:
+        rawDistrict,
+
+      normalized:
+        rawDistrict
+          .toLowerCase()
+          .replace(/\s+/g, " ")
+          .trim()
+
+    };
+
+  }
+  catch (error) {
+
+    console.error(
+      "District normalization error:",
+      error
+    );
+
+  }
+
+
+  // ==========================================================
+  // CASTE NORMALIZATION
+  // ==========================================================
+
+  let normalizedCaste = null;
+
+
+  try {
+
+    const rawCaste =
+      String(
+        casteRaw || ""
+      ).trim();
+
+
+    normalizedCaste = {
+
+      enabled:
+        rawCaste.length > 0,
+
+      raw:
+        rawCaste,
+
+      normalized:
+        rawCaste
+          .toLowerCase()
+          .replace(/[-–—]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+
+    };
+
+  }
+  catch (error) {
+
+    console.error(
+      "Caste normalization error:",
+      error
+    );
+
+  }
+
+
+  // ==========================================================
+  // RASHI NORMALIZATION
+  // ==========================================================
+
+  let normalizedRashi = null;
+
+
+  try {
+
+    const rawRashi =
+      String(
+        rashiRaw || ""
+      ).trim();
+
+
+    normalizedRashi = {
+
+      enabled:
+        rawRashi.length > 0,
+
+      raw:
+        rawRashi,
+
+      normalized:
+        rawRashi
+          .toLowerCase()
+          .replace(/\s+/g, " ")
+          .trim()
+
+    };
+
+  }
+  catch (error) {
+
+    console.error(
+      "Rashi normalization error:",
+      error
+    );
+
+  }
+
+
+  // ==========================================================
+  // EMPLOYMENT TYPE
+  // ==========================================================
+
+  let employmentType =
+    "NOT_SPECIFIED";
+
+
+  try {
+
+    if (
+      normalizedProfession &&
+      normalizedProfession.employmentType
+    ) {
+
+      employmentType =
+        normalizedProfession.employmentType;
+
+    }
+
+  }
+  catch (error) {
+
+    console.error(
+      "Employment type error:",
+      error
+    );
+
+  }
+
+
+  // ==========================================================
+  // BUILD ACTUAL PROFILE CRITERIA
+  //
+  // IMPORTANT:
+  // These are the candidate's ACTUAL profile values.
+  // They are NOT expectation criteria.
+  // ==========================================================
+
+  const actualProfileCriteria = {
+
+    district:
+      districtRaw || "",
+
+    education:
+      educationRaw || "",
+
+    profession:
+      professionRaw || "",
+
+    employmentType:
+      employmentType,
+
+    caste:
+      casteRaw || "",
+
+    rashi:
+      rashiRaw || "",
+
+    age:
+      normalizedAge,
+
+    height:
+      normalizedHeight,
+
+    income:
+      normalizedIncome
+
+  };
+
+
+  // ==========================================================
+  // DEBUG ACTUAL PROFILE CRITERIA
+  // ==========================================================
+
+  console.log(
+    "🔴 ACTUAL PROFILE CRITERIA:",
+    JSON.stringify(
+      actualProfileCriteria,
+      null,
+      2
+    )
+  );
+
+
+  // ==========================================================
+  // PARSE EXPECTATION
+  // ==========================================================
+
+  let parsedExpectation = null;
+
+
+  try {
+
+    parsedExpectation =
+      parseExpectationCriteria(
+        expectationRaw
+      );
+
+  }
+  catch (error) {
+
+    console.error(
+      "Expectation parsing error:",
+      error
+    );
+
+  }
+
+
+  // ==========================================================
   // FINAL NORMALIZED PROFILE
-  // ----------------------------------------------------------
+  // ==========================================================
 
   return {
 
@@ -577,7 +1014,7 @@ function normalizeMatchingCandidateProfile(
       mobile2,
 
     district:
-      district,
+      normalizedDistrict,
 
     address:
       address,
@@ -585,37 +1022,60 @@ function normalizeMatchingCandidateProfile(
     ageRaw:
       ageRaw,
 
+    age:
+      normalizedAge,
+
     heightRaw:
       heightRaw,
+
+    height:
+      normalizedHeight,
 
     incomeRaw:
       incomeRaw,
 
+    income:
+      normalizedIncome,
+
     casteRaw:
       casteRaw,
+
+    caste:
+      normalizedCaste,
 
     rashiRaw:
       rashiRaw,
 
+    rashi:
+      normalizedRashi,
+
     educationRaw:
       educationRaw,
 
+    education:
+      normalizedEducation,
+
     professionRaw:
       professionRaw,
+
+    profession:
+      normalizedProfession,
+
+    employmentType:
+      employmentType,
 
     expectationRaw:
       expectationRaw,
 
     expectation:
-      parseExpectationCriteria(
-        expectationRaw
-      ),
+      parsedExpectation,
 
-    education:
-      normalizedEducation,
+    // ========================================================
+    // ACTUAL PROFILE CRITERIA
+    // ========================================================
 
-    profession:
-      normalizedProfession,
+    actualProfileCriteria:
+      actualProfileCriteria,
 
     sourceRow:
       row
@@ -623,7 +1083,6 @@ function normalizeMatchingCandidateProfile(
   };
 
 }
-
 
 
 // ============================================================
@@ -1401,26 +1860,29 @@ function getMatchingViewerProfile(
     // RETURN VIEWER
     // ----------------------------------------------------------
 
-    return {
+      return {
 
-      success: true,
+        success: true,
 
-      id:
-        viewerProfile.id,
+        id:
+          viewerProfile.id,
 
-      name:
-        viewerProfile.name,
+        name:
+          viewerProfile.name,
 
-      type:
-        viewerProfile.type,
+        type:
+          viewerProfile.type,
 
-      expectation:
-        viewerProfile.expectationRaw || "",
+        expectation:
+          viewerProfile.expectationRaw || "",
 
-      profile:
-        viewerProfile
+        profile:
+          viewerProfile,
 
-    };
+        actualProfileCriteria:
+          viewerProfile.actualProfileCriteria || {}
+
+      };
 
   }
 

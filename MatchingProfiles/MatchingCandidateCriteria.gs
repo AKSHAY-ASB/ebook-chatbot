@@ -35,6 +35,10 @@
 // NORMALIZE CANDIDATE CRITERIA
 // ============================================================
 
+// ============================================================
+// NORMALIZE CANDIDATE CRITERIA
+// ============================================================
+
 function normalizeCandidateCriteria(
   profile
 ) {
@@ -55,6 +59,77 @@ function normalizeCandidateCriteria(
   }
 
 
+  // ----------------------------------------------------------
+  // DISTRICT
+  // ----------------------------------------------------------
+
+  const normalizedDistrict =
+    normalizeCandidateDistrict(
+      profile.district
+    );
+
+
+  // ----------------------------------------------------------
+  // EDUCATION
+  // ----------------------------------------------------------
+
+  const normalizedEducation =
+    normalizeCandidateEducation(
+      profile.education
+    );
+
+
+  // ----------------------------------------------------------
+  // PROFESSION
+  // ----------------------------------------------------------
+
+  const normalizedProfession =
+    normalizeCandidateProfession(
+      profile.profession
+    );
+
+
+  // ----------------------------------------------------------
+  // EMPLOYMENT TYPE
+  //
+  // Priority:
+  // 1. Existing normalized employmentType
+  // 2. Profession raw text
+  // ----------------------------------------------------------
+
+  let normalizedEmploymentType =
+    normalizeCandidateEmploymentType(
+      profile.profession
+    );
+
+
+  // If profession normalizer did not provide a type,
+  // try detecting it directly from profession raw text.
+
+  if (
+    normalizedEmploymentType ===
+    "NOT_SPECIFIED"
+  ) {
+
+    const professionRaw =
+      profile.profession &&
+      profile.profession.raw
+        ? profile.profession.raw
+        : profile.professionRaw || "";
+
+
+    normalizedEmploymentType =
+      normalizeMatchingEmploymentType(
+        professionRaw
+      );
+
+  }
+
+
+  // ----------------------------------------------------------
+  // FINAL CRITERIA
+  // ----------------------------------------------------------
+
   const criteria = {
 
     id:
@@ -66,62 +141,97 @@ function normalizeCandidateCriteria(
     type:
       profile.type || "",
 
+
     age:
       parseCandidateAge(
         profile.ageRaw
       ),
+
 
     height:
       parseCandidateHeight(
         profile.heightRaw
       ),
 
+
     income:
       parseCandidateIncome(
         profile.incomeRaw
       ),
 
+
     district:
-      normalizeCandidateDistrict(
-        profile.district
-      ),
+      normalizedDistrict,
+
 
     education:
-      normalizeCandidateEducation(
-        profile.education
-      ),
+      normalizedEducation,
+
 
     profession:
-      normalizeCandidateProfession(
-        profile.profession
-      ),
+      normalizedProfession,
+
 
     employmentType:
-      normalizeCandidateEmploymentType(
-        profile.profession
-      ),
+      normalizedEmploymentType,
+
 
     caste:
       normalizeCandidateCaste(
         profile.casteRaw
       ),
 
+
     rashi:
       normalizeCandidateRashi(
         profile.rashiRaw
       ),
 
+
     expectation:
       normalizeCandidateExpectation(
         profile.expectationRaw || ""
-      ),
+      )
 
   };
 
 
+  // ----------------------------------------------------------
+  // DEBUG
+  // ----------------------------------------------------------
+
+  console.log(
+    "NORMALIZED CANDIDATE:",
+    JSON.stringify(
+      {
+        id:
+          criteria.id,
+
+        name:
+          criteria.name,
+
+        district:
+          criteria.district,
+
+        employmentType:
+          criteria.employmentType,
+
+        education:
+          criteria.education,
+
+        profession:
+          criteria.profession
+      },
+      null,
+      2
+    )
+  );
+
+
   return {
 
-    success: true,
+    success:
+      true,
 
     criteria:
       criteria
@@ -129,7 +239,6 @@ function normalizeCandidateCriteria(
   };
 
 }
-
 
 
 // ============================================================
@@ -576,10 +685,58 @@ function normalizeCandidateDistrict(
   value
 ) {
 
+  // ----------------------------------------------------------
+  // Already normalized district object
+  // ----------------------------------------------------------
+
+  if (
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+
+    const raw =
+      value.raw ||
+      value.name ||
+      value.district ||
+      value.value ||
+      value.normalized ||
+      "";
+
+
+    const cleanRaw =
+      String(
+        raw || ""
+      ).trim();
+
+
+    return {
+
+      enabled:
+        cleanRaw.length > 0,
+
+      raw:
+        cleanRaw,
+
+      normalized:
+        normalizeMatchingText(
+          cleanRaw
+        )
+
+    };
+
+  }
+
+
+  // ----------------------------------------------------------
+  // Normal string
+  // ----------------------------------------------------------
+
   const raw =
     String(
       value || ""
-    ).trim();
+    )
+    .trim();
 
 
   return {
@@ -598,6 +755,7 @@ function normalizeCandidateDistrict(
   };
 
 }
+
 
 
 
@@ -733,47 +891,91 @@ function normalizeCandidateEmploymentType(
   }
 
 
-  const value =
-    String(
-      profession.employmentType ||
-      "NOT_SPECIFIED"
-    )
-    .trim()
-    .toUpperCase();
-
-
-  const allowed = [
-
-    "GOVERNMENT",
-
-    "PRIVATE",
-
-    "SELF_EMPLOYED",
-
-    "BUSINESS",
-
-    "STUDENT",
-
-    "NOT_SPECIFIED"
-
-  ];
-
+  // ----------------------------------------------------------
+  // 1. Existing normalized employmentType
+  // ----------------------------------------------------------
 
   if (
-    allowed.includes(
-      value
-    )
+    typeof profession === "object" &&
+    profession.employmentType
   ) {
 
-    return value;
+    const existingType =
+      String(
+        profession.employmentType
+      )
+      .trim()
+      .toUpperCase();
+
+
+    const allowed = [
+
+      "GOVERNMENT",
+      "PRIVATE",
+      "SELF_EMPLOYED",
+      "BUSINESS",
+      "STUDENT",
+      "NOT_SPECIFIED"
+
+    ];
+
+
+    if (
+      allowed.includes(
+        existingType
+      )
+    ) {
+
+      if (
+        existingType !==
+        "NOT_SPECIFIED"
+      ) {
+
+        return existingType;
+
+      }
+
+    }
 
   }
 
 
-  return "NOT_SPECIFIED";
+  // ----------------------------------------------------------
+  // 2. Get raw profession text
+  // ----------------------------------------------------------
+
+  let rawText = "";
+
+
+  if (
+    typeof profession === "object"
+  ) {
+
+    rawText =
+      profession.raw ||
+      profession.text ||
+      profession.profession ||
+      profession.occupation ||
+      "";
+
+  }
+  else {
+
+    rawText =
+      profession;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 3. Detect from raw profession
+  // ----------------------------------------------------------
+
+  return normalizeMatchingEmploymentType(
+    rawText
+  );
 
 }
-
 
 
 // ============================================================
@@ -1141,5 +1343,273 @@ function testAllMatchingCandidateCriteria() {
 
 
   return output;
+
+}
+
+
+
+// ============================================================
+// EMPLOYMENT TYPE NORMALIZATION
+// ============================================================
+
+function normalizeMatchingEmploymentType(
+  value
+) {
+
+  const text =
+    String(
+      value || ""
+    )
+    .trim()
+    .toLowerCase();
+
+
+  if (!text) {
+
+    return "NOT_SPECIFIED";
+
+  }
+
+
+  // ----------------------------------------------------------
+  // GOVERNMENT
+  // ----------------------------------------------------------
+
+  if (
+
+    text.includes("government") ||
+
+    text.includes("govt") ||
+
+    text.includes("gov.") ||
+
+    text.includes("government job") ||
+
+    text.includes("government service") ||
+
+    text.includes("सरकारी") ||
+
+    text.includes("शासकीय") ||
+
+    text.includes("शासन") ||
+
+    text.includes("सरकार") ||
+
+    text.includes("महानगरपालिका") ||
+
+    text.includes("पालिका") ||
+
+    text.includes("महापालिका") ||
+
+    text.includes("नगरपालिका") ||
+
+    text.includes("महसूल") ||
+
+    text.includes("तहसील") ||
+
+    text.includes("जिल्हाधिकारी") ||
+
+    text.includes("पोलीस") ||
+
+    text.includes("police") ||
+
+    text.includes("army") ||
+
+    text.includes("military") ||
+
+    text.includes("navy") ||
+
+    text.includes("air force")
+
+  ) {
+
+    return "GOVERNMENT";
+
+  }
+
+
+  // ----------------------------------------------------------
+  // PRIVATE
+  // ----------------------------------------------------------
+
+  if (
+
+    text.includes("private") ||
+
+    text.includes("private company") ||
+
+    text.includes("private job") ||
+
+    text.includes("खाजगी") ||
+
+    text.includes("खासगी")
+
+  ) {
+
+    return "PRIVATE";
+
+  }
+
+
+  // ----------------------------------------------------------
+  // BUSINESS
+  // ----------------------------------------------------------
+
+  if (
+
+    text.includes("business") ||
+
+    text.includes("businessman") ||
+
+    text.includes("businesswoman") ||
+
+    text.includes("व्यवसाय") ||
+
+    text.includes("उद्योग") ||
+
+    text.includes("उद्योजक") ||
+
+    text.includes("entrepreneur")
+
+  ) {
+
+    return "BUSINESS";
+
+  }
+
+
+  // ----------------------------------------------------------
+  // SELF EMPLOYED
+  // ----------------------------------------------------------
+
+  if (
+
+    text.includes("self employed") ||
+
+    text.includes("self-employed") ||
+
+    text.includes("self employed") ||
+
+    text.includes("स्वयंरोजगार") ||
+
+    text.includes("स्वतंत्र व्यवसाय")
+
+  ) {
+
+    return "SELF_EMPLOYED";
+
+  }
+
+
+  // ----------------------------------------------------------
+  // STUDENT
+  // ----------------------------------------------------------
+
+  if (
+
+    text.includes("student") ||
+
+    text.includes("शिक्षण चालू") ||
+
+    text.includes("विद्यार्थी") ||
+
+    text.includes("अभ्यास")
+
+  ) {
+
+    return "STUDENT";
+
+  }
+
+
+  return "NOT_SPECIFIED";
+
+}
+
+
+
+// ============================================================
+// EMPLOYMENT TYPE MATCH
+// ============================================================
+
+function evaluateEmploymentMatch(
+  candidate,
+  criteria
+) {
+
+  const expectedTypes =
+    Array.isArray(criteria.employmentTypes)
+      ? criteria.employmentTypes
+      : [];
+
+
+  if (
+    expectedTypes.length === 0
+  ) {
+
+    return {
+
+      criterion:
+        "employmentType",
+
+      applicable:
+        false,
+
+      matched:
+        true,
+
+      employmentType:
+        candidate.employmentType || ""
+
+    };
+
+  }
+
+
+  const candidateEmploymentType =
+    String(
+      candidate.employmentType ||
+      "NOT_SPECIFIED"
+    )
+      .trim()
+      .toUpperCase();
+
+
+  const normalizedExpectedTypes =
+    expectedTypes.map(
+      function(type) {
+
+        return String(type || "")
+          .trim()
+          .toUpperCase();
+
+      }
+    );
+
+
+  const matched =
+    normalizedExpectedTypes.includes(
+      candidateEmploymentType
+    );
+
+
+  return {
+
+    criterion:
+      "employmentType",
+
+    applicable:
+      true,
+
+    matched:
+      matched,
+
+    expectedTypes:
+      normalizedExpectedTypes,
+
+    employmentType:
+      candidateEmploymentType
+
+  };
 
 }
