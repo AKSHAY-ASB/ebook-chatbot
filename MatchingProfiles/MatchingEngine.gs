@@ -8870,6 +8870,133 @@ function calculateFinalCompatibilityScore(
 }
 
 
+function calculateFinalMutualCompatibilityScore(
+  mutualHardMatch,
+  mutualExpectationCompatibility,
+  mutualProfileCompatibility
+) {
+
+  mutualHardMatch =
+    mutualHardMatch === true;
+
+  mutualExpectationCompatibility =
+    mutualExpectationCompatibility || {};
+
+  mutualProfileCompatibility =
+    mutualProfileCompatibility || {};
+
+
+  // ==========================================================
+  // WEIGHTS
+  // ==========================================================
+
+  const HARD_MATCH_WEIGHT = 50;
+  const EXPECTATION_WEIGHT = 30;
+  const PROFILE_WEIGHT = 20;
+
+
+  // ==========================================================
+  // HARD SCORE
+  // ==========================================================
+
+  const hardScore =
+    mutualHardMatch
+      ? HARD_MATCH_WEIGHT
+      : 0;
+
+
+  // ==========================================================
+  // MUTUAL EXPECTATION SCORE
+  // ==========================================================
+
+  const expectationPercentage =
+    Number(
+      mutualExpectationCompatibility.percentage || 0
+    );
+
+
+  const expectationScore =
+    expectationPercentage *
+    EXPECTATION_WEIGHT /
+    100;
+
+
+  // ==========================================================
+  // MUTUAL PROFILE SCORE
+  // ==========================================================
+
+  const profilePercentage =
+    Number(
+      mutualProfileCompatibility.percentage || 0
+    );
+
+
+  const profileScore =
+    profilePercentage *
+    PROFILE_WEIGHT /
+    100;
+
+
+  // ==========================================================
+  // FINAL MUTUAL SCORE
+  // ==========================================================
+
+  const finalScore =
+    hardScore +
+    expectationScore +
+    profileScore;
+
+
+  const finalPercentage =
+    Number(
+      Math.min(
+        100,
+        finalScore
+      ).toFixed(2)
+    );
+
+
+  // ==========================================================
+  // RETURN
+  // ==========================================================
+
+  return {
+
+    finalScore:
+      finalPercentage,
+
+    finalPercentage:
+      finalPercentage,
+
+    hardScore:
+      Number(
+        hardScore.toFixed(2)
+      ),
+
+    expectationScore:
+      Number(
+        expectationScore.toFixed(2)
+      ),
+
+    expectationPercentage:
+      expectationPercentage,
+
+    profileScore:
+      Number(
+        profileScore.toFixed(2)
+      ),
+
+    profilePercentage:
+      profilePercentage
+
+  };
+
+}
+
+
+
+
+
 // ============================================================
 // TEST FINAL COMPATIBILITY SCORE
 // ============================================================
@@ -11316,4 +11443,3681 @@ function parseActualProfileIncomeRange(value) {
 
 }
 
+
+
+// PHASE 2
+
+
+
+function calculateMutualCompatibility(
+  viewer,
+  candidate
+) {
+
+  if (!viewer || !candidate) {
+
+    return {
+      applicable: false,
+      matched: false,
+      viewerToCandidate: null,
+      candidateToViewer: null
+    };
+
+  }
+
+
+  // ----------------------------------------------------------
+  // Direction 1
+  // Viewer → Candidate
+  // ----------------------------------------------------------
+
+  let viewerToCandidate = null;
+
+  try {
+
+    viewerToCandidate =
+      evaluateCandidateMatch(
+        candidate,
+        viewer
+      );
+
+  }
+  catch (error) {
+
+    viewerToCandidate = {
+      error: true,
+      message: error.message
+    };
+
+  }
+
+
+  // ----------------------------------------------------------
+  // Direction 2
+  // Candidate → Viewer
+  //
+  // IMPORTANT:
+  // For STEP 1 we only establish the structure.
+  // Reverse matching logic will be implemented in STEP 2.
+  // ----------------------------------------------------------
+
+  let candidateToViewer = null;
+
+
+  return {
+
+    applicable:
+      !!(
+        viewerToCandidate
+      ),
+
+    matched:
+      !!(
+        viewerToCandidate &&
+        viewerToCandidate.matched === true
+      ),
+
+    viewerToCandidate:
+      viewerToCandidate,
+
+    candidateToViewer:
+      candidateToViewer
+
+  };
+
+}
+
+
+
+
+function testMutualCompatibility() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+
+  // ----------------------------------------------------------
+  // VALIDATE VIEWER
+  // ----------------------------------------------------------
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ STEP 1 FAILED — VIEWER PROFILE NOT FOUND"
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // VALIDATE CANDIDATE
+  // ----------------------------------------------------------
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ STEP 1 FAILED — CANDIDATE PROFILE NOT FOUND"
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // EXTRACT ACTUAL PROFILES
+  // ----------------------------------------------------------
+
+  const viewer =
+    viewerResult.profile;
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ----------------------------------------------------------
+  // STEP 1 RESULT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — STEP 1 MUTUAL COMPATIBILITY TEST"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+
+  console.log(
+    "🟢 STEP 1 PASS:",
+    JSON.stringify(
+      {
+
+        viewer: {
+          id:
+            viewer.id || viewerResult.id || "",
+
+          name:
+            viewer.name || viewerResult.name || "",
+
+          type:
+            viewer.type || viewerResult.type || ""
+        },
+
+
+        candidate: {
+          id:
+            candidate.id || candidateResult.id || "",
+
+          name:
+            candidate.name || candidateResult.name || "",
+
+          type:
+            candidate.type || candidateResult.type || ""
+        },
+
+
+        viewerProfileLoaded:
+          true,
+
+        candidateProfileLoaded:
+          true
+
+      },
+      null,
+      2
+    )
+  );
+
+}
+
+
+
+function testPhase2ViewerToCandidate() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  // ----------------------------------------------------------
+  // 1. LOAD VIEWER
+  // ----------------------------------------------------------
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 2 FAILED — VIEWER"
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 2. LOAD CANDIDATE
+  // ----------------------------------------------------------
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 2 FAILED — CANDIDATE"
+    );
+
+    return;
+
+  }
+
+
+  const viewer =
+    viewerResult.profile;
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ----------------------------------------------------------
+  // 3. GET VIEWER EXPECTATION
+  // ----------------------------------------------------------
+
+  const viewerExpectation =
+    String(
+      viewer.expectationRaw ||
+      viewerResult.expectation ||
+      ""
+    ).trim();
+
+
+  if (!viewerExpectation) {
+
+    console.log(
+      "❌ PHASE 2 STEP 2 FAILED — VIEWER EXPECTATION MISSING"
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 4. BUILD VIEWER CRITERIA
+  // ----------------------------------------------------------
+
+  const viewerCriteria =
+    parseExpectationCriteria(
+      viewerExpectation
+    );
+
+
+  if (!viewerCriteria) {
+
+    console.log(
+      "❌ PHASE 2 STEP 2 FAILED — CRITERIA PARSE"
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 5. VIEWER → CANDIDATE
+  // ----------------------------------------------------------
+
+  let matchResult = null;
+
+
+  try {
+
+    matchResult =
+      evaluateCandidateMatch(
+        candidate,
+        viewerCriteria
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 2 FAILED — MATCH ERROR"
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 6. MINIMAL TEST OUTPUT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — STEP 2 VIEWER → CANDIDATE"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    JSON.stringify(
+      {
+
+        viewerId:
+          viewer.id ||
+          viewerResult.id,
+
+        candidateId:
+          candidate.id ||
+          candidateResult.id,
+
+        direction:
+          "VIEWER_TO_CANDIDATE",
+
+        hardMatch:
+          matchResult &&
+          matchResult.hardMatch === true,
+
+        matchStatus:
+          matchResult &&
+          matchResult.matchStatus
+            ? matchResult.matchStatus
+            : "",
+
+        applicableCriteria:
+          Number(
+            matchResult &&
+            matchResult.applicableCriteria
+          ) || 0,
+
+        matchedCriteria:
+          Number(
+            matchResult &&
+            matchResult.matchedCriteria
+          ) || 0,
+
+        failedCriteria:
+          Array.isArray(
+            matchResult &&
+            matchResult.failedCriteria
+          )
+            ? matchResult.failedCriteria
+            : []
+
+      },
+      null,
+      2
+    )
+  );
+
+}
+
+
+
+function testPhase2CandidateToViewer() {
+
+      const viewerId = "ID001";
+      const viewerType = "groom";
+
+      const candidateId = "ID801";
+      const candidateType = "bride";
+
+
+      // ----------------------------------------------------------
+      // 1. LOAD VIEWER
+      // ----------------------------------------------------------
+
+      const viewerResult =
+        getMatchingViewerProfile(
+          viewerId,
+          viewerType
+        );
+
+
+      if (
+        !viewerResult ||
+        viewerResult.success !== true ||
+        !viewerResult.profile
+      ) {
+
+        console.log(
+          "❌ PHASE 2 STEP 3 FAILED — VIEWER"
+        );
+
+        return;
+
+      }
+
+
+      // ----------------------------------------------------------
+      // 2. LOAD CANDIDATE
+      // ----------------------------------------------------------
+
+      const candidateResult =
+        getMatchingViewerProfile(
+          candidateId,
+          candidateType
+        );
+
+
+      if (
+        !candidateResult ||
+        candidateResult.success !== true ||
+        !candidateResult.profile
+      ) {
+
+        console.log(
+          "❌ PHASE 2 STEP 3 FAILED — CANDIDATE"
+        );
+
+        return;
+
+      }
+
+
+      const viewer =
+        viewerResult.profile;
+
+      const candidate =
+        candidateResult.profile;
+
+
+      // ----------------------------------------------------------
+      // 3. GET CANDIDATE EXPECTATION
+      // ----------------------------------------------------------
+
+      const candidateExpectation =
+        String(
+          candidate.expectationRaw ||
+          candidateResult.expectation ||
+          ""
+        ).trim();
+
+
+      if (!candidateExpectation) {
+
+        console.log(
+          "❌ PHASE 2 STEP 3 FAILED — CANDIDATE EXPECTATION MISSING"
+        );
+
+        return;
+
+      }
+
+
+      // ----------------------------------------------------------
+      // 4. BUILD CANDIDATE CRITERIA
+      // ----------------------------------------------------------
+
+      const candidateCriteria =
+        parseExpectationCriteria(
+          candidateExpectation
+        );
+
+
+        console.log(
+      "STEP 3 EXPECTATION:",
+      candidateExpectation
+    );
+
+  console.log(
+    "STEP 3 CRITERIA:",
+    JSON.stringify(
+      {
+        hasHardCriteria:
+          candidateCriteria.hasHardCriteria,
+
+        district:
+          candidateCriteria.district,
+
+        educationCategories:
+          candidateCriteria.educationCategories,
+
+        professionCategories:
+          candidateCriteria.professionCategories,
+
+        caste:
+          candidateCriteria.caste,
+
+        rashi:
+          candidateCriteria.rashi,
+
+        age:
+          candidateCriteria.age,
+
+        height:
+          candidateCriteria.height,
+
+        income:
+          candidateCriteria.income
+      },
+      null,
+      2
+    )
+  );
+
+
+  if (!candidateCriteria) {
+
+    console.log(
+      "❌ PHASE 2 STEP 3 FAILED — CRITERIA PARSE"
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 5. CANDIDATE → VIEWER
+  // ----------------------------------------------------------
+
+  let matchResult = null;
+
+
+  try {
+
+    matchResult =
+      evaluateCandidateMatch(
+        viewer,
+        candidateCriteria
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 3 FAILED — MATCH ERROR"
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 6. MINIMAL RESULT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — STEP 3 CANDIDATE → VIEWER"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+
+  console.log(
+    JSON.stringify(
+      {
+
+        candidateId:
+          candidate.id ||
+          candidateResult.id,
+
+        viewerId:
+          viewer.id ||
+          viewerResult.id,
+
+        direction:
+          "CANDIDATE_TO_VIEWER",
+
+        hardMatch:
+          !!(
+            matchResult &&
+            matchResult.hardMatch === true
+          ),
+
+        matchStatus:
+          matchResult &&
+          matchResult.matchStatus
+            ? matchResult.matchStatus
+            : "",
+
+        applicableCriteria:
+          Number(
+            matchResult &&
+            matchResult.applicableCriteria
+          ) || 0,
+
+        matchedCriteria:
+          Number(
+            matchResult &&
+            matchResult.matchedCriteria
+          ) || 0,
+
+        failedCriteria:
+          Array.isArray(
+            matchResult &&
+            matchResult.failedCriteria
+          )
+            ? matchResult.failedCriteria
+            : []
+
+      },
+      null,
+      2
+    )
+  );
+
+}
+
+
+
+function testPhase2MutualHardMatch() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  // ----------------------------------------------------------
+  // 1. LOAD VIEWER
+  // ----------------------------------------------------------
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 4 FAILED — VIEWER"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 2. LOAD CANDIDATE
+  // ----------------------------------------------------------
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 4 FAILED — CANDIDATE"
+    );
+
+    return;
+  }
+
+
+  const viewer =
+    viewerResult.profile;
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ----------------------------------------------------------
+  // 3. VIEWER → CANDIDATE
+  // ----------------------------------------------------------
+
+  const viewerExpectation =
+    String(
+      viewer.expectationRaw ||
+      viewerResult.expectation ||
+      ""
+    ).trim();
+
+  let viewerToCandidate = null;
+
+
+  if (viewerExpectation) {
+
+    const viewerCriteria =
+      parseExpectationCriteria(
+        viewerExpectation
+      );
+
+    if (viewerCriteria) {
+
+      viewerToCandidate =
+        evaluateCandidateMatch(
+          candidate,
+          viewerCriteria
+        );
+
+    }
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 4. CANDIDATE → VIEWER
+  // ----------------------------------------------------------
+
+  const candidateExpectation =
+    String(
+      candidate.expectationRaw ||
+      candidateResult.expectation ||
+      ""
+    ).trim();
+
+  let candidateToViewer = null;
+
+
+  if (candidateExpectation) {
+
+    const candidateCriteria =
+      parseExpectationCriteria(
+        candidateExpectation
+      );
+
+    if (candidateCriteria) {
+
+      candidateToViewer =
+        evaluateCandidateMatch(
+          viewer,
+          candidateCriteria
+        );
+
+    }
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 5. HARD STATUS
+  // ----------------------------------------------------------
+
+  const viewerStatus =
+    viewerToCandidate &&
+    viewerToCandidate.matchStatus
+      ? String(
+          viewerToCandidate.matchStatus
+        ).trim().toUpperCase()
+      : "NO_HARD_CRITERIA";
+
+
+  const candidateStatus =
+    candidateToViewer &&
+    candidateToViewer.matchStatus
+      ? String(
+          candidateToViewer.matchStatus
+        ).trim().toUpperCase()
+      : "NO_HARD_CRITERIA";
+
+
+  // ----------------------------------------------------------
+  // 6. MUTUAL HARD MATCH
+  // ----------------------------------------------------------
+
+  const mutualHardMatch =
+    viewerStatus !== "HARD_REJECT" &&
+    candidateStatus !== "HARD_REJECT";
+
+
+  // ----------------------------------------------------------
+  // 7. RESULT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — STEP 4 MUTUAL HARD MATCH"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+
+  console.log(
+    JSON.stringify(
+      {
+
+        viewerId:
+          viewer.id ||
+          viewerResult.id,
+
+        candidateId:
+          candidate.id ||
+          candidateResult.id,
+
+        viewerToCandidate: {
+
+          hardMatch:
+            viewerToCandidate &&
+            viewerToCandidate.hardMatch === true,
+
+          matchStatus:
+            viewerStatus
+
+        },
+
+        candidateToViewer: {
+
+          hardMatch:
+            candidateToViewer &&
+            candidateToViewer.hardMatch === true,
+
+          matchStatus:
+            candidateStatus
+
+        },
+
+        mutualHardMatch:
+          mutualHardMatch,
+
+        result:
+          mutualHardMatch
+            ? "MUTUAL_COMPATIBLE"
+            : "MUTUAL_REJECT"
+
+      },
+      null,
+      2
+    )
+  );
+
+}
+
+
+
+function testPhase2ViewerToCandidateProfile() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  // ----------------------------------------------------------
+  // 1. LOAD VIEWER
+  // ----------------------------------------------------------
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 5A FAILED — VIEWER"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 2. LOAD CANDIDATE
+  // ----------------------------------------------------------
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 5A FAILED — CANDIDATE"
+    );
+
+    return;
+  }
+
+
+  const viewer =
+    viewerResult.profile;
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ----------------------------------------------------------
+  // 3. GET VIEWER ACTUAL PROFILE CRITERIA
+  // ----------------------------------------------------------
+
+  const viewerCriteria =
+    viewer.actualProfileCriteria || {};
+
+
+  // ----------------------------------------------------------
+  // 4. VIEWER → CANDIDATE
+  // ----------------------------------------------------------
+
+  let result = null;
+
+  try {
+
+    result =
+      calculateActualProfileCompatibility(
+        candidate,
+        viewerCriteria
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 5A FAILED — PROFILE COMPATIBILITY ERROR"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 5. MINIMAL RESULT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — STEP 5A VIEWER → CANDIDATE PROFILE"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    JSON.stringify(
+      {
+
+        viewerId:
+          viewer.id ||
+          viewerResult.id,
+
+        candidateId:
+          candidate.id ||
+          candidateResult.id,
+
+        direction:
+          "VIEWER_TO_CANDIDATE",
+
+        applicable:
+          result &&
+          result.applicable === true,
+
+        percentage:
+          Number(
+            result &&
+            result.percentage
+          ) || 0,
+
+        matched:
+          Number(
+            result &&
+            result.matched
+          ) || 0,
+
+        failed:
+          Number(
+            result &&
+            result.failed
+          ) || 0,
+
+        unknown:
+          Number(
+            result &&
+            result.unknown
+          ) || 0,
+
+        totalChecks:
+          Number(
+            result &&
+            result.totalChecks
+          ) || 0
+
+      },
+      null,
+      2
+    )
+  );
+
+}
+
+
+
+function testPhase2CandidateToViewerProfile() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  // ----------------------------------------------------------
+  // 1. LOAD VIEWER
+  // ----------------------------------------------------------
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 5B FAILED — VIEWER"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 2. LOAD CANDIDATE
+  // ----------------------------------------------------------
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 5B FAILED — CANDIDATE"
+    );
+
+    return;
+  }
+
+
+  const viewer =
+    viewerResult.profile;
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ----------------------------------------------------------
+  // 3. GET CANDIDATE ACTUAL PROFILE CRITERIA
+  // ----------------------------------------------------------
+
+  const candidateCriteria =
+    candidate.actualProfileCriteria || {};
+
+
+  // ----------------------------------------------------------
+  // 4. CANDIDATE → VIEWER
+  // ----------------------------------------------------------
+
+  let result = null;
+
+  try {
+
+    result =
+      calculateActualProfileCompatibility(
+        viewer,
+        candidateCriteria
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 5B FAILED — PROFILE COMPATIBILITY ERROR"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 5. MINIMAL RESULT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — STEP 5B CANDIDATE → VIEWER PROFILE"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    JSON.stringify(
+      {
+
+        candidateId:
+          candidate.id ||
+          candidateResult.id,
+
+        viewerId:
+          viewer.id ||
+          viewerResult.id,
+
+        direction:
+          "CANDIDATE_TO_VIEWER",
+
+        applicable:
+          result &&
+          result.applicable === true,
+
+        percentage:
+          Number(
+            result &&
+            result.percentage
+          ) || 0,
+
+        matched:
+          Number(
+            result &&
+            result.matched
+          ) || 0,
+
+        failed:
+          Number(
+            result &&
+            result.failed
+          ) || 0,
+
+        unknown:
+          Number(
+            result &&
+            result.unknown
+          ) || 0,
+
+        totalChecks:
+          Number(
+            result &&
+            result.totalChecks
+          ) || 0
+
+      },
+      null,
+      2
+    )
+  );
+
+}
+
+
+
+function calculateMutualProfileCompatibility(
+  viewer,
+  candidate
+) {
+
+  // ----------------------------------------------------------
+  // SAFE INPUTS
+  // ----------------------------------------------------------
+
+  const safeViewer =
+    viewer || {};
+
+  const safeCandidate =
+    candidate || {};
+
+
+  // ----------------------------------------------------------
+  // VALIDATE PROFILES
+  // ----------------------------------------------------------
+
+  if (
+    !viewer ||
+    !candidate
+  ) {
+
+    return {
+
+      applicable:
+        false,
+
+      percentage:
+        0,
+
+      matched:
+        0,
+
+      failed:
+        0,
+
+      unknown:
+        0,
+
+      totalChecks:
+        0,
+
+      viewerToCandidate:
+        null,
+
+      candidateToViewer:
+        null
+
+    };
+
+  }
+
+
+  // ----------------------------------------------------------
+  // VIEWER → CANDIDATE
+  //
+  // IMPORTANT:
+  // calculateActualProfileCompatibility(
+  //   actualProfileCriteria,
+  //   compatibilityCandidate
+  // )
+  //
+  // Criteria FIRST
+  // Candidate SECOND
+  // ----------------------------------------------------------
+
+  const viewerCriteria =
+    safeViewer.actualProfileCriteria || {};
+
+
+  const viewerToCandidate =
+    calculateActualProfileCompatibility(
+      viewerCriteria,
+      safeCandidate
+    );
+
+
+  // ----------------------------------------------------------
+  // CANDIDATE → VIEWER
+  //
+  // Candidate's actual criteria are used to evaluate
+  // the viewer profile.
+  // ----------------------------------------------------------
+
+  const candidateCriteria =
+    safeCandidate.actualProfileCriteria || {};
+
+
+  const candidateToViewer =
+    calculateActualProfileCompatibility(
+      candidateCriteria,
+      safeViewer
+    );
+
+
+  // ----------------------------------------------------------
+  // SAFE RESULTS
+  // ----------------------------------------------------------
+
+  const first =
+    viewerToCandidate || {};
+
+
+  const second =
+    candidateToViewer || {};
+
+
+  // ----------------------------------------------------------
+  // PERCENTAGES
+  // ----------------------------------------------------------
+
+  const viewerPercentage =
+    Number(
+      first.percentage
+    ) || 0;
+
+
+  const candidatePercentage =
+    Number(
+      second.percentage
+    ) || 0;
+
+
+  // ----------------------------------------------------------
+  // MUTUAL APPLICABILITY
+  // ----------------------------------------------------------
+
+  const applicable =
+    first.applicable === true ||
+    second.applicable === true;
+
+
+  // ----------------------------------------------------------
+  // MUTUAL PROFILE PERCENTAGE
+  //
+  // Average of both directions.
+  // ----------------------------------------------------------
+
+  const mutualPercentage =
+    applicable
+      ? Number(
+          (
+            (
+              viewerPercentage +
+              candidatePercentage
+            ) / 2
+          ).toFixed(2)
+        )
+      : 0;
+
+
+  // ----------------------------------------------------------
+  // CONSOLIDATED COUNTS
+  // ----------------------------------------------------------
+
+  const matched =
+    (
+      Number(first.matched) || 0
+    ) +
+    (
+      Number(second.matched) || 0
+    );
+
+
+  const failed =
+    (
+      Number(first.failed) || 0
+    ) +
+    (
+      Number(second.failed) || 0
+    );
+
+
+  const unknown =
+    (
+      Number(first.unknown) || 0
+    ) +
+    (
+      Number(second.unknown) || 0
+    );
+
+
+  const totalChecks =
+    (
+      Number(first.totalChecks) || 0
+    ) +
+    (
+      Number(second.totalChecks) || 0
+    );
+
+
+  // ----------------------------------------------------------
+  // FINAL RESULT
+  // ----------------------------------------------------------
+
+  return {
+
+    applicable:
+      applicable,
+
+    percentage:
+      mutualPercentage,
+
+    matched:
+      matched,
+
+    failed:
+      failed,
+
+    unknown:
+      unknown,
+
+    totalChecks:
+      totalChecks,
+
+    viewerToCandidate: {
+
+      applicable:
+        first.applicable === true,
+
+      percentage:
+        viewerPercentage,
+
+      matched:
+        Number(first.matched) || 0,
+
+      failed:
+        Number(first.failed) || 0,
+
+      unknown:
+        Number(first.unknown) || 0,
+
+      totalChecks:
+        Number(first.totalChecks) || 0
+
+    },
+
+    candidateToViewer: {
+
+      applicable:
+        second.applicable === true,
+
+      percentage:
+        candidatePercentage,
+
+      matched:
+        Number(second.matched) || 0,
+
+      failed:
+        Number(second.failed) || 0,
+
+      unknown:
+        Number(second.unknown) || 0,
+
+      totalChecks:
+        Number(second.totalChecks) || 0
+
+    }
+
+  };
+
+}
+
+
+function testPhase2MutualProfileCompatibility() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  // ----------------------------------------------------------
+  // 1. LOAD VIEWER
+  // ----------------------------------------------------------
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 5C FAILED — VIEWER"
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 2. LOAD CANDIDATE
+  // ----------------------------------------------------------
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 5C FAILED — CANDIDATE"
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 3. USE NORMALIZED PROFILES
+  // ----------------------------------------------------------
+
+  const viewer =
+    viewerResult.profile;
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ----------------------------------------------------------
+  // 4. MUTUAL PROFILE COMPATIBILITY
+  // ----------------------------------------------------------
+
+  let result = null;
+
+
+  try {
+
+    result =
+      calculateMutualProfileCompatibility(
+        viewer,
+        candidate
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 5C FAILED — PROFILE ERROR"
+    );
+
+    console.log(
+      error.message || ""
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 5. MINIMAL TEST OUTPUT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — STEP 5C MUTUAL PROFILE COMPATIBILITY"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+
+  console.log(
+    JSON.stringify(
+      {
+
+        viewerId:
+          viewer.id ||
+          viewerResult.id,
+
+        candidateId:
+          candidate.id ||
+          candidateResult.id,
+
+        direction:
+          "MUTUAL_PROFILE_COMPATIBILITY",
+
+        applicable:
+          result &&
+          result.applicable === true,
+
+        percentage:
+          Number(
+            result &&
+            result.percentage
+          ) || 0,
+
+        matched:
+          Number(
+            result &&
+            result.matched
+          ) || 0,
+
+        failed:
+          Number(
+            result &&
+            result.failed
+          ) || 0,
+
+        unknown:
+          Number(
+            result &&
+            result.unknown
+          ) || 0,
+
+        totalChecks:
+          Number(
+            result &&
+            result.totalChecks
+          ) || 0,
+
+        viewerToCandidate:
+          result &&
+          result.viewerToCandidate
+            ? {
+
+                percentage:
+                  Number(
+                    result
+                      .viewerToCandidate
+                      .percentage
+                  ) || 0,
+
+                matched:
+                  Number(
+                    result
+                      .viewerToCandidate
+                      .matched
+                  ) || 0,
+
+                failed:
+                  Number(
+                    result
+                      .viewerToCandidate
+                      .failed
+                  ) || 0,
+
+                unknown:
+                  Number(
+                    result
+                      .viewerToCandidate
+                      .unknown
+                  ) || 0
+
+              }
+            : null,
+
+        candidateToViewer:
+          result &&
+          result.candidateToViewer
+            ? {
+
+                percentage:
+                  Number(
+                    result
+                      .candidateToViewer
+                      .percentage
+                  ) || 0,
+
+                matched:
+                  Number(
+                    result
+                      .candidateToViewer
+                      .matched
+                  ) || 0,
+
+                failed:
+                  Number(
+                    result
+                      .candidateToViewer
+                      .failed
+                  ) || 0,
+
+                unknown:
+                  Number(
+                    result
+                      .candidateToViewer
+                      .unknown
+                  ) || 0
+
+              }
+            : null
+
+      },
+      null,
+      2
+    )
+  );
+
+}
+
+
+
+
+function testPhase2ViewerToCandidateExpectation() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  // ----------------------------------------------------------
+  // 1. LOAD VIEWER
+  // ----------------------------------------------------------
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6A FAILED — VIEWER"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 2. LOAD CANDIDATE
+  // ----------------------------------------------------------
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6A FAILED — CANDIDATE"
+    );
+
+    return;
+  }
+
+
+  const viewer =
+    viewerResult.profile;
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ----------------------------------------------------------
+  // 3. GET EXPECTATIONS
+  // ----------------------------------------------------------
+
+  const viewerExpectation =
+    String(
+      viewer.expectationRaw ||
+      viewerResult.expectation ||
+      ""
+    ).trim();
+
+
+  const candidateExpectation =
+    String(
+      candidate.expectationRaw ||
+      candidateResult.expectation ||
+      ""
+    ).trim();
+
+
+  if (!viewerExpectation) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6A FAILED — VIEWER EXPECTATION MISSING"
+    );
+
+    return;
+  }
+
+
+  if (!candidateExpectation) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6A FAILED — CANDIDATE EXPECTATION MISSING"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 4. VIEWER → CANDIDATE EXPECTATION
+  // ----------------------------------------------------------
+
+  let result = null;
+
+
+  try {
+
+    result =
+      calculateWeightedExpectationCompatibility(
+        viewerExpectation,
+        candidateExpectation
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6A FAILED — EXPECTATION ERROR"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 5. MINIMAL RESULT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — STEP 6A VIEWER → CANDIDATE EXPECTATION"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    JSON.stringify(
+      {
+
+        viewerId:
+          viewer.id ||
+          viewerResult.id,
+
+        candidateId:
+          candidate.id ||
+          candidateResult.id,
+
+        direction:
+          "VIEWER_TO_CANDIDATE_EXPECTATION",
+
+        applicable:
+          result &&
+          result.applicable === true,
+
+        score:
+          Number(
+            result &&
+            result.score
+          ) || 0,
+
+        maxScore:
+          Number(
+            result &&
+            result.maxScore
+          ) || 0,
+
+        percentage:
+          Number(
+            result &&
+            (
+              result.percentage ??
+              result.expectationCompatibilityPercentage
+            )
+          ) || 0,
+
+        matchedKeywords:
+          Array.isArray(
+            result &&
+            result.matchedKeywords
+          )
+            ? result.matchedKeywords
+            : []
+
+      },
+      null,
+      2
+    )
+  );
+
+}
+
+
+
+function testPhase2CandidateToViewerExpectation() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  // ----------------------------------------------------------
+  // 1. LOAD VIEWER
+  // ----------------------------------------------------------
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6B FAILED — VIEWER"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 2. LOAD CANDIDATE
+  // ----------------------------------------------------------
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6B FAILED — CANDIDATE"
+    );
+
+    return;
+  }
+
+
+  const viewer =
+    viewerResult.profile;
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ----------------------------------------------------------
+  // 3. GET EXPECTATIONS
+  // ----------------------------------------------------------
+
+  const candidateExpectation =
+    String(
+      candidate.expectationRaw ||
+      candidateResult.expectation ||
+      ""
+    ).trim();
+
+
+  const viewerExpectation =
+    String(
+      viewer.expectationRaw ||
+      viewerResult.expectation ||
+      ""
+    ).trim();
+
+
+  if (!candidateExpectation) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6B FAILED — CANDIDATE EXPECTATION MISSING"
+    );
+
+    return;
+  }
+
+
+  if (!viewerExpectation) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6B FAILED — VIEWER EXPECTATION MISSING"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 4. CANDIDATE → VIEWER EXPECTATION
+  // ----------------------------------------------------------
+
+  let result = null;
+
+
+  try {
+
+    result =
+      calculateWeightedExpectationCompatibility(
+        candidateExpectation,
+        viewerExpectation
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6B FAILED — EXPECTATION ERROR"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 5. MINIMAL RESULT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — STEP 6B CANDIDATE → VIEWER EXPECTATION"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    JSON.stringify(
+      {
+
+        candidateId:
+          candidate.id ||
+          candidateResult.id,
+
+        viewerId:
+          viewer.id ||
+          viewerResult.id,
+
+        direction:
+          "CANDIDATE_TO_VIEWER_EXPECTATION",
+
+        applicable:
+          result &&
+          result.applicable === true,
+
+        score:
+          Number(
+            result &&
+            result.score
+          ) || 0,
+
+        maxScore:
+          Number(
+            result &&
+            result.maxScore
+          ) || 0,
+
+        percentage:
+          Number(
+            result &&
+            (
+              result.percentage ??
+              result.expectationCompatibilityPercentage
+            )
+          ) || 0,
+
+        matchedKeywords:
+          Array.isArray(
+            result &&
+            result.matchedKeywords
+          )
+            ? result.matchedKeywords
+            : []
+
+      },
+      null,
+      2
+    )
+  );
+
+}
+
+
+function calculateMutualExpectationCompatibility(
+  viewerExpectationResult,
+  candidateExpectationResult
+) {
+
+  const viewerResult =
+    viewerExpectationResult || {};
+
+  const candidateResult =
+    candidateExpectationResult || {};
+
+
+  // ----------------------------------------------------------
+  // SAFE VALUES
+  // ----------------------------------------------------------
+
+  const viewerApplicable =
+    viewerResult.applicable === true;
+
+  const candidateApplicable =
+    candidateResult.applicable === true;
+
+
+  const viewerScore =
+    Number(
+      viewerResult.score
+    ) || 0;
+
+
+  const viewerMaxScore =
+    Number(
+      viewerResult.maxScore
+    ) || 0;
+
+
+  const candidateScore =
+    Number(
+      candidateResult.score
+    ) || 0;
+
+
+  const candidateMaxScore =
+    Number(
+      candidateResult.maxScore
+    ) || 0;
+
+
+  // ----------------------------------------------------------
+  // MUTUAL APPLICABILITY
+  // ----------------------------------------------------------
+
+  const applicable =
+    viewerApplicable ||
+    candidateApplicable;
+
+
+  // ----------------------------------------------------------
+  // MUTUAL SCORE
+  // ----------------------------------------------------------
+
+  const totalScore =
+    viewerScore +
+    candidateScore;
+
+
+  const totalMaxScore =
+    viewerMaxScore +
+    candidateMaxScore;
+
+
+  const percentage =
+    totalMaxScore > 0
+      ? Number(
+          (
+            totalScore /
+            totalMaxScore *
+            100
+          ).toFixed(2)
+        )
+      : 0;
+
+
+  // ----------------------------------------------------------
+  // MATCHED KEYWORDS
+  // ----------------------------------------------------------
+
+  const viewerKeywords =
+    Array.isArray(
+      viewerResult.matchedKeywords
+    )
+      ? viewerResult.matchedKeywords
+      : [];
+
+
+  const candidateKeywords =
+    Array.isArray(
+      candidateResult.matchedKeywords
+    )
+      ? candidateResult.matchedKeywords
+      : [];
+
+
+  const matchedKeywords =
+    Array.from(
+      new Set(
+        viewerKeywords.concat(
+          candidateKeywords
+        )
+      )
+    );
+
+
+  // ----------------------------------------------------------
+  // RESULT
+  // ----------------------------------------------------------
+
+  return {
+
+    applicable:
+      applicable,
+
+    score:
+      totalScore,
+
+    maxScore:
+      totalMaxScore,
+
+    percentage:
+      percentage,
+
+    matchedKeywords:
+      matchedKeywords,
+
+    viewerToCandidate: {
+
+      applicable:
+        viewerApplicable,
+
+      score:
+        viewerScore,
+
+      maxScore:
+        viewerMaxScore,
+
+      percentage:
+        viewerMaxScore > 0
+          ? Number(
+              (
+                viewerScore /
+                viewerMaxScore *
+                100
+              ).toFixed(2)
+            )
+          : 0,
+
+      matchedKeywords:
+        viewerKeywords
+
+    },
+
+    candidateToViewer: {
+
+      applicable:
+        candidateApplicable,
+
+      score:
+        candidateScore,
+
+      maxScore:
+        candidateMaxScore,
+
+      percentage:
+        candidateMaxScore > 0
+          ? Number(
+              (
+                candidateScore /
+                candidateMaxScore *
+                100
+              ).toFixed(2)
+            )
+          : 0,
+
+      matchedKeywords:
+        candidateKeywords
+
+    }
+
+  };
+
+}
+
+
+function testPhase2MutualExpectationCompatibility() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  // ----------------------------------------------------------
+  // 1. LOAD VIEWER
+  // ----------------------------------------------------------
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6C FAILED — VIEWER"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 2. LOAD CANDIDATE
+  // ----------------------------------------------------------
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6C FAILED — CANDIDATE"
+    );
+
+    return;
+  }
+
+
+  const viewer =
+    viewerResult.profile;
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ----------------------------------------------------------
+  // 3. GET EXPECTATIONS
+  // ----------------------------------------------------------
+
+  const viewerExpectation =
+    String(
+      viewer.expectationRaw ||
+      viewerResult.expectation ||
+      ""
+    ).trim();
+
+
+  const candidateExpectation =
+    String(
+      candidate.expectationRaw ||
+      candidateResult.expectation ||
+      ""
+    ).trim();
+
+
+  if (!viewerExpectation) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6C FAILED — VIEWER EXPECTATION"
+    );
+
+    return;
+  }
+
+
+  if (!candidateExpectation) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6C FAILED — CANDIDATE EXPECTATION"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 4. VIEWER → CANDIDATE
+  // ----------------------------------------------------------
+
+  let viewerToCandidate = null;
+
+  try {
+
+    viewerToCandidate =
+      calculateWeightedExpectationCompatibility(
+        viewerExpectation,
+        candidateExpectation
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6C FAILED — VIEWER EXPECTATION"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 5. CANDIDATE → VIEWER
+  // ----------------------------------------------------------
+
+  let candidateToViewer = null;
+
+  try {
+
+    candidateToViewer =
+      calculateWeightedExpectationCompatibility(
+        candidateExpectation,
+        viewerExpectation
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 6C FAILED — CANDIDATE EXPECTATION"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 6. MUTUAL EXPECTATION
+  // ----------------------------------------------------------
+
+  const result =
+    calculateMutualExpectationCompatibility(
+      viewerToCandidate,
+      candidateToViewer
+    );
+
+
+  // ----------------------------------------------------------
+  // 7. MINIMAL RESULT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — STEP 6C MUTUAL EXPECTATION COMPATIBILITY"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+
+  console.log(
+    JSON.stringify(
+      {
+
+        viewerId:
+          viewer.id ||
+          viewerResult.id,
+
+        candidateId:
+          candidate.id ||
+          candidateResult.id,
+
+        direction:
+          "MUTUAL_EXPECTATION_COMPATIBILITY",
+
+        applicable:
+          result &&
+          result.applicable === true,
+
+        score:
+          Number(
+            result &&
+            result.score
+          ) || 0,
+
+        maxScore:
+          Number(
+            result &&
+            result.maxScore
+          ) || 0,
+
+        percentage:
+          Number(
+            result &&
+            result.percentage
+          ) || 0,
+
+        matchedKeywords:
+          Array.isArray(
+            result &&
+            result.matchedKeywords
+          )
+            ? result.matchedKeywords
+            : [],
+
+        viewerToCandidate:
+          result &&
+          result.viewerToCandidate
+            ? {
+                score:
+                  Number(
+                    result.viewerToCandidate.score
+                  ) || 0,
+
+                maxScore:
+                  Number(
+                    result.viewerToCandidate.maxScore
+                  ) || 0,
+
+                percentage:
+                  Number(
+                    result.viewerToCandidate.percentage
+                  ) || 0
+              }
+            : null,
+
+        candidateToViewer:
+          result &&
+          result.candidateToViewer
+            ? {
+                score:
+                  Number(
+                    result.candidateToViewer.score
+                  ) || 0,
+
+                maxScore:
+                  Number(
+                    result.candidateToViewer.maxScore
+                  ) || 0,
+
+                percentage:
+                  Number(
+                    result.candidateToViewer.percentage
+                  ) || 0
+              }
+            : null
+
+      },
+      null,
+      2
+    )
+  );
+
+}
+
+
+
+
+function testPhase2FinalMutualCompatibility() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  // ----------------------------------------------------------
+  // 1. LOAD VIEWER
+  // ----------------------------------------------------------
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 7 FAILED — VIEWER"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 2. LOAD CANDIDATE
+  // ----------------------------------------------------------
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ PHASE 2 STEP 7 FAILED — CANDIDATE"
+    );
+
+    return;
+  }
+
+
+  const viewer =
+    viewerResult.profile;
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ----------------------------------------------------------
+  // 3. EXPECTATIONS
+  // ----------------------------------------------------------
+
+  const viewerExpectation =
+    String(
+      viewer.expectationRaw ||
+      viewerResult.expectation ||
+      ""
+    ).trim();
+
+
+  const candidateExpectation =
+    String(
+      candidate.expectationRaw ||
+      candidateResult.expectation ||
+      ""
+    ).trim();
+
+
+  if (!viewerExpectation) {
+
+    console.log(
+      "❌ PHASE 2 STEP 7 FAILED — VIEWER EXPECTATION"
+    );
+
+    return;
+  }
+
+
+  if (!candidateExpectation) {
+
+    console.log(
+      "❌ PHASE 2 STEP 7 FAILED — CANDIDATE EXPECTATION"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 4. VIEWER → CANDIDATE HARD
+  // ----------------------------------------------------------
+
+  let viewerToCandidateHard = null;
+
+  try {
+
+    const viewerCriteria =
+      parseExpectationCriteria(
+        viewerExpectation
+      );
+
+
+    viewerToCandidateHard =
+      evaluateCandidateMatch(
+        candidate,
+        viewerCriteria
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 7 FAILED — VIEWER → CANDIDATE HARD"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 5. CANDIDATE → VIEWER HARD
+  // ----------------------------------------------------------
+
+  let candidateToViewerHard = null;
+
+  try {
+
+    const candidateCriteria =
+      parseExpectationCriteria(
+        candidateExpectation
+      );
+
+
+    candidateToViewerHard =
+      evaluateCandidateMatch(
+        viewer,
+        candidateCriteria
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 7 FAILED — CANDIDATE → VIEWER HARD"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 6. MUTUAL HARD
+  //
+  // NO_HARD_CRITERIA is neutral.
+  // Only an actual hard failure makes mutual hard false.
+  // ----------------------------------------------------------
+
+  const viewerHardFailed =
+    viewerToCandidateHard &&
+    viewerToCandidateHard.matchStatus !==
+      "HARD_MATCH" &&
+    viewerToCandidateHard.matchStatus !==
+      "NO_HARD_CRITERIA";
+
+
+  const candidateHardFailed =
+    candidateToViewerHard &&
+    candidateToViewerHard.matchStatus !==
+      "HARD_MATCH" &&
+    candidateToViewerHard.matchStatus !==
+      "NO_HARD_CRITERIA";
+
+
+  const mutualHardMatch =
+    !viewerHardFailed &&
+    !candidateHardFailed;
+
+
+  // ----------------------------------------------------------
+  // 7. MUTUAL PROFILE
+  // ----------------------------------------------------------
+
+  let mutualProfile = null;
+
+  try {
+
+    mutualProfile =
+      calculateMutualProfileCompatibility(
+        viewer,
+        candidate
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 7 FAILED — MUTUAL PROFILE"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 8. VIEWER → CANDIDATE EXPECTATION
+  // ----------------------------------------------------------
+
+  let viewerToCandidateExpectation = null;
+
+  try {
+
+    viewerToCandidateExpectation =
+      calculateWeightedExpectationCompatibility(
+        viewerExpectation,
+        candidateExpectation
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 7 FAILED — VIEWER → CANDIDATE EXPECTATION"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 9. CANDIDATE → VIEWER EXPECTATION
+  // ----------------------------------------------------------
+
+  let candidateToViewerExpectation = null;
+
+  try {
+
+    candidateToViewerExpectation =
+      calculateWeightedExpectationCompatibility(
+        candidateExpectation,
+        viewerExpectation
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 7 FAILED — CANDIDATE → VIEWER EXPECTATION"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 10. MUTUAL EXPECTATION
+  // ----------------------------------------------------------
+
+  let mutualExpectation = null;
+
+  try {
+
+    mutualExpectation =
+      calculateMutualExpectationCompatibility(
+        viewerToCandidateExpectation,
+        candidateToViewerExpectation
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 7 FAILED — MUTUAL EXPECTATION"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 11. FINAL MUTUAL SCORE
+  // ----------------------------------------------------------
+
+  let finalResult = null;
+
+  try {
+
+    finalResult =
+      calculateFinalMutualCompatibilityScore(
+        mutualHardMatch,
+        mutualExpectation,
+        mutualProfile
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ PHASE 2 STEP 7 FAILED — FINAL SCORE"
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // 12. MINIMAL OUTPUT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — STEP 7 FINAL MUTUAL COMPATIBILITY"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+
+  console.log(
+    JSON.stringify(
+      {
+
+        viewerId:
+          viewer.id ||
+          viewerResult.id,
+
+        candidateId:
+          candidate.id ||
+          candidateResult.id,
+
+        mutualHardMatch:
+          mutualHardMatch,
+
+        mutualProfilePercentage:
+          Number(
+            mutualProfile &&
+            mutualProfile.percentage
+          ) || 0,
+
+        mutualExpectationPercentage:
+          Number(
+            mutualExpectation &&
+            mutualExpectation.percentage
+          ) || 0,
+
+        hardScore:
+          Number(
+            finalResult &&
+            finalResult.hardScore
+          ) || 0,
+
+        expectationScore:
+          Number(
+            finalResult &&
+            finalResult.expectationScore
+          ) || 0,
+
+        profileScore:
+          Number(
+            finalResult &&
+            finalResult.profileScore
+          ) || 0,
+
+        finalScore:
+          Number(
+            finalResult &&
+            finalResult.finalScore
+          ) || 0,
+
+        finalPercentage:
+          Number(
+            finalResult &&
+            finalResult.finalPercentage
+          ) || 0
+
+      },
+      null,
+      2
+    )
+  );
+
+}
+
+
+
+
+
+function testPhase2MutualProfileID001_ID801() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  // ----------------------------------------------------------
+  // 1. LOAD VIEWER
+  // ----------------------------------------------------------
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ VIEWER LOAD FAILED"
+    );
+
+    console.log(
+      JSON.stringify(
+        viewerResult,
+        null,
+        2
+      )
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 2. LOAD CANDIDATE
+  // ----------------------------------------------------------
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ CANDIDATE LOAD FAILED"
+    );
+
+    console.log(
+      JSON.stringify(
+        candidateResult,
+        null,
+        2
+      )
+    );
+
+    return;
+
+  }
+
+
+  const viewer =
+    viewerResult.profile;
+
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ----------------------------------------------------------
+  // 3. ACTUAL PROFILE CRITERIA
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — ID001 ↔ ID801 MUTUAL PROFILE DIAGNOSTIC"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+
+  console.log(
+    "🔵 VIEWER ACTUAL PROFILE CRITERIA:"
+  );
+
+  console.log(
+    JSON.stringify(
+      viewer.actualProfileCriteria || {},
+      null,
+      2
+    )
+  );
+
+
+  console.log(
+    "🔵 CANDIDATE ACTUAL PROFILE CRITERIA:"
+  );
+
+  console.log(
+    JSON.stringify(
+      candidate.actualProfileCriteria || {},
+      null,
+      2
+    )
+  );
+
+
+  // ----------------------------------------------------------
+  // 4. MUTUAL PROFILE CALCULATION
+  // ----------------------------------------------------------
+
+  let result = null;
+
+
+  try {
+
+    result =
+      calculateMutualProfileCompatibility(
+        viewer,
+        candidate
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ MUTUAL PROFILE CALCULATION ERROR"
+    );
+
+    console.log(
+      error.message || ""
+    );
+
+    return;
+
+  }
+
+
+  // ----------------------------------------------------------
+  // 5. VIEWER → CANDIDATE
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "🟢 ID001 → ID801"
+  );
+
+  console.log(
+    JSON.stringify(
+      result &&
+      result.viewerToCandidate
+        ? result.viewerToCandidate
+        : {},
+      null,
+      2
+    )
+  );
+
+
+  // ----------------------------------------------------------
+  // 6. CANDIDATE → VIEWER
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "🟢 ID801 → ID001"
+  );
+
+  console.log(
+    JSON.stringify(
+      result &&
+      result.candidateToViewer
+        ? result.candidateToViewer
+        : {},
+      null,
+      2
+    )
+  );
+
+
+  // ----------------------------------------------------------
+  // 7. MUTUAL RESULT
+  // ----------------------------------------------------------
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "🟢 MUTUAL PROFILE RESULT"
+  );
+
+  console.log(
+    JSON.stringify(
+      {
+
+        viewerId:
+          viewerId,
+
+        candidateId:
+          candidateId,
+
+        applicable:
+          result &&
+          result.applicable === true,
+
+        percentage:
+          Number(
+            result &&
+            result.percentage
+          ) || 0,
+
+        matched:
+          Number(
+            result &&
+            result.matched
+          ) || 0,
+
+        failed:
+          Number(
+            result &&
+            result.failed
+          ) || 0,
+
+        unknown:
+          Number(
+            result &&
+            result.unknown
+          ) || 0,
+
+        totalChecks:
+          Number(
+            result &&
+            result.totalChecks
+          ) || 0
+
+      },
+      null,
+      2
+    )
+  );
+
+
+  console.log(
+    "=============================================="
+  );
+
+}
+
+
+
+function testPhase2MutualProfileFieldDiagnostic() {
+
+  const viewerId = "ID001";
+  const viewerType = "groom";
+
+  const candidateId = "ID801";
+  const candidateType = "bride";
+
+
+  // ==========================================================
+  // 1. LOAD VIEWER
+  // ==========================================================
+
+  const viewerResult =
+    getMatchingViewerProfile(
+      viewerId,
+      viewerType
+    );
+
+
+  if (
+    !viewerResult ||
+    viewerResult.success !== true ||
+    !viewerResult.profile
+  ) {
+
+    console.log(
+      "❌ VIEWER LOAD FAILED"
+    );
+
+    return;
+  }
+
+
+  // ==========================================================
+  // 2. LOAD CANDIDATE
+  // ==========================================================
+
+  const candidateResult =
+    getMatchingViewerProfile(
+      candidateId,
+      candidateType
+    );
+
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true ||
+    !candidateResult.profile
+  ) {
+
+    console.log(
+      "❌ CANDIDATE LOAD FAILED"
+    );
+
+    return;
+  }
+
+
+  const viewer =
+    viewerResult.profile;
+
+  const candidate =
+    candidateResult.profile;
+
+
+  // ==========================================================
+  // 3. VIEWER → CANDIDATE
+  // ==========================================================
+
+  let viewerToCandidate = null;
+
+
+  try {
+
+    viewerToCandidate =
+      calculateActualProfileCompatibility(
+        viewer.actualProfileCriteria || {},
+        candidate
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ VIEWER → CANDIDATE ERROR:",
+      error.message || ""
+    );
+
+    return;
+  }
+
+
+  // ==========================================================
+  // 4. CANDIDATE → VIEWER
+  // ==========================================================
+
+  let candidateToViewer = null;
+
+
+  try {
+
+    candidateToViewer =
+      calculateActualProfileCompatibility(
+        candidate.actualProfileCriteria || {},
+        viewer
+      );
+
+  }
+  catch (error) {
+
+    console.log(
+      "❌ CANDIDATE → VIEWER ERROR:",
+      error.message || ""
+    );
+
+    return;
+  }
+
+
+  // ==========================================================
+  // 5. PRINT VIEWER → CANDIDATE
+  // ==========================================================
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "PHASE 2 — PROFILE FIELD DIAGNOSTIC"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "🟢 ID001 → ID801"
+  );
+
+  console.log(
+    JSON.stringify(
+      {
+
+        applicable:
+          viewerToCandidate &&
+          viewerToCandidate.applicable === true,
+
+        percentage:
+          Number(
+            viewerToCandidate &&
+            viewerToCandidate.percentage
+          ) || 0,
+
+        matched:
+          Number(
+            viewerToCandidate &&
+            viewerToCandidate.matched
+          ) || 0,
+
+        failed:
+          Number(
+            viewerToCandidate &&
+            viewerToCandidate.failed
+          ) || 0,
+
+        unknown:
+          Number(
+            viewerToCandidate &&
+            viewerToCandidate.unknown
+          ) || 0,
+
+        totalChecks:
+          Number(
+            viewerToCandidate &&
+            viewerToCandidate.totalChecks
+          ) || 0,
+
+        matchedCriteria:
+          Array.isArray(
+            viewerToCandidate &&
+            viewerToCandidate.matchedCriteria
+          )
+            ? viewerToCandidate.matchedCriteria
+            : [],
+
+        failedCriteria:
+          Array.isArray(
+            viewerToCandidate &&
+            viewerToCandidate.failedCriteria
+          )
+            ? viewerToCandidate.failedCriteria
+            : [],
+
+        unknownCriteria:
+          Array.isArray(
+            viewerToCandidate &&
+            viewerToCandidate.unknownCriteria
+          )
+            ? viewerToCandidate.unknownCriteria
+            : []
+
+      },
+      null,
+      2
+    )
+  );
+
+
+  // ==========================================================
+  // 6. PRINT CANDIDATE → VIEWER
+  // ==========================================================
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "🟢 ID801 → ID001"
+  );
+
+  console.log(
+    JSON.stringify(
+      {
+
+        applicable:
+          candidateToViewer &&
+          candidateToViewer.applicable === true,
+
+        percentage:
+          Number(
+            candidateToViewer &&
+            candidateToViewer.percentage
+          ) || 0,
+
+        matched:
+          Number(
+            candidateToViewer &&
+            candidateToViewer.matched
+          ) || 0,
+
+        failed:
+          Number(
+            candidateToViewer &&
+            candidateToViewer.failed
+          ) || 0,
+
+        unknown:
+          Number(
+            candidateToViewer &&
+            candidateToViewer.unknown
+          ) || 0,
+
+        totalChecks:
+          Number(
+            candidateToViewer &&
+            candidateToViewer.totalChecks
+          ) || 0,
+
+        matchedCriteria:
+          Array.isArray(
+            candidateToViewer &&
+            candidateToViewer.matchedCriteria
+          )
+            ? candidateToViewer.matchedCriteria
+            : [],
+
+        failedCriteria:
+          Array.isArray(
+            candidateToViewer &&
+            candidateToViewer.failedCriteria
+          )
+            ? candidateToViewer.failedCriteria
+            : [],
+
+        unknownCriteria:
+          Array.isArray(
+            candidateToViewer &&
+            candidateToViewer.unknownCriteria
+          )
+            ? candidateToViewer.unknownCriteria
+            : []
+
+      },
+      null,
+      2
+    )
+  );
+
+
+  // ==========================================================
+  // 7. CRITERIA SNAPSHOT
+  // ==========================================================
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "🔵 VIEWER ACTUAL PROFILE CRITERIA"
+  );
+
+  console.log(
+    JSON.stringify(
+      viewer.actualProfileCriteria || {},
+      null,
+      2
+    )
+  );
+
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "🔵 CANDIDATE ACTUAL PROFILE CRITERIA"
+  );
+
+  console.log(
+    JSON.stringify(
+      candidate.actualProfileCriteria || {},
+      null,
+      2
+    )
+  );
+
+
+  console.log(
+    "=============================================="
+  );
+
+}
 
