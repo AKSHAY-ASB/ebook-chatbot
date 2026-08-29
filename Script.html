@@ -23,17 +23,21 @@ let pendingProfileCategory = "";
 
 let lastRenderedProfiles = [];
 
+let profileUserId = "";
+
+let profileUserType = "";
+
 window.onload = function () {
 
-  // botMessage(
-  //   "👋 Welcome to Devang Pustika"
-  // );
+  botMessage(
+    "👋 Welcome to Devang Pustika"
+  );
 
-  // botMessage(
-  //   "How can I help you today?"
-  // );
+  botMessage(
+    "How can I help you today?"
+  );
 
-  // showMenu();
+  showMenu();
 
 };
 
@@ -537,12 +541,11 @@ function showMenu() {
 
       </button>
 
-      <button
-        type="button"
-        class="option-btn"
-  
-      >
-        ✨ Matching Profiles
+     
+
+
+      <button onclick="requestProfileSearchAccess('matching')">
+          ❤️ Matching Profiles
       </button>
 
        <button
@@ -560,7 +563,7 @@ function showMenu() {
 
   scrollChat();
 
-        // onclick="showMatchingProfiles()"
+        
 
 }
 
@@ -1018,7 +1021,94 @@ function verifyEbookMobile(mobile) {
 }
 
 
+
 function requestProfileSearchAccess(type) {
+
+  type =
+    String(
+      type || ""
+    )
+    .trim()
+    .toLowerCase();
+
+
+  // ==========================================
+  // MATCHING PROFILES REQUEST
+  // ==========================================
+
+  if (
+    type === "matching"
+  ) {
+
+    // ------------------------------------------
+    // ALREADY VERIFIED
+    // ------------------------------------------
+
+    if (
+      profileAccessVerified &&
+      profileUserId &&
+      profileUserType
+    ) {
+
+      showMatchingProfiles();
+
+      return;
+
+    }
+
+
+    // ------------------------------------------
+    // WAIT FOR MOBILE VERIFICATION
+    // ------------------------------------------
+
+    pendingProfileCategory =
+      "matching";
+
+
+    chatbotState =
+      "profile_mobile_verification";
+
+
+    botMessage(`
+
+      🔐 <b>Matching Profiles Verification</b>
+
+      <br><br>
+
+      Matching Profiles पाहण्यासाठी आपला
+      नोंदणीकृत मोबाईल नंबर टाका.
+
+      <br><br>
+
+      📱 <b>10 अंकी मोबाईल नंबर टाका.</b>
+
+    `);
+
+
+    const input =
+      document.getElementById(
+        "message"
+      );
+
+
+    if (input) {
+
+      input.placeholder =
+        "Enter registered mobile number...";
+
+      input.focus();
+
+    }
+
+
+    return;
+
+  }
+
+
+  // ==========================================
+  // EXISTING PROFILE SEARCH FLOW
+  // ==========================================
 
   pendingProfileSearchType =
     type;
@@ -1028,11 +1118,16 @@ function requestProfileSearchAccess(type) {
   // ALREADY VERIFIED IN CURRENT SESSION
   // ==========================================
 
-  if (profileAccessVerified) {
+  if (
+    profileAccessVerified
+  ) {
 
-    startProfileSearch(type);
+    startProfileSearch(
+      type
+    );
 
     return;
+
   }
 
 
@@ -1061,16 +1156,23 @@ function requestProfileSearchAccess(type) {
 
 
   const input =
-    document.getElementById("message");
+    document.getElementById(
+      "message"
+    );
 
 
-  input.placeholder =
-    "Enter registered mobile number...";
+  if (input) {
 
+    input.placeholder =
+      "Enter registered mobile number...";
 
-  input.focus();
+    input.focus();
+
+  }
 
 }
+
+
 /* =========================================
    MENU CLICK
 ========================================= */
@@ -1158,13 +1260,27 @@ function menuClick(option) {
 
 
 
+
 function verifyProfileMobile(mobile) {
 
+  // ==========================================
+  // CLEAN MOBILE NUMBER
+  // ==========================================
+
   const cleanMobile =
-    mobile.replace(/\D/g, "");
+    String(
+      mobile || ""
+    )
+    .replace(/\D/g, "");
 
 
-  if (cleanMobile.length !== 10) {
+  // ==========================================
+  // VALIDATE MOBILE NUMBER
+  // ==========================================
+
+  if (
+    cleanMobile.length !== 10
+  ) {
 
     botMessage(
       "⚠️ कृपया योग्य 10 अंकी मोबाईल नंबर टाका."
@@ -1175,8 +1291,16 @@ function verifyProfileMobile(mobile) {
   }
 
 
+  // ==========================================
+  // SHOW LOADING
+  // ==========================================
+
   showTyping();
 
+
+  // ==========================================
+  // VERIFY MOBILE
+  // ==========================================
 
   google.script.run
 
@@ -1186,280 +1310,541 @@ function verifyProfileMobile(mobile) {
         hideTyping();
 
 
+        // ==========================================
+        // LOG BACKEND RESPONSE
+        // ==========================================
+
+        console.log(
+          "VERIFY PROFILE SEARCH ACCESS RESULT:",
+          result
+        );
+
+
+        // ==========================================
+        // VERIFY SUCCESS
+        // ==========================================
+
         if (
           result &&
-          result.verified
+          (
+            result.verified === true ||
+            result.registered === true
+          )
         ) {
 
-  profileAccessVerified =
-    true;
 
+          // ==========================================
+          // GET VERIFIED USER OBJECT
+          // ==========================================
 
-   profileUserMobile =
-    String(
-      result.mobile || ""
-    ).trim();
+          const user =
+            result.user ||
+            result;
 
 
-    profileUserName =
-    result.name || "";
+          // ==========================================
+          // SET VERIFIED ACCESS STATE
+          // ==========================================
 
+          profileAccessVerified =
+            true;
 
-   profileUserRegisteredSheet =
-    result.registeredSheet || "";
 
-    // ==========================================
-    // VERIFIED USER PROFILE
-    // ==========================================
+          // ==========================================
+          // SET VERIFIED MOBILE
+          // ==========================================
 
-    profileUserType =
-        result.profileType || "";
+          profileUserMobile =
+            String(
+              user.mobile ||
+              cleanMobile ||
+              ""
+            )
+            .trim();
 
-    profileUserId =
-        result.profileId || "";
 
-    chatbotState =
-      "normal";
+          // ==========================================
+          // SET VERIFIED USER NAME
+          // ==========================================
 
+          profileUserName =
+            String(
+              user.name ||
+              ""
+            )
+            .trim();
 
-    botMessage(`
 
-      ✅ <b>Verification Successful</b>
+          // ==========================================
+          // SET REGISTERED SHEET
+          // ==========================================
 
-      <br><br>
+          profileUserRegisteredSheet =
+            String(
+              user.registeredSheet ||
+              ""
+            )
+            .trim();
 
-      नमस्कार
-      <b>${escapeHtml(result.name || "")}</b>
 
+          // ==========================================
+          // SET PROFILE TYPE
+          // ==========================================
 
-    `);
+          profileUserType =
+            String(
+              user.profileType ||
+              ""
+            )
+            .trim()
+            .toLowerCase();
 
 
-  // ========================================
-  // USER CAME FROM LIKED PROFILES
-  // ========================================
+          // ==========================================
+          // SET PROFILE ID
+          // ==========================================
 
-  if (
-    pendingProfileCategory === "liked"
-  ) {
+          profileUserId =
+            String(
+              user.profileId ||
+              ""
+            )
+            .trim();
 
-    pendingProfileCategory = "";
 
-    showLikedProfiles();
+          // ==========================================
+          // DEBUG VERIFIED USER
+          // ==========================================
 
-    return;
+          console.log(
+            "VERIFIED USER PROFILE SET:",
+            {
 
-  }
+              profileUserId:
+                profileUserId,
 
+              profileUserType:
+                profileUserType,
 
-  // ========================================
-  // USER CAME FROM DISLIKED PROFILES
-  // ========================================
+              profileUserMobile:
+                profileUserMobile,
 
-  if (
-    pendingProfileCategory === "disliked"
-  ) {
+              profileUserName:
+                profileUserName,
 
-    pendingProfileCategory = "";
+              profileUserRegisteredSheet:
+                profileUserRegisteredSheet,
 
-    showDislikedProfiles();
+              profileAccessVerified:
+                profileAccessVerified
 
-    return;
+            }
+          );
 
-  }
 
+          // ==========================================
+          // VERIFY REQUIRED PROFILE IDENTITY
+          // ==========================================
 
-      // ========================================
-      // USER WAITING FOR SENT INTERESTS
-      // ========================================
+          if (
+            !profileUserId ||
+            !profileUserType ||
+            !profileUserMobile
+          ) {
 
-      if (
-        pendingProfileCategory ===
-        "sentInterests"
-      ) {
+            console.error(
+              "❌ VERIFIED USER IDENTITY INCOMPLETE:",
+              {
 
-        pendingProfileCategory = "";
+                result:
+                  result,
 
-        showSentInterests();
+                user:
+                  user,
 
+                profileUserId:
+                  profileUserId,
 
-        return;
+                profileUserType:
+                  profileUserType,
 
-      }
+                profileUserMobile:
+                  profileUserMobile
 
-
-    // ========================================
-    // RECEIVED INTERESTS AFTER VERIFICATION
-    // ========================================
-
-    if (
-      pendingProfileCategory ===
-      "receivedInterests"
-    ) {
-
-      pendingProfileCategory = "";
-
-      showReceivedInterests();
-
-
-      return;
-
-    }
-
-
-    // ========================================
-    // LIKES RECEIVED AFTER VERIFICATION
-    // ========================================
-
-    if (
-        pendingProfileCategory ===
-        "likesReceived"
-    ) {
-
-        pendingProfileCategory = "";
-
-        showLikesReceived();
-
-        return;
-    }
-
-
-
-    // ========================================
-    // LIKES RECEIVED AFTER VERIFICATION
-    // ========================================
-
-    if (
-        pendingProfileCategory ===
-        "likesReceived"
-    ) {
-
-        pendingProfileCategory = "";
-
-        showLikesReceived();
-
-        return;
-    }
-
-
-  // ========================================
-  // NORMAL PROFILE SEARCH FLOW
-  // ========================================
-
-  if (
-    pendingProfileSearchType
-  ) {
-
-    startProfileSearch(
-      pendingProfileSearchType
-    );
-
-    return;
-
-  }
-
-
-  // ========================================
-  // NORMAL VERIFICATION
-  // ========================================
-
-  botMessage(`
-
-    आता तुम्ही प्रोफाइल शोधू शकता.
-
-  `);
-
-  }else {
-
-  // ========================================
-  // MOBILE NOT REGISTERED
-  // ========================================
-
-  profileAccessVerified =
-    false;
-
-
-  profileUserMobile = "";
-
-  profileUserName = "";
-
-  profileUserRegisteredSheet = "";
-
-
-  chatbotState =
-    "normal";
-
-
-  // Clear pending category
-  pendingProfileCategory = "";
-
-
-  botMessage(`
-
-    🔐 <b>Please Login / Verify</b>
-
-    <br><br>
-
-    हा मोबाईल नंबर वधू / वर / इतर
-    नोंदणीमध्ये आढळला नाही.
-
-    <br><br>
-
-    कृपया आपला
-    <b>Registered Mobile Number</b>
-    वापरा.
-
-    <br><br>
-
-    नोंदणी केलेली नसल्यास
-    प्रथम आपली नोंदणी करा.
-
-  `);
-
-
-  // ========================================
-  // YOUR EXISTING REGISTER BUTTON CODE
-  // ========================================
-
-  google.script.run
-
-    .withSuccessHandler(
-      function(data) {
-
-        if (
-          data &&
-          data.registration &&
-          data.registration.url
-        ) {
-
-          const chat =
-            document.getElementById(
-              "chat"
+              }
             );
 
 
-          chat.innerHTML += `
+            // ------------------------------------------
+            // RESET ACCESS STATE
+            // ------------------------------------------
 
-            <div class="menu">
-
-              <button
-                onclick="window.open(
-                  '${data.registration.url}',
-                  '_blank'
-                )"
-              >
-
-                📝 Register Now
-
-              </button>
-
-            </div>
-
-          `;
+            profileAccessVerified =
+              false;
 
 
-          chat.scrollTop =
-            chat.scrollHeight;
+            profileUserId =
+              "";
+
+            profileUserType =
+              "";
+
+            profileUserMobile =
+              "";
+
+            profileUserName =
+              "";
+
+            profileUserRegisteredSheet =
+              "";
+
+
+            chatbotState =
+              "normal";
+
+
+            botMessage(`
+
+              ⚠️ <b>Profile information incomplete.</b>
+
+              <br><br>
+
+              तुमच्या verified profile ची आवश्यक माहिती
+              मिळाली नाही.
+
+              <br><br>
+
+              कृपया पुन्हा प्रयत्न करा.
+
+            `);
+
+
+            return;
+
+          }
+
+
+          // ==========================================
+          // NORMAL CHATBOT STATE
+          // ==========================================
+
+          chatbotState =
+            "normal";
+
+
+          // ==========================================
+          // VERIFICATION SUCCESS MESSAGE
+          // ==========================================
+
+          botMessage(`
+
+            ✅ <b>Verification Successful</b>
+
+            <br><br>
+
+            नमस्कार
+            <b>${escapeHtml(
+              profileUserName
+            )}</b>
+
+          `);
+
+
+          // ==========================================
+          // USER CAME FROM LIKED PROFILES
+          // ==========================================
+
+          if (
+            pendingProfileCategory ===
+            "liked"
+          ) {
+
+            pendingProfileCategory =
+              "";
+
+            showLikedProfiles();
+
+            return;
+
+          }
+
+
+          // ==========================================
+          // USER CAME FROM DISLIKED PROFILES
+          // ==========================================
+
+          if (
+            pendingProfileCategory ===
+            "disliked"
+          ) {
+
+            pendingProfileCategory =
+              "";
+
+            showDislikedProfiles();
+
+            return;
+
+          }
+
+
+          // ==========================================
+          // USER WAITING FOR SENT INTERESTS
+          // ==========================================
+
+          if (
+            pendingProfileCategory ===
+            "sentInterests"
+          ) {
+
+            pendingProfileCategory =
+              "";
+
+            showSentInterests();
+
+            return;
+
+          }
+
+
+          // ==========================================
+          // RECEIVED INTERESTS AFTER VERIFICATION
+          // ==========================================
+
+          if (
+            pendingProfileCategory ===
+            "receivedInterests"
+          ) {
+
+            pendingProfileCategory =
+              "";
+
+            showReceivedInterests();
+
+            return;
+
+          }
+
+
+          // ==========================================
+          // LIKES RECEIVED AFTER VERIFICATION
+          // ==========================================
+
+          if (
+            pendingProfileCategory ===
+            "likesReceived"
+          ) {
+
+            pendingProfileCategory =
+              "";
+
+            showLikesReceived();
+
+            return;
+
+          }
+
+
+          // ==========================================
+          // MATCHING PROFILES AFTER VERIFICATION
+          // ==========================================
+
+          if (
+            pendingProfileCategory ===
+            "matching"
+          ) {
+
+            pendingProfileCategory =
+              "";
+
+            showMatchingProfiles();
+
+            return;
+
+          }
+
+
+          // ==========================================
+          // NORMAL PROFILE SEARCH FLOW
+          // ==========================================
+
+          if (
+            pendingProfileSearchType
+          ) {
+
+            const searchType =
+              pendingProfileSearchType;
+
+
+            pendingProfileSearchType =
+              "";
+
+
+            startProfileSearch(
+              searchType
+            );
+
+            return;
+
+          }
+
+
+          // ==========================================
+          // NORMAL VERIFICATION
+          // ==========================================
+
+          botMessage(`
+
+            आता तुम्ही प्रोफाइल शोधू शकता.
+
+          `);
+
+        }
+
+
+        // ==========================================
+        // MOBILE NOT REGISTERED
+        // ==========================================
+
+        else {
+
+          // ==========================================
+          // RESET VERIFIED ACCESS
+          // ==========================================
+
+          profileAccessVerified =
+            false;
+
+
+          profileUserId =
+            "";
+
+          profileUserType =
+            "";
+
+          profileUserMobile =
+            "";
+
+          profileUserName =
+            "";
+
+          profileUserRegisteredSheet =
+            "";
+
+
+          chatbotState =
+            "normal";
+
+
+          // ==========================================
+          // CLEAR PENDING FLOW
+          // ==========================================
+
+          pendingProfileCategory =
+            "";
+
+
+          // ==========================================
+          // SHOW LOGIN / VERIFY MESSAGE
+          // ==========================================
+
+          botMessage(`
+
+            🔐 <b>Please Login / Verify</b>
+
+            <br><br>
+
+            हा मोबाईल नंबर वधू / वर / इतर
+            नोंदणीमध्ये आढळला नाही.
+
+            <br><br>
+
+            कृपया आपला
+            <b>Registered Mobile Number</b>
+            वापरा.
+
+            <br><br>
+
+            नोंदणी केलेली नसल्यास
+            प्रथम आपली नोंदणी करा.
+
+          `);
+
+
+          // ==========================================
+          // GET REGISTRATION LINK
+          // ==========================================
+
+          google.script.run
+
+            .withSuccessHandler(
+              function(data) {
+
+                if (
+                  data &&
+                  data.registration &&
+                  data.registration.url
+                ) {
+
+                  const chat =
+                    document.getElementById(
+                      "chat"
+                    );
+
+
+                  if (!chat) {
+
+                    console.error(
+                      "Chat container not found."
+                    );
+
+                    return;
+
+                  }
+
+
+                  chat.innerHTML += `
+
+                    <div class="menu">
+
+                      <button
+                        onclick="window.open(
+                          '${data.registration.url}',
+                          '_blank'
+                        )"
+                      >
+
+                        📝 Register Now
+
+                      </button>
+
+                    </div>
+
+                  `;
+
+
+                  chat.scrollTop =
+                    chat.scrollHeight;
+
+                }
+
+              }
+            )
+
+
+            .withFailureHandler(
+              function(error) {
+
+                console.error(
+                  "Registration Link Error:",
+                  error
+                );
+
+              }
+            )
+
+
+            .getChatLinks();
 
         }
 
@@ -1467,32 +1852,20 @@ function verifyProfileMobile(mobile) {
     )
 
 
-    .withFailureHandler(
-      function(error) {
-
-        console.error(
-          "Registration Link Error:",
-          error
-        );
-
-      }
-    )
-
-
-    .getChatLinks();
-
-  }
-
-
-
-      }
-    )
-
+    // ==========================================
+    // BACKEND FAILURE
+    // ==========================================
 
     .withFailureHandler(
       function(error) {
 
         hideTyping();
+
+
+        console.error(
+          "Profile Verification Error:",
+          error
+        );
 
 
         botMessage(
@@ -1503,11 +1876,17 @@ function verifyProfileMobile(mobile) {
     )
 
 
+    // ==========================================
+    // EXISTING BACKEND FUNCTION
+    // ==========================================
+
     .verifyProfileSearchAccess(
       cleanMobile
     );
 
 }
+
+
 
 
 function startProfileSearch(type) {
@@ -3686,7 +4065,7 @@ function reactToProfile(
   profileName,
   ownerMobile,
   reaction,
-  button,
+  button
 ) {
 
   // ==========================================
@@ -3722,21 +4101,86 @@ function reactToProfile(
   }
 
 
+  // ==========================================
+  // NORMALIZE REACTION
+  // ==========================================
+
+  const normalizedReaction =
+    String(
+      reaction
+    )
+    .trim()
+    .toUpperCase();
+
+
   const originalText =
     button
       ? button.innerHTML
       : "";
 
 
+  // ==========================================
+  // PREVENT DOUBLE CLICK
+  // ==========================================
+
+  if (button) {
+
+    button.disabled =
+      true;
+
+  }
+
+
+  console.log(
+    "PROFILE REACTION CLICKED:",
+    {
+      type:
+        type,
+
+      profileId:
+        profileId,
+
+      profileName:
+        profileName,
+
+      reaction:
+        normalizedReaction,
+
+      isMatchingProfile:
+        isMatchingProfileCard(
+          type,
+          profileId
+        )
+    }
+  );
+
+
+  // ==========================================
+  // EXISTING BACKEND CALL
+  //
+  // DO NOT CHANGE THIS
+  // ==========================================
+
   google.script.run
 
     .withSuccessHandler(
       function(result) {
 
+        // --------------------------------------
+        // RE-ENABLE BUTTON
+        // --------------------------------------
+
         if (button) {
-          button.disabled = false;
+
+          button.disabled =
+            false;
+
         }
 
+
+        // --------------------------------------
+        // INVALID RESPONSE
+        // --------------------------------------
 
         if (
           !result ||
@@ -3748,57 +4192,197 @@ function reactToProfile(
             result
           );
 
+
           if (button) {
+
             button.innerHTML =
               originalText;
+
           }
+
 
           botMessage(
             "⚠️ " +
             (
-              result && result.message
+              result &&
+              result.message
                 ? result.message
                 : "Reaction save झाली नाही."
             )
           );
+
 
           return;
 
         }
 
 
-        // ====================================
-        // LIKE
-        // ====================================
+        console.log(
+          "PROFILE REACTION SAVED:",
+          {
+            reaction:
+              result.reaction,
 
-        if (
-          result.reaction === "LIKE"
-        ) {
+            relationship:
+              result.relationship
+          }
+        );
 
-         updateReactionButtons(
+
+        // ======================================
+        // EXISTING SEARCH FUNCTIONALITY
+        //
+        // KEEP THIS EXACTLY AS BEFORE
+        // ======================================
+
+        // if (
+        //   result.reaction ===
+        //   "LIKE"
+        // ) {
+
+        //   updateReactionButtons(
+        //     type,
+        //     profileId,
+        //     result.relationship
+        //   );
+
+        // }
+
+
+        // else if (
+        //   result.reaction ===
+        //   "DISLIKE"
+        // ) {
+
+        //   updateReactionButtons(
+        //     type,
+        //     profileId,
+        //     result.relationship
+        //   );
+
+        // }
+
+
+
+
+        // ======================================
+        // CHECK WHETHER THIS IS A MATCHING CARD
+        // ======================================
+
+        const isMatching =
+          isMatchingProfileCard(
+            type,
+            profileId
+          );
+
+
+        // ======================================
+        // EXISTING SEARCH FUNCTIONALITY
+        //
+        // IMPORTANT:
+        // Only run for normal Search profiles.
+        //
+        // Matching profiles have their own
+        // update mechanism.
+        // ======================================
+
+        if (!isMatching) {
+
+          if (
+            result.reaction ===
+            "LIKE"
+          ) {
+
+            updateReactionButtons(
               type,
               profileId,
               result.relationship
+            );
+
+          }
+
+          else if (
+            result.reaction ===
+            "DISLIKE"
+          ) {
+
+            updateReactionButtons(
+              type,
+              profileId,
+              result.relationship
+            );
+
+          }
+
+        }
+
+
+        // ======================================
+        // MATCHING PROFILE UI UPDATE
+        //
+        // Matching has separate UI handling.
+        // ======================================
+
+        if (isMatching) {
+
+          const key =
+            getMatchingReactionKey(
+              type,
+              profileId
+            );
+
+
+          const matchingReaction =
+            String(
+              result.reaction ||
+              reaction
+            )
+            .trim()
+            .toUpperCase();
+
+
+          matchingReactionState[
+            key
+          ] =
+            matchingReaction;
+
+
+          console.log(
+            "MATCHING REACTION STATE UPDATED:",
+            {
+              key:
+                key,
+
+              reaction:
+                matchingReaction
+            }
+          );
+
+
+          updateMatchingReactionUI(
+            type,
+            profileId,
+            matchingReaction
           );
 
         }
 
+        // ======================================
+        // MATCHING PROFILE UI UPDATE
+        //
+        // ADDITIONAL ONLY
+        //
+        // DOES NOT CHANGE EXISTING SEARCH UI
+        // ======================================
 
-        // ====================================
-        // DISLIKE
-        // ====================================
+        // ======================================
+        // MATCHING PROFILE UI UPDATE
+        //
+        // ADDITIONAL ONLY
+        // EXISTING SEARCH UI UNCHANGED
+        // ======================================
 
-        else if (
-          result.reaction === "DISLIKE"
-        ) {
-
-          updateReactionButtons(
-                type,
-                profileId,
-                result.relationship
-            );
-
-        }
+       
 
       }
     )
@@ -3815,7 +4399,9 @@ function reactToProfile(
 
         if (button) {
 
-          button.disabled = false;
+          button.disabled =
+            false;
+
 
           button.innerHTML =
             originalText;
@@ -3826,30 +4412,35 @@ function reactToProfile(
     )
 
 
-.saveProfileReaction(
+    // ========================================
+    // EXISTING BACKEND METHOD
+    //
+    // DO NOT CHANGE PARAMETERS
+    // ========================================
 
-    profileUserMobile,
+    .saveProfileReaction(
 
-    profileUserName,
+      profileUserMobile,
 
-    profileUserRegisteredSheet,
+      profileUserName,
 
-    profileUserType,
+      profileUserRegisteredSheet,
 
-    profileUserId,
+      profileUserType,
 
-    type,
+      profileUserId,
 
-    profileId,
+      type,
 
-    profileName,
+      profileId,
 
-    ownerMobile,
+      profileName,
 
-    reaction
+      ownerMobile,
 
-);
-    
+      normalizedReaction
+
+    );
 
 }
 

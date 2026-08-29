@@ -1,0 +1,599 @@
+<!--
+==========================================
+FILE : MatchingStyles.html
+MODULE : Matching UI
+PURPOSE : Styles for Matching Profiles UI
+
+RESPONSIBILITY
+- Matching screen
+- Matching header
+- Loading / empty / error states
+- Results summary
+- Matching results container
+- Matching ranking information
+
+IMPORTANT
+- Does not modify existing ProfileStyles
+- Does not modify LayoutStyles
+- No JavaScript
+- No backend logic
+==========================================
+-->
+
+<style>
+
+/* ==========================================
+   MATCHING SECTION
+========================================== */
+
+.matching-section {
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+  background: #ffffff;
+
+  min-height: 100%;
+
+}
+
+
+/* ==========================================
+   MATCHING HEADER
+========================================== */
+
+.matching-header {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding: 18px 16px;
+
+  border-bottom: 1px solid #e5e7eb;
+
+  background: #ffffff;
+
+}
+
+
+.matching-header-title {
+
+  font-size: 35px;
+
+  font-weight: 700;
+
+  line-height: 1.3;
+
+}
+
+
+.matching-close-btn {
+
+  flex-shrink: 0;
+
+  width: 52px;
+
+  height: 52px;
+
+  border: none;
+
+  border-radius: 50%;
+
+  background: #f3f4f6;
+
+  cursor: pointer;
+
+  font-size: 28px;
+
+  line-height: 1;
+
+}
+
+
+.matching-close-btn:hover {
+
+  opacity: 0.85;
+
+}
+
+
+.matching-close-btn:active {
+
+  transform: scale(0.96);
+
+}
+
+
+/* ==========================================
+   MATCHING CONTENT
+========================================== */
+
+.matching-content {
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+  padding: 14px;
+
+}
+
+
+/* ==========================================
+   STATE CONTAINER
+========================================== */
+
+.matching-state {
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+  padding: 35px 20px;
+
+  text-align: center;
+
+}
+
+
+.matching-state-icon {
+
+  font-size: 60px;
+
+  line-height: 1.2;
+
+  margin-bottom: 12px;
+
+}
+
+
+.matching-state-title {
+
+  font-size: 35px;
+
+  font-weight: 700;
+
+  line-height: 1.3;
+
+  margin-bottom: 10px;
+
+}
+
+
+.matching-state-message {
+
+  font-size: 30px;
+
+  line-height: 1.5;
+
+  opacity: 0.75;
+
+}
+
+
+/* ==========================================
+   LOADING STATE
+========================================== */
+
+.matching-loading-state {
+
+  padding-top: 50px;
+
+  padding-bottom: 50px;
+
+}
+
+
+.matching-spinner {
+
+  font-size: 55px;
+
+  margin-bottom: 15px;
+
+  animation: matchingPulse 1.2s ease-in-out infinite;
+
+}
+
+
+@keyframes matchingPulse {
+
+  0% {
+
+    opacity: 0.45;
+
+    transform: scale(0.95);
+
+  }
+
+  50% {
+
+    opacity: 1;
+
+    transform: scale(1);
+
+  }
+
+  100% {
+
+    opacity: 0.45;
+
+    transform: scale(0.95);
+
+  }
+
+}
+
+
+/* ==========================================
+   ERROR STATE
+========================================== */
+
+.matching-error-state {
+
+  border: 1px solid #fecaca;
+
+  border-radius: 12px;
+
+  margin-top: 10px;
+
+}
+
+
+.matching-retry-btn {
+
+  margin-top: 20px;
+
+  padding: 18px 28px;
+
+  border: none;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font-size: 30px;
+
+  font-weight: 600;
+
+}
+
+
+.matching-retry-btn:hover {
+
+  opacity: 0.9;
+
+}
+
+
+.matching-retry-btn:active {
+
+  transform: scale(0.98);
+
+}
+
+
+/* ==========================================
+   RESULTS SUMMARY
+========================================== */
+
+.matching-results-summary {
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+  margin-bottom: 12px;
+
+  padding: 14px 16px;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 10px;
+
+  background: #f8fafc;
+
+}
+
+
+.matching-results-summary-text {
+
+  font-size: 30px;
+
+  font-weight: 600;
+
+  line-height: 1.5;
+
+}
+
+
+/* ==========================================
+   RESULTS CONTAINER
+========================================== */
+
+.matching-results-container {
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+}
+
+
+/* ==========================================
+   MATCHING RANKING DETAILS
+========================================== */
+
+.matching-ranking-details {
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+  margin-top: 14px;
+
+  padding: 14px;
+
+  border-top: 1px solid #e5e7eb;
+
+  background: #f8fafc;
+
+  border-radius: 10px;
+
+}
+
+
+/* ==========================================
+   RANKING TITLE
+========================================== */
+
+.matching-ranking-title {
+
+  font-size: 30px;
+
+  font-weight: 700;
+
+  line-height: 1.4;
+
+  margin-bottom: 12px;
+
+}
+
+
+/* ==========================================
+   RANKING ROW
+========================================== */
+
+.matching-ranking-row {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding: 8px 0;
+
+  font-size: 27px;
+
+  line-height: 1.4;
+
+  border-bottom: 1px solid #e5e7eb;
+
+}
+
+
+.matching-ranking-row span {
+
+  flex: 1;
+
+}
+
+
+.matching-ranking-row strong {
+
+  flex-shrink: 0;
+
+  font-weight: 700;
+
+}
+
+
+/* ==========================================
+   FINAL MATCH SCORE
+========================================== */
+
+.matching-ranking-final {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-top: 12px;
+
+  padding: 12px;
+
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  border: 1px solid #dbeafe;
+
+  font-size: 32px;
+
+  font-weight: 700;
+
+  line-height: 1.4;
+
+}
+
+
+.matching-ranking-final span {
+
+  flex: 1;
+
+}
+
+
+.matching-ranking-final strong {
+
+  flex-shrink: 0;
+
+  font-size: 36px;
+
+}
+
+
+/* ==========================================
+   MATCHED EXPECTATION KEYWORDS
+========================================== */
+
+.matching-keywords {
+
+  margin-top: 12px;
+
+  font-size: 25px;
+
+  line-height: 1.6;
+
+  word-break: break-word;
+
+}
+
+
+.matching-keywords-label {
+
+  font-weight: 700;
+
+}
+
+
+/* ==========================================
+   NO RESULTS
+========================================== */
+
+.matching-no-results-state {
+
+  padding-top: 45px;
+
+  padding-bottom: 45px;
+
+}
+
+
+/* ==========================================
+   RESPONSIVE
+========================================== */
+
+@media (max-width: 600px) {
+
+  .matching-header {
+
+    padding: 15px 12px;
+
+  }
+
+
+  .matching-header-title {
+
+    font-size: 30px;
+
+  }
+
+
+  .matching-close-btn {
+
+    width: 48px;
+
+    height: 48px;
+
+    font-size: 25px;
+
+  }
+
+
+  .matching-content {
+
+    padding: 10px;
+
+  }
+
+
+  .matching-state {
+
+    padding-left: 12px;
+
+    padding-right: 12px;
+
+  }
+
+
+  .matching-state-title {
+
+    font-size: 30px;
+
+  }
+
+
+  .matching-state-message {
+
+    font-size: 26px;
+
+  }
+
+
+  .matching-results-summary-text {
+
+    font-size: 26px;
+
+  }
+
+
+  .matching-ranking-title {
+
+    font-size: 27px;
+
+  }
+
+
+  .matching-ranking-row {
+
+    font-size: 24px;
+
+  }
+
+
+  .matching-ranking-final {
+
+    font-size: 28px;
+
+  }
+
+
+  .matching-ranking-final strong {
+
+    font-size: 32px;
+
+  }
+
+
+  .matching-keywords {
+
+    font-size: 22px;
+
+  }
+
+}
+
+</style>

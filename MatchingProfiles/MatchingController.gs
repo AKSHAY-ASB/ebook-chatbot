@@ -376,6 +376,109 @@ function normalizeMatchingCandidateProfile(
     );
 
 
+      // ==========================================================
+      // PROFILE PHOTO
+      // ==========================================================
+      //
+      // IMPORTANT:
+      // Use the SAME photo header names already used in the project.
+      // Do NOT rename the Google Sheet photo column.
+      // ==========================================================
+
+      const photoRaw =
+        getMatchingRawCell(
+          headers,
+          row,
+          [
+            "फोटो : (फोटो हा पासपोर्ट स्वरूपाचा असावा)",
+            "फोटो :",
+            "फोटो",
+            "Photo :",
+            "Photo",
+            "Profile Photo",
+            "Profile photo",
+            "Photo URL",
+            "Photo Url",
+            "photo"
+          ]
+        );
+
+
+      // ==========================================================
+      // CONVERT PROFILE PHOTO URL
+      // ==========================================================
+
+      let photo =
+        String(
+          photoRaw || ""
+        ).trim();
+
+
+      if (
+        photo &&
+        typeof convertProfilePhotoUrl === "function"
+      ) {
+
+        try {
+
+          const convertedPhoto =
+            convertProfilePhotoUrl(
+              photo
+            );
+
+          if (
+            convertedPhoto &&
+            String(
+              convertedPhoto
+            ).trim()
+          ) {
+
+            photo =
+              String(
+                convertedPhoto
+              ).trim();
+
+          }
+
+        }
+        catch (error) {
+
+          console.warn(
+            "Matching profile photo conversion failed:",
+            error
+          );
+
+        }
+
+      }
+
+
+      // ==========================================================
+      // PHOTO DEBUG
+      // ==========================================================
+
+      console.log(
+        "MATCHING PHOTO:",
+        JSON.stringify(
+          {
+            id:
+              id,
+
+            name:
+              name,
+
+            photoRaw:
+              photoRaw,
+
+            photo:
+              photo
+          },
+          null,
+          2
+        )
+      );
+
+
   // ==========================================================
   // DISTRICT
   // ==========================================================
@@ -556,6 +659,23 @@ function normalizeMatchingCandidateProfile(
         "Profile Type",
         "Gender"
       ]
+    );
+
+
+
+
+    // ==========================================================
+    // PHOTO DEBUG
+    // ==========================================================
+
+    console.log(
+        "MATCHING PHOTO:",
+        JSON.stringify({
+            id: id,
+            name: name,
+            photoRaw: photoRaw,
+            photo: photo
+        })
     );
 
 
@@ -995,90 +1115,97 @@ function normalizeMatchingCandidateProfile(
 
   return {
 
+    // ========================================================
+    // BASIC
+    // ========================================================
+
     id:
-      id,
+        id,
 
     type:
-      profileType,
+        profileType,
 
     rawType:
-      genderRaw,
+        genderRaw,
 
     name:
-      name,
+        name,
 
     mobile1:
-      mobile1,
+        mobile1,
 
     mobile2:
-      mobile2,
+        mobile2,
+
+
+    // ========================================================
+    // LOCATION
+    // ========================================================
 
     district:
-      normalizedDistrict,
+         normalizedDistrict,
 
     address:
-      address,
+        address,
+
+
+    // ========================================================
+    // BASIC DETAILS
+    // ========================================================
 
     ageRaw:
-      ageRaw,
-
-    age:
-      normalizedAge,
+        ageRaw,
 
     heightRaw:
-      heightRaw,
-
-    height:
-      normalizedHeight,
+        heightRaw,
 
     incomeRaw:
-      incomeRaw,
-
-    income:
-      normalizedIncome,
+        incomeRaw,
 
     casteRaw:
-      casteRaw,
-
-    caste:
-      normalizedCaste,
+        casteRaw,
 
     rashiRaw:
-      rashiRaw,
+        rashiRaw,
 
-    rashi:
-      normalizedRashi,
+
+    // ========================================================
+    // EDUCATION / PROFESSION
+    // ========================================================
 
     educationRaw:
-      educationRaw,
-
-    education:
-      normalizedEducation,
+        educationRaw,
 
     professionRaw:
-      professionRaw,
-
-    profession:
-      normalizedProfession,
-
-    employmentType:
-      employmentType,
+        professionRaw,
 
     expectationRaw:
-      expectationRaw,
+        expectationRaw,
 
-    expectation:
-      parsedExpectation,
+    education:
+        normalizedEducation,
+
+    profession:
+        normalizedProfession,
+
 
     // ========================================================
-    // ACTUAL PROFILE CRITERIA
+    // ⭐ PROFILE PHOTO
     // ========================================================
 
-    actualProfileCriteria:
-      actualProfileCriteria,
+    photoRaw:
+        photoRaw,
+
+    photo:
+        photo,
+
+
+    // ========================================================
+    // SOURCE ROW
+    // ========================================================
 
     sourceRow:
-      row
+        row
 
   };
 
@@ -1613,6 +1740,84 @@ function testMatchingController() {
 
 }
 
+
+
+
+function testMatchingPhoto() {
+
+  const result =
+    getNormalizedMatchingCandidates(
+      "bride"
+    );
+
+
+  if (
+    !result ||
+    !result.success
+  ) {
+
+    console.log(
+      "Matching candidates failed:",
+      result
+    );
+
+    return;
+
+  }
+
+
+  const profiles =
+    result.profiles || [];
+
+
+  console.log(
+    "======================================"
+  );
+
+  console.log(
+    "MATCHING PHOTO TEST"
+  );
+
+  console.log(
+    "======================================"
+  );
+
+
+  profiles
+    .slice(0, 10)
+    .forEach(
+      function(profile) {
+
+        console.log(
+          JSON.stringify(
+            {
+              id:
+                profile.id,
+
+              name:
+                profile.name,
+
+              photoRaw:
+                profile.photoRaw,
+
+              photo:
+                profile.photo
+            },
+            null,
+            2
+          )
+        );
+
+      }
+    );
+
+
+  return profiles.slice(
+    0,
+    10
+  );
+
+}
 
 
 // ============================================================

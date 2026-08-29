@@ -1,0 +1,204 @@
+
+
+
+
+<!--
+==========================================
+FILE : MatchingUI.html
+MODULE : Matching UI
+PURPOSE : Matching Profiles screen shell
+
+RESPONSIBILITY
+- Matching page/container
+- Header
+- Loading state
+- Empty state
+- Error state
+- Results container
+
+IMPORTANT
+- No backend calls
+- No matching calculation
+- No profile-card duplication
+- Existing Profile components will be reused
+==========================================
+-->
+
+<div
+  id="matchingSection"
+  class="matching-section"
+  style="display:none;"
+>
+
+  <!-- ======================================
+       MATCHING HEADER
+  ======================================= -->
+
+  <div class="matching-header">
+
+    <div class="matching-header-title">
+
+      ❤️ Matching Profiles
+
+    </div>
+
+    <button
+      type="button"
+      class="matching-close-btn"
+      onclick="closeMatchingProfiles()"
+    >
+
+      ✕
+
+    </button>
+
+  </div>
+
+
+  <!-- ======================================
+       MATCHING CONTENT
+  ======================================= -->
+
+  <div class="matching-content">
+
+
+    <!-- ====================================
+         INITIAL / EMPTY STATE
+    ===================================== -->
+
+    <div
+      id="matchingEmptyState"
+      class="matching-state matching-empty-state"
+    >
+
+      <div class="matching-state-icon">
+        ❤️
+      </div>
+
+      <div class="matching-state-title">
+        Find Your Matches
+      </div>
+
+      <div class="matching-state-message">
+        Your compatible profiles will appear here.
+      </div>
+
+    </div>
+
+
+    <!-- ====================================
+         LOADING STATE
+    ===================================== -->
+
+    <div
+      id="matchingLoadingState"
+      class="matching-state matching-loading-state"
+      style="display:none;"
+    >
+
+      <div class="matching-spinner">
+        ⏳
+      </div>
+
+      <div class="matching-state-title">
+        Finding compatible profiles...
+      </div>
+
+      <div class="matching-state-message">
+        Please wait.
+      </div>
+
+    </div>
+
+
+    <!-- ====================================
+         ERROR STATE
+    ===================================== -->
+
+    <div
+      id="matchingErrorState"
+      class="matching-state matching-error-state"
+      style="display:none;"
+    >
+
+      <div class="matching-state-icon">
+        ⚠️
+      </div>
+
+      <div
+        id="matchingErrorMessage"
+        class="matching-state-message"
+      >
+        Unable to load matching profiles.
+      </div>
+
+      <button
+        type="button"
+        class="matching-retry-btn"
+        onclick="loadMatchingProfiles()"
+      >
+
+        🔄 Retry
+
+      </button>
+
+    </div>
+
+
+    <!-- ====================================
+         RESULTS SUMMARY
+    ===================================== -->
+
+    <div
+      id="matchingResultsSummary"
+      class="matching-results-summary"
+      style="display:none;"
+    >
+
+      <div
+        id="matchingResultsSummaryText"
+        class="matching-results-summary-text"
+      ></div>
+
+    </div>
+
+
+    <!-- ====================================
+         RESULTS CONTAINER
+    ===================================== -->
+
+    <div
+      id="matchingResultsContainer"
+      class="matching-results-container"
+    ></div>
+
+
+    <!-- ====================================
+         NO RESULTS STATE
+    ===================================== -->
+
+    <div
+      id="matchingNoResultsState"
+      class="matching-state matching-no-results-state"
+      style="display:none;"
+    >
+
+      <div class="matching-state-icon">
+        💔
+      </div>
+
+      <div class="matching-state-title">
+        No Matching Profiles Found
+      </div>
+
+      <div class="matching-state-message">
+        No compatible profiles are available at this time.
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+

@@ -15121,3 +15121,1773 @@ function testPhase2MutualProfileFieldDiagnostic() {
 
 }
 
+
+
+
+
+
+/**
+ * ==========================================================
+ * FUNCTION : getActualProfileMatchesForUI
+ * MODULE   : Phase 2 - Matching UI Controller
+ *
+ * PURPOSE
+ *   Provide ranked matching profiles to the UI.
+ *
+ * SUPPORTED PROFILE TYPES
+ *   - bride
+ *   - groom
+ *   - other
+ *
+ * IMPORTANT
+ *   - UI must NOT calculate scores.
+ *   - Existing Phase 2 ranking logic remains authoritative.
+ *   - This function is the UI-facing entry point.
+ * ==========================================================
+ */
+
+function getActualProfileMatchesForUI(
+  viewerId,
+  viewerType
+) {
+
+  // ========================================================
+  // NORMALIZE INPUT
+  // ========================================================
+
+  const safeViewerId =
+    String(
+      viewerId || ""
+    )
+    .trim();
+
+
+  const safeViewerType =
+    String(
+      viewerType || ""
+    )
+    .trim()
+    .toLowerCase();
+
+
+  // ========================================================
+  // VALIDATE VIEWER
+  // ========================================================
+
+  if (
+    !safeViewerId
+  ) {
+
+    return {
+
+      success: false,
+
+      message:
+        "Viewer ID is required.",
+
+      viewerId:
+        "",
+
+      viewerType:
+        safeViewerType,
+
+      totalCandidates:
+        0,
+
+      topMatches:
+        []
+
+    };
+
+  }
+
+
+  // ========================================================
+  // VALIDATE PROFILE TYPE
+  // ========================================================
+
+  const allowedTypes = [
+
+    "bride",
+
+    "groom",
+
+    "other"
+
+  ];
+
+
+  if (
+    !allowedTypes.includes(
+      safeViewerType
+    )
+  ) {
+
+    return {
+
+      success: false,
+
+      message:
+        "Invalid viewer profile type.",
+
+      viewerId:
+        safeViewerId,
+
+      viewerType:
+        safeViewerType,
+
+      totalCandidates:
+        0,
+
+      topMatches:
+        []
+
+    };
+
+  }
+
+
+  // ========================================================
+  // TEMPORARY PHASE 2 BRIDGE
+  //
+  // IMPORTANT:
+  // We are NOT duplicating ranking logic here.
+  //
+  // The existing test function currently contains the
+  // verified Phase 2 ranking pipeline.
+  //
+  // This bridge is intentionally isolated so that the UI
+  // has one stable backend entry point.
+  // ========================================================
+
+  try {
+
+    /*
+     * ------------------------------------------------------
+     * IMPORTANT
+     *
+     * testActualBrideRankingV2() currently uses hard-coded:
+     *
+     *   ID001
+     *   groom
+     *
+     * Therefore we should NOT blindly call it here for every
+     * viewer, because that would return ID001's ranking.
+     *
+     * The actual reusable ranking engine will be connected
+     * in Step 4B.
+     * ------------------------------------------------------
+     */
+
+
+    return {
+
+      success: true,
+
+      status:
+        "UI_CONTROLLER_READY",
+
+      message:
+        "Matching UI controller is ready. Ranking engine connection pending.",
+
+      viewerId:
+        safeViewerId,
+
+      viewerType:
+        safeViewerType,
+
+      totalCandidates:
+        0,
+
+      topMatches:
+        []
+
+    };
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "getActualProfileMatchesForUI ERROR:",
+      error
+    );
+
+
+    return {
+
+      success: false,
+
+      message:
+        "Unable to load matching profiles.",
+
+      viewerId:
+        safeViewerId,
+
+      viewerType:
+        safeViewerType,
+
+      totalCandidates:
+        0,
+
+      topMatches:
+        []
+
+    };
+
+  }
+
+}
+
+
+
+
+/**
+ * ==========================================================
+ * FUNCTION : calculateActualProfileRanking
+ * MODULE   : Phase 2 - Reusable Ranking Engine
+ *
+ * PURPOSE
+ *   Common ranking engine for all profile types.
+ *
+ * MATCHING RULE
+ *
+ *   bride -> groom
+ *   groom -> bride
+ *   other -> other
+ *
+ * IMPORTANT
+ *   - No UI logic
+ *   - No hard-coded viewer ID
+ *   - Uses existing verified Phase 2 functions
+ *   - Candidate loop is maintained from the working
+ *     testActualBrideRankingV2() pipeline
+ * ==========================================================
+ */
+
+function calculateActualProfileRanking(
+  viewerId,
+  viewerType
+) {
+
+  // ==========================================================
+  // CONFIG
+  // ==========================================================
+
+  const safeViewerId =
+    String(
+      viewerId || ""
+    )
+    .trim();
+
+
+  const safeViewerType =
+    String(
+      viewerType || ""
+    )
+    .trim()
+    .toLowerCase();
+
+
+  // ==========================================================
+  // VALIDATION
+  // ==========================================================
+
+  if (
+    !safeViewerId
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "Viewer ID is required.",
+
+      viewerId:
+        safeViewerId,
+
+      viewerType:
+        safeViewerType,
+
+      summary:
+        null,
+
+      top10:
+        [],
+
+      allResults:
+        []
+
+    };
+
+  }
+
+
+  if (
+    safeViewerType !== "bride" &&
+    safeViewerType !== "groom" &&
+    safeViewerType !== "other"
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "Invalid viewer profile type.",
+
+      viewerId:
+        safeViewerId,
+
+      viewerType:
+        safeViewerType,
+
+      summary:
+        null,
+
+      top10:
+        [],
+
+      allResults:
+        []
+
+    };
+
+  }
+
+
+  // ==========================================================
+  // LOAD VIEWER
+  // ==========================================================
+
+  const viewer =
+    getMatchingViewerProfile(
+      safeViewerId,
+      safeViewerType
+    );
+
+
+  if (
+    !viewer ||
+    viewer.success !== true ||
+    !viewer.profile
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "Unable to load viewer profile.",
+
+      viewerId:
+        safeViewerId,
+
+      viewerType:
+        safeViewerType,
+
+      summary:
+        null,
+
+      top10:
+        [],
+
+      allResults:
+        []
+
+    };
+
+  }
+
+
+  const viewerProfile =
+    viewer.profile;
+
+
+  // ==========================================================
+  // VIEWER EXPECTATION
+  // ==========================================================
+
+  const viewerExpectation =
+    String(
+      viewer.expectation ||
+      viewer.expectationRaw ||
+      viewerProfile.expectationRaw ||
+      ""
+    )
+    .trim();
+
+
+  if (
+    !viewerExpectation
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "Viewer expectation is required.",
+
+      viewerId:
+        safeViewerId,
+
+      viewerType:
+        safeViewerType,
+
+      viewerName:
+        viewer.name || "",
+
+      summary:
+        null,
+
+      top10:
+        [],
+
+      allResults:
+        []
+
+    };
+
+  }
+
+
+  // ==========================================================
+  // VIEWER EXPECTATION CRITERIA
+  // ==========================================================
+
+  const expectationCriteria =
+    parseExpectationCriteria(
+      viewerExpectation
+    );
+
+
+  if (
+    !expectationCriteria ||
+    typeof expectationCriteria !== "object"
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "Unable to parse expectation criteria.",
+
+      viewerId:
+        safeViewerId,
+
+      viewerType:
+        safeViewerType,
+
+      viewerName:
+        viewer.name || "",
+
+      summary:
+        null,
+
+      top10:
+        [],
+
+      allResults:
+        []
+
+    };
+
+  }
+
+
+  // ==========================================================
+  // VIEWER ACTUAL PROFILE CRITERIA
+  // ==========================================================
+
+  let actualProfileCriteria =
+    null;
+
+
+  if (
+    viewerProfile.actualProfileCriteria &&
+    typeof viewerProfile.actualProfileCriteria ===
+      "object"
+  ) {
+
+    actualProfileCriteria =
+      viewerProfile.actualProfileCriteria;
+
+  }
+
+
+  // ==========================================================
+  // FALLBACK
+  // ==========================================================
+
+  if (
+    !actualProfileCriteria
+  ) {
+
+    actualProfileCriteria = {
+
+      district:
+        viewerProfile.district &&
+        typeof viewerProfile.district === "object"
+          ? viewerProfile.district.raw || ""
+          : viewerProfile.district || "",
+
+
+      education:
+        viewerProfile.education &&
+        typeof viewerProfile.education === "object"
+          ? viewerProfile.education.raw || ""
+          : viewerProfile.education || "",
+
+
+      profession:
+        viewerProfile.profession &&
+        typeof viewerProfile.profession === "object"
+          ? viewerProfile.profession.raw || ""
+          : viewerProfile.profession || "",
+
+
+      employmentType:
+        viewerProfile.employmentType ||
+        (
+          viewerProfile.profession &&
+          viewerProfile.profession.employmentType
+        ) ||
+        "NOT_SPECIFIED",
+
+
+      caste:
+        viewerProfile.caste &&
+        typeof viewerProfile.caste === "object"
+          ? viewerProfile.caste.raw || ""
+          : viewerProfile.caste || "",
+
+
+      rashi:
+        viewerProfile.rashi &&
+        typeof viewerProfile.rashi === "object"
+          ? viewerProfile.rashi.raw || ""
+          : viewerProfile.rashi || "",
+
+
+      age:
+        viewerProfile.age &&
+        viewerProfile.age.decimalAge != null
+          ? viewerProfile.age.decimalAge
+          : null,
+
+
+      height:
+        viewerProfile.height &&
+        viewerProfile.height.totalInches != null
+          ? viewerProfile.height.totalInches
+          : null,
+
+
+      income:
+        viewerProfile.income &&
+        typeof viewerProfile.income === "object"
+
+          ? (
+              viewerProfile.income.min != null &&
+              viewerProfile.income.max != null
+
+                ? {
+                    min:
+                      viewerProfile.income.min,
+
+                    max:
+                      viewerProfile.income.max
+                  }
+
+                : viewerProfile.income.value != null
+
+                  ? viewerProfile.income.value
+
+                  : ""
+            )
+
+          : viewerProfile.income || ""
+
+    };
+
+  }
+
+
+  // ==========================================================
+  // LOAD CANDIDATES
+  // ==========================================================
+
+  const candidateType =
+    getOppositeMatchingProfileType(
+      safeViewerType
+    );
+
+
+  if (
+    !candidateType
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "Unable to determine candidate profile type.",
+
+      viewerId:
+        safeViewerId,
+
+      viewerType:
+        safeViewerType,
+
+      candidateType:
+        "",
+
+      summary:
+        null,
+
+      top10:
+        [],
+
+      allResults:
+        []
+
+    };
+
+  }
+
+
+  const candidateResult =
+    getNormalizedMatchingCandidates(
+      candidateType
+    );
+
+
+  if (
+    !candidateResult ||
+    candidateResult.success !== true
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "Unable to load candidate profiles.",
+
+      viewerId:
+        safeViewerId,
+
+      viewerType:
+        safeViewerType,
+
+      candidateType:
+        candidateType,
+
+      summary:
+        null,
+
+      top10:
+        [],
+
+      allResults:
+        []
+
+    };
+
+  }
+
+
+  const profiles =
+    Array.isArray(
+      candidateResult.profiles
+    )
+      ? candidateResult.profiles
+      : [];
+
+
+  if (
+    profiles.length === 0
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        "No candidate profiles found.",
+
+      viewerId:
+        safeViewerId,
+
+      viewerType:
+        safeViewerType,
+
+      candidateType:
+        candidateType,
+
+      summary:
+        null,
+
+      top10:
+        [],
+
+      allResults:
+        []
+
+    };
+
+  }
+
+
+  // ==========================================================
+  // RESULTS
+  // ==========================================================
+
+  const results = [];
+
+
+  let diagnostic = {
+
+    loaded:
+      profiles.length,
+
+    invalidProfile:
+      0,
+
+    mutualHardFail:
+      0,
+
+    profileGateFail:
+      0,
+
+    accepted:
+      0
+
+  };
+
+
+  // ==========================================================
+  // PROCESS EVERY CANDIDATE
+  // ==========================================================
+
+  profiles.forEach(
+    function(profile) {
+
+      try {
+
+        // ------------------------------------------------------
+        // BASIC VALIDATION
+        // ------------------------------------------------------
+
+        if (
+          !profile ||
+          !profile.id ||
+          !profile.name
+        ) {
+
+          diagnostic.invalidProfile++;
+
+          return;
+
+        }
+
+
+        // ------------------------------------------------------
+        // SKIP SAME PROFILE
+        // ------------------------------------------------------
+
+        if (
+          String(profile.id).trim() ===
+          String(safeViewerId).trim()
+        ) {
+
+          return;
+
+        }
+
+
+        // ------------------------------------------------------
+        // NORMALIZE CANDIDATE
+        // ------------------------------------------------------
+
+        const normalizedResult =
+          normalizeCandidateCriteria(
+            profile
+          );
+
+
+        if (
+          !normalizedResult ||
+          normalizedResult.success !== true ||
+          !normalizedResult.criteria
+        ) {
+
+          diagnostic.invalidProfile++;
+
+          return;
+
+        }
+
+
+        const compatibilityCandidate =
+          normalizedResult.criteria || {};
+
+
+        // ------------------------------------------------------
+        // PRESERVE ORIGINAL ACTUAL PROFILE CRITERIA
+        // ------------------------------------------------------
+
+        compatibilityCandidate.actualProfileCriteria =
+          (
+            profile &&
+            profile.actualProfileCriteria
+          )
+            ? profile.actualProfileCriteria
+            : {};
+
+
+        // ------------------------------------------------------
+        // CANDIDATE EXPECTATION
+        // ------------------------------------------------------
+
+        const candidateExpectation =
+          String(
+            compatibilityCandidate.expectationRaw ||
+            profile.expectationRaw ||
+            profile.expectation ||
+            ""
+          )
+          .trim();
+
+
+        const hasExpectation =
+          candidateExpectation.length > 0;
+
+
+        // ------------------------------------------------------
+        // MEANINGFUL EXPECTATION
+        // ------------------------------------------------------
+
+        let hasMeaningfulExpectation =
+          false;
+
+
+        if (
+          typeof hasMeaningfulMatchingExpectation ===
+          "function"
+        ) {
+
+          hasMeaningfulExpectation =
+            hasMeaningfulMatchingExpectation(
+              candidateExpectation
+            ) === true;
+
+        }
+
+        else {
+
+          hasMeaningfulExpectation =
+            hasExpectation;
+
+        }
+
+
+        // ======================================================
+        // PHASE 1 — VIEWER → CANDIDATE HARD
+        // ======================================================
+
+        let viewerToCandidateHard = {
+
+          hardMatch:
+            false,
+
+          matchStatus:
+            "NO_HARD_CRITERIA",
+
+          applicableCriteria:
+            0,
+
+          matchedCriteria:
+            0,
+
+          failedCriteria:
+            []
+
+        };
+
+
+        try {
+
+          if (
+            typeof evaluateCandidateMatch ===
+            "function"
+          ) {
+
+            viewerToCandidateHard =
+              evaluateCandidateMatch(
+                profile,
+                expectationCriteria
+              ) ||
+              viewerToCandidateHard;
+
+          }
+
+        }
+
+        catch (error) {
+
+          console.error(
+            "VIEWER → CANDIDATE HARD ERROR:",
+            error
+          );
+
+        }
+
+
+        // ======================================================
+        // VIEWER → CANDIDATE EXPECTATION
+        // ======================================================
+
+        let viewerToCandidateExpectation = {
+
+          applicable:
+            false,
+
+          score:
+            0,
+
+          maxScore:
+            0,
+
+          percentage:
+            0,
+
+          matchedKeywords:
+            []
+
+        };
+
+
+        if (
+          hasMeaningfulExpectation &&
+          typeof calculateWeightedExpectationCompatibility ===
+            "function"
+        ) {
+
+          try {
+
+            viewerToCandidateExpectation =
+              calculateWeightedExpectationCompatibility(
+                viewerExpectation,
+                candidateExpectation
+              ) ||
+              viewerToCandidateExpectation;
+
+          }
+
+          catch (error) {
+
+            console.error(
+              "VIEWER → CANDIDATE EXPECTATION ERROR:",
+              error
+            );
+
+          }
+
+        }
+
+
+        // ======================================================
+        // VIEWER → CANDIDATE PROFILE
+        // ======================================================
+
+        let viewerToCandidateProfile = {
+
+          applicable:
+            false,
+
+          percentage:
+            0,
+
+          matched:
+            0,
+
+          failed:
+            0,
+
+          unknown:
+            0,
+
+          totalChecks:
+            0,
+
+          matchedCriteria:
+            [],
+
+          failedCriteria:
+            [],
+
+          unknownCriteria:
+            []
+
+        };
+
+
+        if (
+          actualProfileCriteria &&
+          typeof calculateActualProfileCompatibility ===
+            "function"
+        ) {
+
+          try {
+
+            viewerToCandidateProfile =
+              calculateActualProfileCompatibility(
+                actualProfileCriteria,
+                compatibilityCandidate
+              ) ||
+              viewerToCandidateProfile;
+
+          }
+
+          catch (error) {
+
+            console.error(
+              "VIEWER → CANDIDATE PROFILE ERROR:",
+              error
+            );
+
+          }
+
+        }
+
+
+        // ======================================================
+        // PHASE 2 — CANDIDATE ACTUAL PROFILE CRITERIA
+        // ======================================================
+
+        const candidateActualProfileCriteria =
+          compatibilityCandidate.actualProfileCriteria &&
+          typeof compatibilityCandidate.actualProfileCriteria ===
+            "object"
+
+            ? compatibilityCandidate.actualProfileCriteria
+
+            : null;
+
+
+        // ======================================================
+        // PHASE 2 — CANDIDATE → VIEWER HARD
+        // ======================================================
+
+        let candidateToViewerHard = {
+
+          hardMatch:
+            false,
+
+          matchStatus:
+            "NO_HARD_CRITERIA",
+
+          applicableCriteria:
+            0,
+
+          matchedCriteria:
+            0,
+
+          failedCriteria:
+            []
+
+        };
+
+
+        if (
+          candidateActualProfileCriteria
+        ) {
+
+          try {
+
+            candidateToViewerHard =
+              evaluateCandidateMatch(
+                viewerProfile,
+                parseExpectationCriteria(
+                  candidateExpectation
+                )
+              ) ||
+              candidateToViewerHard;
+
+          }
+
+          catch (error) {
+
+            console.error(
+              "CANDIDATE → VIEWER HARD ERROR:",
+              error
+            );
+
+          }
+
+        }
+
+
+        // ======================================================
+        // PHASE 2 — MUTUAL HARD
+        // ======================================================
+
+        const viewerHardFailed =
+          viewerToCandidateHard &&
+          viewerToCandidateHard.matchStatus !==
+            "HARD_MATCH" &&
+          viewerToCandidateHard.matchStatus !==
+            "NO_HARD_CRITERIA";
+
+
+        const candidateHardFailed =
+          candidateToViewerHard &&
+          candidateToViewerHard.matchStatus !==
+            "HARD_MATCH" &&
+          candidateToViewerHard.matchStatus !==
+            "NO_HARD_CRITERIA";
+
+
+        const mutualHardMatch =
+          !viewerHardFailed &&
+          !candidateHardFailed;
+
+
+        // ======================================================
+        // PHASE 2 — MUTUAL PROFILE
+        // ======================================================
+
+        let mutualProfile = {
+
+          applicable:
+            false,
+
+          percentage:
+            0,
+
+          matched:
+            0,
+
+          failed:
+            0,
+
+          unknown:
+            0,
+
+          totalChecks:
+            0
+
+        };
+
+
+        try {
+
+          if (
+            typeof calculateMutualProfileCompatibility ===
+            "function"
+          ) {
+
+            mutualProfile =
+              calculateMutualProfileCompatibility(
+                viewerProfile,
+                compatibilityCandidate
+              ) ||
+              mutualProfile;
+
+          }
+
+        }
+
+        catch (error) {
+
+          console.error(
+            "MUTUAL PROFILE ERROR:",
+            error
+          );
+
+        }
+
+
+        // ======================================================
+        // PHASE 2 — MUTUAL EXPECTATION
+        // ======================================================
+
+        let mutualExpectation = {
+
+          applicable:
+            false,
+
+          score:
+            0,
+
+          maxScore:
+            0,
+
+          percentage:
+            0,
+
+          matchedKeywords:
+            []
+
+        };
+
+
+        try {
+
+          const candidateToViewerExpectation =
+            calculateWeightedExpectationCompatibility(
+              candidateExpectation,
+              viewerExpectation
+            );
+
+
+          mutualExpectation =
+            calculateMutualExpectationCompatibility(
+              viewerToCandidateExpectation,
+              candidateToViewerExpectation
+            ) ||
+            mutualExpectation;
+
+        }
+
+        catch (error) {
+
+          console.error(
+            "MUTUAL EXPECTATION ERROR:",
+            error
+          );
+
+        }
+
+
+        // ======================================================
+        // PHASE 2 — FINAL MUTUAL SCORE
+        // ======================================================
+
+        let finalMutual = {
+
+          finalScore:
+            0,
+
+          finalPercentage:
+            0,
+
+          hardScore:
+            0,
+
+          expectationScore:
+            0,
+
+          profileScore:
+            0
+
+        };
+
+
+        try {
+
+          finalMutual =
+            calculateFinalMutualCompatibilityScore(
+              mutualHardMatch,
+              mutualExpectation,
+              mutualProfile
+            ) ||
+            finalMutual;
+
+        }
+
+        catch (error) {
+
+          console.error(
+            "FINAL MUTUAL SCORE ERROR:",
+            error
+          );
+
+        }
+
+
+        // ======================================================
+        // PHASE 2 FINAL GATE
+        // ======================================================
+
+        if (
+          mutualHardMatch !== true
+        ) {
+
+          diagnostic.mutualHardFail++;
+
+          return;
+
+        }
+
+
+        // ======================================================
+        // SAVE RESULT
+        // ======================================================
+
+        diagnostic.accepted++;
+
+
+        results.push({
+
+          id:
+            profile.id,
+
+          name:
+            profile.name,
+
+          type:
+            profile.type,
+
+
+          hasExpectation:
+            hasExpectation,
+
+          hasMeaningfulExpectation:
+            hasMeaningfulExpectation,
+
+
+          // ----------------------------------------------------
+          // MUTUAL HARD
+          // ----------------------------------------------------
+
+          hardMatch:
+            mutualHardMatch,
+
+          matchStatus:
+            mutualHardMatch
+              ? "MUTUAL_HARD_MATCH"
+              : "MUTUAL_HARD_FAILURE",
+
+
+          // ----------------------------------------------------
+          // MUTUAL HARD SCORE
+          // ----------------------------------------------------
+
+          hardScore:
+            Number(
+              finalMutual.hardScore
+            ) || 0,
+
+
+          // ----------------------------------------------------
+          // MUTUAL EXPECTATION
+          // ----------------------------------------------------
+
+          expectationCompatibilityScore:
+            Number(
+              mutualExpectation.score
+            ) || 0,
+
+          expectationCompatibilityMaxScore:
+            Number(
+              mutualExpectation.maxScore
+            ) || 0,
+
+          expectationCompatibilityPercentage:
+            Number(
+              mutualExpectation.percentage
+            ) || 0,
+
+          matchedExpectationKeywords:
+            Array.isArray(
+              mutualExpectation.matchedKeywords
+            )
+              ? mutualExpectation.matchedKeywords
+              : [],
+
+
+          // ----------------------------------------------------
+          // MUTUAL PROFILE
+          // ----------------------------------------------------
+
+          profileCompatibilityApplicable:
+            mutualProfile.applicable === true,
+
+          profileCompatibilityPercentage:
+            Number(
+              mutualProfile.percentage
+            ) || 0,
+
+          profileMatched:
+            Number(
+              mutualProfile.matched
+            ) || 0,
+
+          profileFailed:
+            Number(
+              mutualProfile.failed
+            ) || 0,
+
+          profileUnknown:
+            Number(
+              mutualProfile.unknown
+            ) || 0,
+
+          profileTotalChecks:
+            Number(
+              mutualProfile.totalChecks
+            ) || 0,
+
+
+          // ----------------------------------------------------
+          // FINAL MUTUAL SCORE
+          // ----------------------------------------------------
+
+          finalScore:
+            Number(
+              finalMutual.finalScore
+            ) || 0,
+
+          finalPercentage:
+            Number(
+              finalMutual.finalPercentage
+            ) || 0,
+
+          rankingScore:
+            Number(
+              finalMutual.finalScore
+            ) || 0,
+
+          rankingPercentage:
+            Number(
+              finalMutual.finalPercentage
+            ) || 0,
+
+
+          rankingMode:
+            "FINAL_MUTUAL_COMPATIBILITY"
+
+        });
+
+      }
+
+      catch (error) {
+
+        if (
+          !profile ||
+          !profile.id ||
+          !profile.name
+        ) {
+
+          diagnostic.invalidProfile++;
+
+        }
+
+        console.error(
+          "CANDIDATE PROCESSING ERROR:",
+          error
+        );
+
+        // Never stop complete ranking because of
+        // one candidate.
+
+      }
+
+    }
+  );
+
+
+  // ==========================================================
+  // REMOVE DUPLICATES
+  // ==========================================================
+
+  const uniqueResultsMap =
+    new Map();
+
+
+  results.forEach(
+    function(item) {
+
+      const key =
+        String(
+          item.id || ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+      if (
+        !key
+      ) {
+
+        return;
+
+      }
+
+
+      const existing =
+        uniqueResultsMap.get(
+          key
+        );
+
+
+      if (
+        !existing ||
+        item.rankingScore >
+        existing.rankingScore
+      ) {
+
+        uniqueResultsMap.set(
+          key,
+          item
+        );
+
+      }
+
+    }
+  );
+
+
+  const uniqueResults =
+    Array.from(
+      uniqueResultsMap.values()
+    );
+
+
+  // ==========================================================
+  // SORT — FINAL MUTUAL RANKING
+  // ==========================================================
+
+  uniqueResults.sort(
+    function(a, b) {
+
+      // ------------------------------------------------------
+      // 1. MUTUAL HARD MATCH
+      // ------------------------------------------------------
+
+      if (
+        a.hardMatch !==
+        b.hardMatch
+      ) {
+
+        return a.hardMatch
+          ? -1
+          : 1;
+
+      }
+
+
+      // ------------------------------------------------------
+      // 2. FINAL MUTUAL SCORE
+      // ------------------------------------------------------
+
+      if (
+        a.rankingScore !==
+        b.rankingScore
+      ) {
+
+        return (
+          b.rankingScore -
+          a.rankingScore
+        );
+
+      }
+
+
+      // ------------------------------------------------------
+      // 3. MUTUAL PROFILE
+      // ------------------------------------------------------
+
+      if (
+        a.profileCompatibilityPercentage !==
+        b.profileCompatibilityPercentage
+      ) {
+
+        return (
+          b.profileCompatibilityPercentage -
+          a.profileCompatibilityPercentage
+        );
+
+      }
+
+
+      // ------------------------------------------------------
+      // 4. MUTUAL EXPECTATION
+      // ------------------------------------------------------
+
+      if (
+        a.expectationCompatibilityPercentage !==
+        b.expectationCompatibilityPercentage
+      ) {
+
+        return (
+          b.expectationCompatibilityPercentage -
+          a.expectationCompatibilityPercentage
+        );
+
+      }
+
+
+      // ------------------------------------------------------
+      // 5. MATCHED KEYWORDS
+      // ------------------------------------------------------
+
+      if (
+        a.matchedExpectationKeywords.length !==
+        b.matchedExpectationKeywords.length
+      ) {
+
+        return (
+          b.matchedExpectationKeywords.length -
+          a.matchedExpectationKeywords.length
+        );
+
+      }
+
+
+      // ------------------------------------------------------
+      // 6. NAME
+      // ------------------------------------------------------
+
+      return String(
+        a.name || ""
+      ).localeCompare(
+        String(
+          b.name || ""
+        )
+      );
+
+    }
+  );
+
+
+  // ==========================================================
+  // RANK
+  // ==========================================================
+
+  uniqueResults.forEach(
+    function(candidate, index) {
+
+      candidate.rank =
+        index + 1;
+
+    }
+  );
+
+
+  // ==========================================================
+  // TOP 10
+  // ==========================================================
+
+  const top10 =
+    uniqueResults.slice(
+      0,
+      10
+    );
+
+
+  // ==========================================================
+  // SUMMARY
+  // ==========================================================
+
+  const summary = {
+
+    viewerId:
+      safeViewerId,
+
+    viewerType:
+      safeViewerType,
+
+    viewerName:
+      viewer.name || "",
+
+    candidateType:
+      candidateType,
+
+    rankingMode:
+      "FINAL_MUTUAL_COMPATIBILITY_RANKING",
+
+    totalCandidates:
+      uniqueResults.length,
+
+    mutualHardMatched:
+      uniqueResults.filter(
+        function(item) {
+
+          return (
+            item.hardMatch === true
+          );
+
+        }
+      ).length,
+
+    finalMutualCompatibilityCandidates:
+      uniqueResults.filter(
+        function(item) {
+
+          return (
+            item.rankingMode ===
+            "FINAL_MUTUAL_COMPATIBILITY"
+          );
+
+        }
+      ).length,
+
+    meaningfulExpectationCandidates:
+      uniqueResults.filter(
+        function(item) {
+
+          return (
+            item.hasMeaningfulExpectation ===
+            true
+          );
+
+        }
+      ).length,
+
+    topMatches:
+      top10.length
+
+  };
+
+
+  // ==========================================================
+  // RETURN
+  // ==========================================================
+
+  return {
+
+    success:
+      true,
+
+    viewerId:
+      safeViewerId,
+
+    viewerType:
+      safeViewerType,
+
+    viewerName:
+      viewer.name || "",
+
+    candidateType:
+      candidateType,
+
+    actualProfileCriteria:
+      actualProfileCriteria,
+
+    summary:
+      summary,
+
+    top10:
+      top10,
+
+    allResults:
+      uniqueResults
+
+  };
+
+}

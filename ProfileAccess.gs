@@ -19,6 +19,12 @@
 
 function verifyProfileSearchAccess(mobile) {
 
+
+    console.log(
+      "VERIFY PROFILE SEARCH ACCESS CALLED:",
+      mobile
+    );
+
   try {
 
     mobile = normalizeMobile(mobile);
@@ -142,10 +148,58 @@ function verifyProfileSearchAccess(mobile) {
           );
 
 
+          console.log(
+            "CHECKING PROFILE MOBILE:",
+            {
+              sheetName: sheetName,
+              row: i,
+              mobile: mobile,
+              mobile1: mobile1,
+              mobile2: mobile2
+            }
+          );
+
+
         if (
           mobile === mobile1 ||
           mobile === mobile2
         ) {
+
+
+           console.log(
+            "PROFILE SEARCH ACCESS MATCH FOUND:",
+            {
+              sheetName: sheetName,
+
+              idIndex: idIndex,
+
+              profileId:
+                getProfileCell(
+                  row,
+                  idIndex
+                ),
+
+              profileType:
+                sheetName === "वधू"
+                  ? "bride"
+                  : sheetName === "वर"
+                  ? "groom"
+                  : "other",
+
+              name:
+                getProfileCell(
+                  row,
+                  nameIndex
+                ),
+
+              mobile:
+                mobile
+            }
+          ); 
+
+
+
+
 
           return {
 

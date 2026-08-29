@@ -55,6 +55,9 @@ function buildProfileCard(
     const reactionHtml =
         options.reactionHtml || "";
 
+    const additionalHtml =
+        options.additionalHtml || "";
+
     return `
 
         <div class="profile-card">
@@ -90,6 +93,8 @@ function buildProfileCard(
                     `
                     : ""
             }
+
+            ${additionalHtml}
 
             <div class="profile-reaction-actions">
 
