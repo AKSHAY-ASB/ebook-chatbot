@@ -1,0 +1,2136 @@
+
+<script>
+
+/*
+============================================================
+FILE : MatchingScript.html
+MODULE : Matching UI
+PURPOSE : Matching Profiles inside existing chatbot
+
+IMPORTANT
+------------------------------------------------------------
+1. Matching Profiles separate page/modal मध्ये उघडणार नाही.
+2. Matching profiles existing chatbot #chat मध्ये render होतील.
+3. Existing ranking backend unchanged.
+4. Existing Like / Dislike backend unchanged.
+5. Existing Send Interest backend unchanged.
+6. Existing View Profile function unchanged.
+7. Existing Profile components reused.
+8. Matching reaction state is handled locally for Matching UI.
+============================================================
+*/
+
+
+// ==========================================================
+// MATCHING STATE
+// ==========================================================
+
+let matchingRenderedProfiles = [];
+
+let matchingLastRankingResult = null;
+
+let matchingReactionState = {};
+
+
+// ==========================================================
+// MATCHING REACTION KEY
+// ==========================================================
+
+function getMatchingReactionKey(
+    type,
+    profileId
+) {
+
+    return (
+        String(type || "")
+            .trim()
+            .toLowerCase()
+        +
+        "_"
+        +
+        String(profileId || "")
+            .trim()
+    );
+
+}
+
+
+// ==========================================================
+// SAFE VALUE
+// ==========================================================
+
+function matchingSafeString(
+    value
+) {
+
+    return String(
+        value === undefined ||
+        value === null
+            ? ""
+            : value
+    ).trim();
+
+}
+
+
+// ==========================================================
+// ESCAPE JS
+// ==========================================================
+
+function matchingEscapeJs(
+    value
+) {
+
+    if (
+        typeof escapeJsValue ===
+        "function"
+    ) {
+
+        return escapeJsValue(
+            matchingSafeString(value)
+        );
+
+    }
+
+    return matchingSafeString(value)
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/\r/g, "\\r")
+        .replace(/\n/g, "\\n");
+
+}
+
+
+// ==========================================================
+// GET CHAT
+// ==========================================================
+
+function getMatchingChat() {
+
+    return document.getElementById(
+        "chat"
+    );
+
+}
+
+
+// ==========================================================
+// SHOW LOADING
+// ==========================================================
+
+function showMatchingLoadingInChat() {
+
+    const chat =
+        getMatchingChat();
+
+    if (!chat) {
+
+        console.error(
+            "MATCHING CHAT NOT FOUND."
+        );
+
+        return;
+
+    }
+
+    botMessage(`
+
+        <div class="matching-chat-loading">
+
+            <div class="matching-chat-loading-icon">
+                ⏳
+            </div>
+
+            <div class="matching-chat-loading-title">
+                Finding compatible profiles...
+            </div>
+
+            <div class="matching-chat-loading-message">
+                Please wait.
+            </div>
+
+        </div>
+
+    `);
+
+}
+
+
+// ==========================================================
+// SHOW ERROR
+// ==========================================================
+
+function showMatchingErrorInChat(
+    message
+) {
+
+    botMessage(`
+
+        <div class="matching-chat-error">
+
+            <div class="matching-chat-error-icon">
+                ⚠️
+            </div>
+
+            <div class="matching-chat-error-title">
+                Unable to load matching profiles.
+            </div>
+
+            <div class="matching-chat-error-message">
+
+                ${
+                    escapeHtml(
+                        message ||
+                        "Please try again."
+                    )
+                }
+
+            </div>
+
+            <button
+                type="button"
+                class="matching-chat-retry-btn"
+                onclick="loadMatchingProfiles()"
+            >
+
+                🔄 Retry
+
+            </button>
+
+        </div>
+
+    `);
+
+}
+
+
+// ==========================================================
+// NO MATCHES
+// ==========================================================
+
+function showMatchingNoResultsInChat() {
+
+    botMessage(`
+
+        <div class="matching-chat-empty">
+
+            <div class="matching-chat-empty-icon">
+                💔
+            </div>
+
+            <div class="matching-chat-empty-title">
+                No Matching Profiles Found
+            </div>
+
+            <div class="matching-chat-empty-message">
+
+                No compatible profiles are available
+                at this time.
+
+            </div>
+
+        </div>
+
+    `);
+
+}
+
+
+// ==========================================================
+// MATCHING HEADER
+// ==========================================================
+
+function showMatchingChatHeader(
+    rankingResult,
+    profileCount
+) {
+
+    const summary =
+        rankingResult &&
+        rankingResult.summary
+            ? rankingResult.summary
+            : {};
+
+    const totalCandidates =
+        Number(
+            summary.totalCandidates
+        ) || 0;
+
+    const viewerName =
+        matchingSafeString(
+            summary.viewerName
+        );
+
+    const countText =
+        String(
+            profileCount
+        );
+
+    botMessage(`
+
+        <div class="matching-chat-header">
+
+            <div class="matching-chat-header-row">
+
+                <div class="matching-chat-title">
+
+                    ❤️ Matching Profiles
+
+                    <span class="matching-chat-count">
+                        (${countText})
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="matching-chat-summary">
+
+                ${
+                    viewerName
+                        ? `
+                            <b>
+                                ${escapeHtml(viewerName)}
+                            </b>
+                            साठी
+                        `
+                        : ""
+                }
+
+                Top
+
+                <b>${countText}</b>
+
+                compatible profiles
+
+                ${
+                    totalCandidates > 0
+                        ? `
+                            out of
+                            <b>${totalCandidates}</b>
+                            profiles
+                        `
+                        : ""
+                }
+
+                found.
+
+            </div>
+
+        </div>
+
+    `);
+
+}
+
+
+// ==========================================================
+// SHOW MATCHING PROFILES
+// ==========================================================
+
+function showMatchingProfiles() {
+
+    console.log(
+        "MATCHING UI OPENED"
+    );
+
+
+    // ------------------------------------------------------
+    // VERIFIED USER
+    // ------------------------------------------------------
+
+    const viewerId =
+        matchingSafeString(
+            typeof profileUserId !==
+            "undefined"
+                ? profileUserId
+                : ""
+        );
+
+
+    const viewerType =
+        matchingSafeString(
+            typeof profileUserType !==
+            "undefined"
+                ? profileUserType
+                : ""
+        )
+        .toLowerCase();
+
+
+    const verified =
+        (
+            typeof profileAccessVerified !==
+            "undefined"
+        )
+            ? profileAccessVerified
+            : false;
+
+
+    console.log(
+        "MATCHING VERIFIED USER:",
+        {
+            profileUserId:
+                viewerId,
+
+            profileUserType:
+                viewerType,
+
+            profileAccessVerified:
+                verified,
+
+            profileUserMobile:
+                typeof profileUserMobile !==
+                "undefined"
+                    ? profileUserMobile
+                    : ""
+        }
+    );
+
+
+    if (
+        !verified ||
+        !viewerId ||
+        !viewerType
+    ) {
+
+        console.error(
+            "MATCHING USER PROFILE INFORMATION MISSING:",
+            {
+                viewerId:
+                    viewerId,
+
+                viewerType:
+                    viewerType
+            }
+        );
+
+
+        botMessage(`
+
+            🔐 <b>Verification Required</b>
+
+            <br><br>
+
+            Matching Profiles पाहण्यासाठी
+            प्रथम Registered Mobile Number Verify करा.
+
+        `);
+
+        return;
+
+    }
+
+
+    // ------------------------------------------------------
+    // RESET MATCHING STATE
+    // ------------------------------------------------------
+
+    matchingRenderedProfiles = [];
+
+    matchingLastRankingResult = null;
+
+    matchingReactionState = {};
+
+
+    // ------------------------------------------------------
+    // CHATBOT VISIBLE
+    // ------------------------------------------------------
+
+    const chatbotWrapper =
+        document.getElementById(
+            "chatbotWrapper"
+        );
+
+
+    if (chatbotWrapper) {
+
+        chatbotWrapper.style.display =
+            "block";
+
+    }
+
+
+    // ------------------------------------------------------
+    // LOAD
+    // ------------------------------------------------------
+
+    loadMatchingProfiles();
+
+}
+
+
+// ==========================================================
+// LOAD MATCHING PROFILES
+// ==========================================================
+
+function loadMatchingProfiles() {
+
+    const viewerId =
+        matchingSafeString(
+            typeof profileUserId !==
+            "undefined"
+                ? profileUserId
+                : ""
+        );
+
+
+    const viewerType =
+        matchingSafeString(
+            typeof profileUserType !==
+            "undefined"
+                ? profileUserType
+                : ""
+        )
+        .toLowerCase();
+
+
+    if (
+        !viewerId ||
+        !viewerType
+    ) {
+
+        console.error(
+            "MATCHING USER PROFILE INFORMATION MISSING:",
+            {
+                viewerId:
+                    viewerId,
+
+                viewerType:
+                    viewerType
+            }
+        );
+
+
+        showMatchingErrorInChat(
+            "User profile information is not available."
+        );
+
+        return;
+
+    }
+
+
+    console.log(
+        "MATCHING RANKING REQUEST:",
+        {
+            viewerId:
+                viewerId,
+
+            viewerType:
+                viewerType
+        }
+    );
+
+
+    showMatchingLoadingInChat();
+
+
+    // ======================================================
+    // EXISTING BACKEND
+    // DO NOT CHANGE
+    // ======================================================
+
+    google.script.run
+
+        .withSuccessHandler(
+            function(result) {
+
+                console.log(
+                    "MATCHING RANKING RESULT:",
+                    result
+                );
+
+
+                if (
+                    !result ||
+                    result.success !== true
+                ) {
+
+                    showMatchingErrorInChat(
+
+                        result &&
+                        result.message
+                            ? result.message
+                            : "Unable to load matching profiles."
+
+                    );
+
+                    return;
+
+                }
+
+
+                matchingLastRankingResult =
+                    result;
+
+
+                const topMatches =
+                    Array.isArray(
+                        result.top10
+                    )
+                        ? result.top10
+                        : [];
+
+
+                if (
+                    topMatches.length === 0
+                ) {
+
+                    showMatchingNoResultsInChat();
+
+                    return;
+
+                }
+
+
+                matchingRenderedProfiles =
+                    topMatches.slice();
+
+
+                // ==================================================
+                // LOAD EXISTING LIKE / DISLIKE STATES
+                // ==================================================
+
+                loadMatchingReactionStates(
+                    topMatches,
+                    result
+                );
+
+            }
+        )
+
+
+        .withFailureHandler(
+            function(error) {
+
+                console.error(
+                    "MATCHING RANKING ERROR:",
+                    error
+                );
+
+
+                showMatchingErrorInChat(
+
+                    error &&
+                    error.message
+                        ? error.message
+                        : "Unable to load matching profiles."
+
+                );
+
+            }
+        )
+
+
+        .calculateActualProfileRanking(
+            viewerId,
+            viewerType
+        );
+
+}
+
+
+// ==========================================================
+// RENDER MATCHING PROFILES IN CHAT
+//
+// IMPORTANT:
+// This is the ONLY matching render function.
+//
+// DO NOT rename this to renderMatchingProfiles.
+// ==========================================================
+
+function renderMatchingProfilesInChat(
+    profiles,
+    rankingResult
+) {
+
+    const safeProfiles =
+        Array.isArray(
+            profiles
+        )
+            ? profiles
+            : [];
+
+
+    if (
+        safeProfiles.length === 0
+    ) {
+
+        showMatchingNoResultsInChat();
+
+        return;
+
+    }
+
+
+    showMatchingChatHeader(
+        rankingResult,
+        safeProfiles.length
+    );
+
+
+    safeProfiles.forEach(
+        function(
+            profile,
+            index
+        ) {
+
+            const cardHtml =
+                buildMatchingProfileCard(
+                    profile,
+                    index
+                );
+
+
+            if (
+                cardHtml
+            ) {
+
+                botMessage(
+                    cardHtml
+                );
+
+            }
+
+        }
+    );
+
+
+    console.log(
+        "MATCHING PROFILES RENDERED:",
+        {
+            count:
+                safeProfiles.length,
+
+            totalCandidates:
+                rankingResult &&
+                rankingResult.summary
+                    ? rankingResult.summary.totalCandidates
+                    : 0
+        }
+    );
+
+
+    scrollChat();
+
+}
+
+
+// ==========================================================
+// BUILD MATCHING PROFILE CARD
+// ==========================================================
+
+function buildMatchingProfileCard(
+    profile,
+    index
+) {
+
+    profile =
+        profile || {};
+
+
+    const displayData =
+        prepareProfileDisplayData(
+            profile,
+            profile.type || ""
+        );
+
+
+    const profileType =
+        matchingSafeString(
+            displayData.currentProfileType ||
+            profile.type
+        )
+        .toLowerCase();
+
+
+    const profileId =
+        matchingSafeString(
+            displayData.currentProfileId ||
+            profile.id
+        );
+
+
+    const profileName =
+        matchingSafeString(
+            displayData.currentProfileName ||
+            profile.name
+        );
+
+
+    const ownerMobile =
+        matchingSafeString(
+            profile.ownerMobile ||
+            profile.mobile ||
+            ""
+        );
+
+
+    const safeType =
+        matchingEscapeJs(
+            profileType
+        );
+
+
+    const safeId =
+        matchingEscapeJs(
+            profileId
+        );
+
+
+    const safeName =
+        matchingEscapeJs(
+            profileName
+        );
+
+
+    const safeOwnerMobile =
+        matchingEscapeJs(
+            ownerMobile
+        );
+
+
+    // ======================================================
+    // PHOTO
+    // ======================================================
+
+    const photo =
+        matchingSafeString(
+            displayData.photo ||
+            profile.photo ||
+            profile.photoRaw ||
+            ""
+        );
+
+
+    const photoHtml =
+        buildProfilePhoto({
+
+            photo:
+                photo,
+
+            profileType:
+                profileType,
+
+            markerId:
+                "matching-profile-photo-" +
+                index
+
+        });
+
+
+    // ======================================================
+    // HEADER
+    // ======================================================
+
+    const headerHtml =
+        buildProfileHeader({
+
+            icon:
+                displayData.profileIcon,
+
+            profileNumber:
+                " #" +
+                (Number(index) + 1),
+
+            title:
+                "Matching Profile",
+
+            name:
+                displayData.name
+
+        });
+
+
+    // ======================================================
+    // VIEW PROFILE
+    // ======================================================
+
+    const viewProfileHtml =
+        buildViewProfileButton({
+
+            type:
+                profileType,
+
+            id:
+                profileId,
+
+            name:
+                profileName,
+
+            viewerProfileType:
+                profileType,
+
+            viewerProfileId:
+                profileId
+
+        });
+
+
+    // ======================================================
+    // MATCHING SCORE
+    // ======================================================
+
+    const rankingHtml =
+        buildMatchingRankingDetails(
+            profile
+        );
+
+
+    // ======================================================
+    // REACTION STATE
+    // ======================================================
+
+    const reactionKey =
+        getMatchingReactionKey(
+            profileType,
+            profileId
+        );
+
+
+    const currentReaction =
+        matchingReactionState[
+            reactionKey
+        ] || "";
+
+
+    const reactionHtml =
+        buildMatchingReactionButtons(
+            profile,
+            currentReaction
+        );
+
+
+    // ======================================================
+    // ACTION CONTAINER
+    //
+    // IMPORTANT:
+    // data-actions is kept because existing reaction
+    // functionality depends on it.
+    //
+    // Matching UI itself is updated by
+    // updateMatchingReactionUI().
+    // ======================================================
+
+    const actionHtml = `
+
+        <div
+            class="matching-profile-actions"
+            data-actions="${safeType}_${safeId}"
+            data-matching-actions="${safeType}_${safeId}"
+        >
+
+            <div class="matching-action-view">
+
+                ${viewProfileHtml}
+
+            </div>
+
+
+            ${reactionHtml}
+
+
+            <div class="matching-interest-action">
+
+                <button
+                    type="button"
+                    class="send-interest-btn"
+                    onclick="
+                        openSendInterestConfirmation(
+                            '${safeType}',
+                            '${safeId}',
+                            '${safeName}'
+                        )
+                    "
+                >
+
+                    💌 Send Interest
+
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+    return `
+
+        <div
+            class="profile-card matching-profile-card"
+            data-matching-profile-type="${safeType}"
+            data-matching-profile-id="${safeId}"
+        >
+
+            ${photoHtml}
+
+            ${headerHtml}
+
+            ${rankingHtml}
+
+            ${actionHtml}
+
+        </div>
+
+    `;
+
+}
+
+
+// ==========================================================
+// MATCHING RANKING DETAILS
+// ==========================================================
+
+function buildMatchingRankingDetails(
+    profile
+) {
+
+    profile =
+        profile || {};
+
+
+    const hardScore =
+        Number(
+            profile.hardScore
+        );
+
+
+    const expectationPercentage =
+        Number(
+            profile.expectationCompatibilityPercentage
+        );
+
+
+    const profilePercentage =
+        Number(
+            profile.profileCompatibilityPercentage
+        );
+
+
+    const finalScore =
+        Number(
+            profile.finalScore
+        );
+
+
+    const safeHardScore =
+        isNaN(hardScore)
+            ? 0
+            : hardScore;
+
+
+    const safeExpectationPercentage =
+        isNaN(
+            expectationPercentage
+        )
+            ? 0
+            : expectationPercentage;
+
+
+    const safeProfilePercentage =
+        isNaN(
+            profilePercentage
+        )
+            ? 0
+            : profilePercentage;
+
+
+    const safeFinalScore =
+        isNaN(
+            finalScore
+        )
+            ? 0
+            : finalScore;
+
+
+    const matchedKeywords =
+        Array.isArray(
+            profile.matchedExpectationKeywords
+        )
+            ? profile.matchedExpectationKeywords
+            : [];
+
+
+    const keywordText =
+        matchedKeywords.length > 0
+
+            ? matchedKeywords
+                .map(
+                    function(keyword) {
+
+                        return escapeHtml(
+                            String(
+                                keyword || ""
+                            )
+                        );
+
+                    }
+                )
+                .join(", ")
+
+            : "None";
+
+
+    return `
+
+        <div class="matching-ranking-details">
+
+            <div class="matching-ranking-title">
+
+                ❤️ Compatibility Score
+
+            </div>
+
+
+            <div class="matching-ranking-row">
+
+                <span>
+                    🎯 Hard Match
+                </span>
+
+                <strong>
+                    ${safeHardScore}%
+                </strong>
+
+            </div>
+
+
+            <div class="matching-ranking-row">
+
+                <span>
+                    ✨ Expectation
+                </span>
+
+                <strong>
+                    ${safeExpectationPercentage}%
+                </strong>
+
+            </div>
+
+
+            <div class="matching-ranking-row">
+
+                <span>
+                    🧩 Profile Compatibility
+                </span>
+
+                <strong>
+                    ${safeProfilePercentage}%
+                </strong>
+
+            </div>
+
+
+            <div class="matching-ranking-final">
+
+                <span>
+                    Final Match
+                </span>
+
+                <strong>
+                    ${safeFinalScore}%
+                </strong>
+
+            </div>
+
+
+            <div class="matching-keywords">
+
+                <span class="matching-keywords-label">
+                    Matched Expectations:
+                </span>
+
+                <span>
+                    ${keywordText}
+                </span>
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+// ==========================================================
+// LOAD MATCHING REACTION STATES
+//
+// EXISTING BACKEND FUNCTIONS:
+// - getLikedProfiles()
+// - getDislikedProfiles()
+//
+// NO BACKEND CHANGE.
+// ==========================================================
+
+function loadMatchingReactionStates(
+    profiles,
+    rankingResult
+) {
+
+    matchingReactionState = {};
+
+
+    const safeProfiles =
+        Array.isArray(
+            profiles
+        )
+            ? profiles
+            : [];
+
+
+    if (
+        safeProfiles.length === 0
+    ) {
+
+        renderMatchingProfilesInChat(
+            safeProfiles,
+            rankingResult
+        );
+
+        return;
+
+    }
+
+
+    // ======================================================
+    // LOAD LIKES
+    // ======================================================
+
+    google.script.run
+
+        .withSuccessHandler(
+            function(likedResult) {
+
+                if (
+                    likedResult &&
+                    likedResult.success === true &&
+                    Array.isArray(
+                        likedResult.profiles
+                    )
+                ) {
+
+                    likedResult.profiles.forEach(
+                        function(profile) {
+
+                            if (!profile) {
+                                return;
+                            }
+
+
+                            const type =
+                                profile.viewerProfileType ||
+                                profile.type ||
+                                "";
+
+
+                            const id =
+                                profile.viewerProfileId ||
+                                profile.id ||
+                                "";
+
+
+                            if (
+                                !type ||
+                                !id
+                            ) {
+
+                                return;
+
+                            }
+
+
+                            const key =
+                                getMatchingReactionKey(
+                                    type,
+                                    id
+                                );
+
+
+                            matchingReactionState[
+                                key
+                            ] = "LIKE";
+
+                        }
+                    );
+
+                }
+
+
+                loadMatchingDislikedStates(
+                    safeProfiles,
+                    rankingResult
+                );
+
+            }
+        )
+
+
+        .withFailureHandler(
+            function(error) {
+
+                console.warn(
+                    "Matching liked state load failed:",
+                    error
+                );
+
+
+                // Continue anyway.
+                loadMatchingDislikedStates(
+                    safeProfiles,
+                    rankingResult
+                );
+
+            }
+        )
+
+
+        .getLikedProfiles(
+            profileUserMobile
+        );
+
+}
+
+
+// ==========================================================
+// LOAD MATCHING DISLIKES
+// ==========================================================
+
+function loadMatchingDislikedStates(
+    profiles,
+    rankingResult
+) {
+
+    google.script.run
+
+        .withSuccessHandler(
+            function(dislikedResult) {
+
+                if (
+                    dislikedResult &&
+                    dislikedResult.success === true &&
+                    Array.isArray(
+                        dislikedResult.profiles
+                    )
+                ) {
+
+                    dislikedResult.profiles.forEach(
+                        function(profile) {
+
+                            if (!profile) {
+                                return;
+                            }
+
+
+                            const type =
+                                profile.viewerProfileType ||
+                                profile.type ||
+                                "";
+
+
+                            const id =
+                                profile.viewerProfileId ||
+                                profile.id ||
+                                "";
+
+
+                            if (
+                                !type ||
+                                !id
+                            ) {
+
+                                return;
+
+                            }
+
+
+                            const key =
+                                getMatchingReactionKey(
+                                    type,
+                                    id
+                                );
+
+
+                            matchingReactionState[
+                                key
+                            ] = "DISLIKE";
+
+                        }
+                    );
+
+                }
+
+
+                // ==================================================
+                // CORRECT FUNCTION NAME
+                //
+                // NOT renderMatchingProfiles()
+                // ==================================================
+
+                renderMatchingProfilesInChat(
+                    profiles,
+                    rankingResult
+                );
+
+            }
+        )
+
+
+        .withFailureHandler(
+            function(error) {
+
+                console.warn(
+                    "Matching disliked state load failed:",
+                    error
+                );
+
+
+                // Reaction-state failure must NOT
+                // prevent Matching Profiles from opening.
+
+                renderMatchingProfilesInChat(
+                    profiles,
+                    rankingResult
+                );
+
+            }
+        )
+
+
+        .getDislikedProfiles(
+            profileUserMobile
+        );
+
+}
+
+
+// ==========================================================
+// BUILD MATCHING REACTION BUTTONS
+// ==========================================================
+
+function buildMatchingReactionButtons(
+    profile,
+    currentReaction
+) {
+
+    profile =
+        profile || {};
+
+
+    currentReaction =
+        String(
+            currentReaction || ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+    const displayData =
+        prepareProfileDisplayData(
+            profile,
+            profile.type || ""
+        );
+
+
+    const profileType =
+        matchingSafeString(
+            displayData.currentProfileType ||
+            profile.type
+        )
+        .toLowerCase();
+
+
+    const profileId =
+        matchingSafeString(
+            displayData.currentProfileId ||
+            profile.id
+        );
+
+
+    const profileName =
+        matchingSafeString(
+            displayData.currentProfileName ||
+            profile.name
+        );
+
+
+    const ownerMobile =
+        matchingSafeString(
+            profile.ownerMobile ||
+            profile.mobile ||
+            ""
+        );
+
+
+    const safeType =
+        matchingEscapeJs(
+            profileType
+        );
+
+
+    const safeId =
+        matchingEscapeJs(
+            profileId
+        );
+
+
+    const safeName =
+        matchingEscapeJs(
+            profileName
+        );
+
+
+    const safeOwnerMobile =
+        matchingEscapeJs(
+            ownerMobile
+        );
+
+
+    let likeButton = "";
+
+    let dislikeButton = "";
+
+
+    // ======================================================
+    // LIKE
+    // ======================================================
+
+    if (
+        currentReaction ===
+        "LIKE"
+    ) {
+
+        likeButton = `
+
+            <button
+                type="button"
+                class="profile-reaction-btn liked-active"
+                disabled
+            >
+
+                ❤️ Liked
+
+            </button>
+
+        `;
+
+    }
+
+    else {
+
+        likeButton = `
+
+            <button
+                type="button"
+                class="profile-reaction-btn"
+                onclick="
+                    reactToMatchingProfile(
+                        '${safeType}',
+                        '${safeId}',
+                        '${safeName}',
+                        '${safeOwnerMobile}',
+                        'LIKE',
+                        this
+                    )
+                "
+            >
+
+                ❤️ Like
+
+            </button>
+
+        `;
+
+    }
+
+
+    // ======================================================
+    // DISLIKE
+    // ======================================================
+
+    if (
+        currentReaction ===
+        "DISLIKE"
+    ) {
+
+        dislikeButton = `
+
+            <button
+                type="button"
+                class="profile-reaction-btn disliked-active"
+                disabled
+            >
+
+                👎 Disliked
+
+            </button>
+
+        `;
+
+    }
+
+    else {
+
+        dislikeButton = `
+
+            <button
+                type="button"
+                class="profile-reaction-btn"
+                onclick="
+                    reactToMatchingProfile(
+                        '${safeType}',
+                        '${safeId}',
+                        '${safeName}',
+                        '${safeOwnerMobile}',
+                        'DISLIKE',
+                        this
+                    )
+                "
+            >
+
+                👎 Dislike
+
+            </button>
+
+        `;
+
+    }
+
+
+    return `
+
+        <div
+            class="matching-reaction-actions"
+            data-matching-reaction="${safeType}_${safeId}"
+        >
+
+            ${likeButton}
+
+            ${dislikeButton}
+
+        </div>
+
+    `;
+
+}
+
+
+// ==========================================================
+// MATCHING REACTION
+//
+// IMPORTANT:
+// Existing backend function remains untouched.
+//
+// This wrapper:
+// 1. Calls EXISTING reactToProfile()
+// 2. Keeps Matching state separately.
+// 3. Prevents existing Search UI from being modified.
+// ==========================================================
+
+function reactToMatchingProfile(
+    type,
+    profileId,
+    profileName,
+    ownerMobile,
+    reaction,
+    button
+) {
+
+    type =
+        matchingSafeString(
+            type
+        )
+        .toLowerCase();
+
+
+    profileId =
+        matchingSafeString(
+            profileId
+        );
+
+
+    reaction =
+        matchingSafeString(
+            reaction
+        )
+        .toUpperCase();
+
+
+    if (
+        !type ||
+        !profileId ||
+        !reaction
+    ) {
+
+        return;
+
+    }
+
+
+    // ------------------------------------------------------
+    // VERIFIED USER
+    // ------------------------------------------------------
+
+    if (
+        typeof profileAccessVerified ===
+        "undefined" ||
+        !profileAccessVerified
+    ) {
+
+        botMessage(`
+
+            🔐 <b>Verification Required</b>
+
+            <br><br>
+
+            Profile Like किंवा Dislike करण्यासाठी
+            प्रथम registered mobile number verify करा.
+
+        `);
+
+        return;
+
+    }
+
+
+    // ------------------------------------------------------
+    // DISABLE CLICKED BUTTON
+    // ------------------------------------------------------
+
+    if (button) {
+
+        button.disabled =
+            true;
+
+    }
+
+
+    console.log(
+        "MATCHING REACTION CLICKED:",
+        {
+            type:
+                type,
+
+            profileId:
+                profileId,
+
+            reaction:
+                reaction
+        }
+    );
+
+
+    /*
+     * IMPORTANT:
+     *
+     * We are calling the SAME existing
+     * reactToProfile() function.
+     *
+     * Backend remains unchanged.
+     */
+
+    reactToProfile(
+        type,
+        profileId,
+        profileName,
+        ownerMobile,
+        reaction,
+        button
+    );
+
+
+    /*
+     * We cannot immediately mark it as successful
+     * before backend response.
+     *
+     * Therefore the actual matching UI is refreshed
+     * after backend result by matching-specific
+     * relationship handling below.
+     */
+
+}
+
+
+// ==========================================================
+// MATCHING UI UPDATE
+//
+// This function is intentionally independent from
+// existing updateReactionButtons().
+//
+// Therefore Search Like / Dislike functionality is untouched.
+// ==========================================================
+
+function updateMatchingReactionUI(
+    type,
+    profileId,
+    reaction
+) {
+
+    type =
+        matchingSafeString(
+            type
+        )
+        .toLowerCase();
+
+
+    profileId =
+        matchingSafeString(
+            profileId
+        );
+
+
+    reaction =
+        matchingSafeString(
+            reaction
+        )
+        .toUpperCase();
+
+
+    if (
+        !type ||
+        !profileId ||
+        !reaction
+    ) {
+
+        console.warn(
+            "Invalid matching reaction UI data:",
+            {
+                type:
+                    type,
+
+                profileId:
+                    profileId,
+
+                reaction:
+                    reaction
+            }
+        );
+
+        return;
+
+    }
+
+
+    // ======================================
+    // SAVE LOCAL MATCHING STATE
+    // ======================================
+
+    const key =
+        getMatchingReactionKey(
+            type,
+            profileId
+        );
+
+
+    matchingReactionState[
+        key
+    ] =
+        reaction;
+
+
+    // ======================================
+    // FIND MATCHING REACTION CONTAINER
+    // ======================================
+
+    const container =
+        document.querySelector(
+            `[data-matching-reaction="${key}"]`
+        );
+
+
+    if (!container) {
+
+        console.warn(
+            "Matching reaction container not found:",
+            key
+        );
+
+        return;
+
+    }
+
+
+    // ======================================
+    // FIND MATCHING PROFILE
+    // ======================================
+
+    let profile =
+        null;
+
+
+    if (
+        Array.isArray(
+            matchingRenderedProfiles
+        )
+    ) {
+
+        profile =
+            matchingRenderedProfiles.find(
+                function(item) {
+
+                    if (!item) {
+                        return false;
+                    }
+
+
+                    const itemType =
+                        matchingSafeString(
+                            item.viewerProfileType ||
+                            item.type ||
+                            ""
+                        )
+                        .toLowerCase();
+
+
+                    const itemId =
+                        matchingSafeString(
+                            item.viewerProfileId ||
+                            item.id ||
+                            ""
+                        );
+
+
+                    return (
+                        itemType === type &&
+                        itemId === profileId
+                    );
+
+                }
+            );
+
+    }
+
+
+    if (!profile) {
+
+        console.warn(
+            "Matching profile not found:",
+            {
+                type:
+                    type,
+
+                profileId:
+                    profileId
+            }
+        );
+
+        return;
+
+    }
+
+
+    // ======================================
+    // BUILD NEW MATCHING REACTION BUTTONS
+    // ======================================
+
+    const html =
+        buildMatchingReactionButtons(
+            profile,
+            reaction
+        );
+
+
+    // ======================================
+    // REPLACE ONLY MATCHING REACTION AREA
+    // ======================================
+
+    container.outerHTML =
+        html;
+
+
+    console.log(
+        "MATCHING REACTION UI UPDATED:",
+        {
+            key:
+                key,
+
+            reaction:
+                reaction
+        }
+    );
+
+}
+
+
+// ==========================================================
+// BACK TO MATCHING PROFILES
+// ==========================================================
+
+function backToMatchingProfiles() {
+
+    console.log(
+        "BACK TO MATCHING PROFILES"
+    );
+
+
+    if (
+        !Array.isArray(
+            matchingRenderedProfiles
+        ) ||
+        matchingRenderedProfiles.length ===
+        0
+    ) {
+
+        console.warn(
+            "No matching profiles stored locally."
+        );
+
+        return;
+
+    }
+
+
+    showMatchingChatHeader(
+        matchingLastRankingResult,
+        matchingRenderedProfiles.length
+    );
+
+
+    matchingRenderedProfiles.forEach(
+        function(
+            profile,
+            index
+        ) {
+
+            const cardHtml =
+                buildMatchingProfileCard(
+                    profile,
+                    index
+                );
+
+
+            if (
+                cardHtml
+            ) {
+
+                botMessage(
+                    cardHtml
+                );
+
+            }
+
+        }
+    );
+
+
+    scrollChat();
+
+}
+
+
+// ==========================================================
+// DEBUG
+// ==========================================================
+
+function getMatchingDebugState() {
+
+    return {
+
+        profileUserId:
+            typeof profileUserId !==
+            "undefined"
+                ? profileUserId
+                : "",
+
+        profileUserType:
+            typeof profileUserType !==
+            "undefined"
+                ? profileUserType
+                : "",
+
+        profileUserMobile:
+            typeof profileUserMobile !==
+            "undefined"
+                ? profileUserMobile
+                : "",
+
+        profileAccessVerified:
+            typeof profileAccessVerified !==
+            "undefined"
+                ? profileAccessVerified
+                : false,
+
+        matchingProfilesCount:
+            Array.isArray(
+                matchingRenderedProfiles
+            )
+                ? matchingRenderedProfiles.length
+                : 0,
+
+        matchingReactionState:
+            matchingReactionState
+
+    };
+
+}
+
+
+// ==========================================================
+// MATCHING PROFILE CHECK
+// ==========================================================
+
+function isMatchingProfileCard(
+    type,
+    profileId
+) {
+
+    const key =
+        getMatchingReactionKey(
+            type,
+            profileId
+        );
+
+
+    const container =
+        document.querySelector(
+            `[data-matching-reaction="${key}"]`
+        );
+
+
+    return !!container;
+
+}
+
+
+// ==========================================================
+// IMPORTANT BRIDGE
+//
+// Existing reactToProfile() calls
+// updateReactionButtons() after backend success.
+//
+// We do NOT modify that existing function here.
+//
+// Therefore this helper can be called manually from
+// the existing reaction flow if needed.
+//
+// This function is also safe to call independently.
+// ==========================================================
+
+function handleMatchingReactionSuccess(
+    type,
+    profileId,
+    reaction
+) {
+
+    updateMatchingReactionUI(
+        type,
+        profileId,
+        reaction
+    );
+
+}
+
+
+// ==========================================================
+// SCRIPT LOADED
+// ==========================================================
+
+console.log(
+    "MATCHING SCRIPT LOADED - CHAT MODE"
+);
+
+</script>
+

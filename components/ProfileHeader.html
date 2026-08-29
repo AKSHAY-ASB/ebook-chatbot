@@ -1,51 +1,47 @@
 <script>
 
-
 // ==========================================
 // FILE : ProfileHeader.html
 // MODULE : Profile Components
 // PURPOSE : Build reusable profile header
 //
 // RESPONSIBILITY
-//  - Render profile header
-//  - Show profile icon
-//  - Show profile number
-//  - Show profile name
-//
-// DEPENDS ON
-//  - escapeHtml()
+//  - Build profile title
+//  - Build profile name
+//  - Support reusable profile title text
 //
 // USED BY
 //  - displayProfileResults()
+//  - displayLikedProfileCard()
+//  - displayDislikedProfileCard()
 // ==========================================
-
-
-// ==========================================
-// BUILD PROFILE HEADER
-// ==========================================
-
 
 
 function buildProfileHeader(
-
     options
-
 ) {
 
-    options = options || {};
+    options =
+        options || {};
+
 
     const icon =
         options.icon || "👤";
 
+
     const profileNumber =
         options.profileNumber ?? "";
 
+
+    const title =
+        options.title || "Profile";
+
+
     const name =
         escapeHtml(
-
             options.name || "-"
-
         );
+
 
     return `
 
@@ -53,9 +49,11 @@ function buildProfileHeader(
 
             ${icon}
 
-            Profile ${profileNumber}
+            ${escapeHtml(title)}
+            ${profileNumber}
 
         </div>
+
 
         <div class="profile-name">
 
@@ -66,6 +64,5 @@ function buildProfileHeader(
     `;
 
 }
-
 
 </script>

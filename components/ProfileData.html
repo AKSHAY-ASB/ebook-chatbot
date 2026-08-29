@@ -16,6 +16,7 @@
 //  - displayProfileResults()
 //  - displayLikedProfileCard()
 //  - displayDislikedProfileCard()
+//  - buildMatchingProfileCard()
 //
 // IMPORTANT
 //  - No rendering
@@ -102,51 +103,205 @@ function prepareProfileDisplayData(
 
     // ========================================
     // DISPLAY VALUES
+    //
+    // IMPORTANT
+    // Matching normalized profile contains
+    // some values as objects.
+    //
+    // Example:
+    //
+    // district:
+    // {
+    //   raw: "अहमदनगर",
+    //   normalized: "..."
+    // }
+    //
+    // education:
+    // {
+    //   raw: "MCOM MBA",
+    //   ...
+    // }
+    //
+    // Therefore use RAW display value first.
     // ========================================
+
+
+    // ----------------------------------------
+    // NAME
+    // ----------------------------------------
 
     const name =
         currentProfileName || "-";
 
 
-    const district =
-        profile.district || "-";
+    // ----------------------------------------
+    // DISTRICT
+    // ----------------------------------------
 
+    const district =
+        profile.district &&
+        typeof profile.district === "object"
+
+            ? (
+                profile.district.raw ||
+                profile.district.normalized ||
+                "-"
+              )
+
+            : (
+                profile.district ||
+                "-"
+              );
+
+
+    // ----------------------------------------
+    // EDUCATION
+    // ----------------------------------------
 
     const education =
-        profile.education || "-";
+        profile.educationRaw ||
+        (
+            profile.education &&
+            typeof profile.education === "object"
 
+                ? (
+                    profile.education.raw ||
+                    profile.education.normalized ||
+                    "-"
+                  )
+
+                : profile.education
+        ) ||
+        "-";
+
+
+    // ----------------------------------------
+    // AGE
+    // ----------------------------------------
 
     const age =
-        profile.age || "-";
+        profile.ageRaw ||
+        (
+            profile.age &&
+            typeof profile.age === "object"
 
+                ? (
+                    profile.age.raw ||
+                    profile.age.display ||
+                    profile.age.formatted ||
+                    profile.age.value ||
+                    "-"
+                  )
+
+                : profile.age
+        ) ||
+        "-";
+
+
+    // ----------------------------------------
+    // HEIGHT
+    // ----------------------------------------
 
     const height =
-        profile.height || "-";
+        profile.heightRaw ||
+        (
+            profile.height &&
+            typeof profile.height === "object"
 
+                ? (
+                    profile.height.raw ||
+                    profile.height.display ||
+                    profile.height.formatted ||
+                    profile.height.value ||
+                    "-"
+                  )
+
+                : profile.height
+        ) ||
+        "-";
+
+
+    // ----------------------------------------
+    // CASTE
+    // ----------------------------------------
 
     const caste =
-        profile.caste || "-";
+        profile.casteRaw ||
+        (
+            profile.caste &&
+            typeof profile.caste === "object"
 
+                ? (
+                    profile.caste.raw ||
+                    profile.caste.normalized ||
+                    "-"
+                  )
+
+                : profile.caste
+        ) ||
+        "-";
+
+
+    // ----------------------------------------
+    // JOB / PROFESSION
+    // ----------------------------------------
 
     const job =
-        profile.job || "-";
+        profile.professionRaw ||
+        (
+            profile.profession &&
+            typeof profile.profession === "object"
 
+                ? (
+                    profile.profession.raw ||
+                    profile.profession.normalized ||
+                    "-"
+                  )
+
+                : profile.profession
+        ) ||
+        "-";
+
+
+    // ----------------------------------------
+    // INCOME
+    // ----------------------------------------
 
     const income =
-        profile.income || "-";
+        profile.incomeRaw ||
+        (
+            profile.income &&
+            typeof profile.income === "object"
 
+                ? (
+                    profile.income.raw ||
+                    profile.income.display ||
+                    profile.income.formatted ||
+                    profile.income.value ||
+                    "-"
+                  )
+
+                : profile.income
+        ) ||
+        "-";
+
+
+    // ----------------------------------------
+    // PHOTO
+    // ----------------------------------------
 
     const photo =
         profile.photo || "";
 
 
     // ========================================
-    // RETURN NORMALIZED DATA
+    // RETURN NORMALIZED DISPLAY DATA
     // ========================================
 
     return {
 
-        profile: profile,
+        profile:
+            profile,
 
         currentProfileType:
             currentProfileType,

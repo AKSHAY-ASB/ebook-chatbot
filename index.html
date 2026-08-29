@@ -10,6 +10,7 @@
 <?!= include('InterestStyle'); ?>
 <?!= include('ReceivedInterestStyle'); ?>
 <?!= include('SentInterestStyle'); ?>
+<?!= include('MatchingStyles'); ?>
 
 <?!= include('GlobalStyles'); ?>
 <?!= include('LayoutStyles'); ?>
@@ -21,9 +22,11 @@
 
 <body>
 
-<?!= include('Auth_UI'); ?>
+<!-- <?!= include('Auth_UI'); ?> -->
 
-<div id="chatbotWrapper" style="display:none;">
+<!-- <div id="chatbotWrapper" style="display:none;">   -->
+
+<div id="chatbotWrapper" style="display:block;">
   
 <div class="chat-container">
 
@@ -59,6 +62,9 @@ Send
 <?!= include('InterestUI'); ?>
 <?!= include('ReactionUI'); ?>
 <?!= include('ProfileData'); ?>
+
+<?!= include('MatchingUI'); ?>
+<?!= include('MatchingScript'); ?>
 
 <?!= include('script'); ?>
 <?!= include('InterestScript'); ?>
