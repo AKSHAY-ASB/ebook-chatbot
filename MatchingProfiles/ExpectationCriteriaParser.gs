@@ -363,34 +363,102 @@ function parseExpectationCriteria(
   // Check the FINAL parsed values.
   // ==========================================================
 
-  const hasHardCriteria =
+    // ==========================================================
+    // HARD CRITERIA
+    //
+    // IMPORTANT
+    // ----------------------------------------------------------
+    // educationRequired / employmentRequired alone should NOT
+    // make a hard criterion when there are no actual categories.
+    //
+    // Example:
+    //
+    // "सुशिक्षित"
+    //     ↓
+    // educationRequired = true
+    // educationCategories = []
+    //
+    // This should NOT become a hard filter.
+    //
+    // Specific education such as:
+    // "MBA", "M.Com", "BE"
+    // will populate educationCategories and therefore
+    // remain a genuine hard criterion.
+    //
+    // Same principle applies to employment.
+    // ==========================================================
 
-    educationCategories.length > 0 ||
+    const hasHardCriteria =
 
-    professionCategories.length > 0 ||
+      educationCategories.length > 0 ||
 
-    employmentTypes.length > 0 ||
+      professionCategories.length > 0 ||
 
-    educationRequired === true ||
+      employmentTypes.length > 0 ||
 
-    employmentRequired === true ||
+      ageResult.enabled === true ||
 
-    ageResult.enabled === true ||
+      heightResult.enabled === true ||
 
-    heightResult.enabled === true ||
+      districts.length > 0 ||
 
-    districts.length > 0 ||
+      incomeResult.enabled === true ||
 
-    incomeResult.enabled === true ||
+      casteValues.length > 0 ||
 
-    casteValues.length > 0 ||
-
-    rashiValues.length > 0;
+      rashiValues.length > 0;
 
 
   // ==========================================================
   // FINAL RESULT
   // ==========================================================
+
+    console.log(
+      "========== PARSED EXPECTATION =========="
+    );
+
+    console.log(
+      JSON.stringify(
+        {
+          raw:
+            raw,
+
+          hasHardCriteria:
+            hasHardCriteria,
+
+          age:
+            ageResult,
+
+          height:
+            heightResult,
+
+          districts:
+            districts,
+
+          income:
+            incomeResult,
+
+          caste:
+            casteValues,
+
+          rashi:
+            rashiValues,
+
+          education:
+            educationCategories,
+
+          profession:
+            professionCategories,
+
+          employment:
+            employmentTypes
+        },
+        null,
+        2
+      )
+    );
+
+
 
   return {
 

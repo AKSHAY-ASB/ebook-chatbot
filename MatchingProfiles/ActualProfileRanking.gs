@@ -21,6 +21,8 @@
  * ==========================================================
  */
 
+
+
 function calculateActualProfileRanking(
   viewerId,
   viewerType
@@ -110,6 +112,7 @@ function calculateActualProfileRanking(
       viewer.expectation ||
       viewer.expectationRaw ||
       viewerProfile.expectationRaw ||
+      viewerProfile.expectation ||
       ""
     )
     .trim();
@@ -287,6 +290,37 @@ function calculateActualProfileRanking(
 
 
   // ==========================================================
+  // VIEWER MEANINGFUL EXPECTATION
+  //
+  // IMPORTANT:
+  // "अनुरूप" is generic and must be false.
+  // ==========================================================
+
+  let viewerHasMeaningfulExpectation =
+    false;
+
+
+  if (
+    typeof hasMeaningfulMatchingExpectation ===
+    "function"
+  ) {
+
+    viewerHasMeaningfulExpectation =
+      hasMeaningfulMatchingExpectation(
+        viewerExpectation
+      ) === true;
+
+  }
+
+  else {
+
+    viewerHasMeaningfulExpectation =
+      viewerExpectation.length > 0;
+
+  }
+
+
+  // ==========================================================
   // DETERMINE CANDIDATE TYPE
   // ==========================================================
 
@@ -355,6 +389,21 @@ function calculateActualProfileRanking(
   // ==========================================================
 
   const results = [];
+
+
+  // ==========================================================
+  // HARD MATCH DIAGNOSTIC COUNTERS
+  // ==========================================================
+
+  let hardMatchCount = 0;
+
+  let noHardCriteriaCount = 0;
+
+  let hardRejectCount = 0;
+
+  let unknownHardStatusCount = 0;
+
+  const hardStatusExamples = [];
 
 
   // ==========================================================
@@ -453,13 +502,15 @@ function calculateActualProfileRanking(
 
 
         // ======================================================
-        // PRESERVE ACTUAL PROFILE CRITERIA
+        // PRESERVE CANDIDATE ACTUAL PROFILE CRITERIA
         // ======================================================
 
         compatibilityCandidate.actualProfileCriteria =
           (
             profile &&
-            profile.actualProfileCriteria
+            profile.actualProfileCriteria &&
+            typeof profile.actualProfileCriteria ===
+              "object"
           )
 
             ? profile.actualProfileCriteria
@@ -486,10 +537,13 @@ function calculateActualProfileRanking(
 
 
         // ======================================================
-        // MEANINGFUL EXPECTATION
+        // CANDIDATE MEANINGFUL EXPECTATION
+        //
+        // "अनुरूप" => false
+        // Detailed expectation => true
         // ======================================================
 
-        let hasMeaningfulExpectation =
+        let candidateHasMeaningfulExpectation =
           false;
 
 
@@ -498,7 +552,7 @@ function calculateActualProfileRanking(
           "function"
         ) {
 
-          hasMeaningfulExpectation =
+          candidateHasMeaningfulExpectation =
             hasMeaningfulMatchingExpectation(
               candidateExpectation
             ) === true;
@@ -507,7 +561,7 @@ function calculateActualProfileRanking(
 
         else {
 
-          hasMeaningfulExpectation =
+          candidateHasMeaningfulExpectation =
             hasExpectation;
 
         }
@@ -568,6 +622,8 @@ function calculateActualProfileRanking(
 
         // ======================================================
         // VIEWER → CANDIDATE EXPECTATION
+        //
+        // Calculate ONLY ONCE.
         // ======================================================
 
         let viewerToCandidateExpectation = {
@@ -591,9 +647,9 @@ function calculateActualProfileRanking(
 
 
         if (
-          hasMeaningfulExpectation &&
+          viewerHasMeaningfulExpectation === true &&
           typeof calculateWeightedExpectationCompatibility ===
-          "function"
+            "function"
         ) {
 
           try {
@@ -601,7 +657,7 @@ function calculateActualProfileRanking(
             viewerToCandidateExpectation =
               calculateWeightedExpectationCompatibility(
                 viewerExpectation,
-                candidateExpectation
+                compatibilityCandidate
               ) ||
               viewerToCandidateExpectation;
 
@@ -658,7 +714,7 @@ function calculateActualProfileRanking(
         if (
           actualProfileCriteria &&
           typeof calculateActualProfileCompatibility ===
-          "function"
+            "function"
         ) {
 
           try {
@@ -691,7 +747,7 @@ function calculateActualProfileRanking(
         const candidateActualProfileCriteria =
           compatibilityCandidate.actualProfileCriteria &&
           typeof compatibilityCandidate.actualProfileCriteria ===
-          "object"
+            "object"
 
             ? compatibilityCandidate.actualProfileCriteria
 
@@ -701,10 +757,6 @@ function calculateActualProfileRanking(
         // ======================================================
         // PHASE 2
         // CANDIDATE → VIEWER HARD MATCH
-        //
-        // IMPORTANT:
-        // This is intentionally kept identical to the
-        // working testActualBrideRankingV2() logic.
         // ======================================================
 
         let candidateToViewerHard = {
@@ -733,14 +785,21 @@ function calculateActualProfileRanking(
 
           try {
 
-            candidateToViewerHard =
-              evaluateCandidateMatch(
-                viewerProfile,
-                parseExpectationCriteria(
-                  candidateExpectation
-                )
-              ) ||
-              candidateToViewerHard;
+            if (
+              typeof evaluateCandidateMatch ===
+              "function"
+            ) {
+
+              candidateToViewerHard =
+                evaluateCandidateMatch(
+                  viewerProfile,
+                  parseExpectationCriteria(
+                    candidateExpectation
+                  )
+                ) ||
+                candidateToViewerHard;
+
+            }
 
           }
 
@@ -760,25 +819,21 @@ function calculateActualProfileRanking(
         // MUTUAL HARD MATCH
         // ======================================================
 
-        const viewerHardFailed =
+        const viewerHardRejected =
           viewerToCandidateHard &&
-          viewerToCandidateHard.matchStatus !==
-            "HARD_MATCH" &&
-          viewerToCandidateHard.matchStatus !==
-            "NO_HARD_CRITERIA";
+          viewerToCandidateHard.matchStatus ===
+            "HARD_REJECT";
 
 
-        const candidateHardFailed =
+        const candidateHardRejected =
           candidateToViewerHard &&
-          candidateToViewerHard.matchStatus !==
-            "HARD_MATCH" &&
-          candidateToViewerHard.matchStatus !==
-            "NO_HARD_CRITERIA";
+          candidateToViewerHard.matchStatus ===
+            "HARD_REJECT";
 
 
         const mutualHardMatch =
-          !viewerHardFailed &&
-          !candidateHardFailed;
+          !viewerHardRejected &&
+          !candidateHardRejected;
 
 
         // ======================================================
@@ -838,9 +893,49 @@ function calculateActualProfileRanking(
 
         // ======================================================
         // MUTUAL EXPECTATION
+        //
+        // DIRECTION-AWARE
+        //
+        // Viewer meaningful:
+        //     viewerExpectation → candidate actual profile
+        //
+        // Candidate meaningful:
+        //     candidateExpectation → viewer actual profile
+        //
+        // Generic "अनुरूप" is ignored.
         // ======================================================
 
         let mutualExpectation = {
+
+          applicable:
+            false,
+
+          score:
+            0,
+
+          maxScore:
+            0,
+
+          percentage:
+            0,
+
+          matchedKeywords:
+            [],
+
+          viewerToCandidate:
+            viewerToCandidateExpectation,
+
+          candidateToViewer:
+            null
+
+        };
+
+
+        // ======================================================
+        // CANDIDATE → VIEWER EXPECTATION
+        // ======================================================
+
+        let candidateToViewerExpectation = {
 
           applicable:
             false,
@@ -860,21 +955,201 @@ function calculateActualProfileRanking(
         };
 
 
-        try {
+        if (
+          candidateHasMeaningfulExpectation === true &&
+          typeof calculateWeightedExpectationCompatibility ===
+            "function"
+        ) {
 
-          const candidateToViewerExpectation =
-            calculateWeightedExpectationCompatibility(
-              candidateExpectation,
-              viewerExpectation
+          try {
+
+            candidateToViewerExpectation =
+              calculateWeightedExpectationCompatibility(
+                candidateExpectation,
+                viewerProfile
+              ) ||
+              candidateToViewerExpectation;
+
+          }
+
+          catch (error) {
+
+            console.error(
+              "CANDIDATE → VIEWER EXPECTATION ERROR:",
+              error
             );
 
+          }
 
-          mutualExpectation =
-            calculateMutualExpectationCompatibility(
-              viewerToCandidateExpectation,
-              candidateToViewerExpectation
-            ) ||
-            mutualExpectation;
+        }
+
+
+        // ======================================================
+        // COMBINE MUTUAL EXPECTATION
+        // ======================================================
+
+        try {
+
+          if (
+            typeof calculateMutualExpectationCompatibility ===
+            "function"
+          ) {
+
+            mutualExpectation =
+              calculateMutualExpectationCompatibility(
+                viewerToCandidateExpectation,
+                candidateToViewerExpectation
+              ) ||
+              mutualExpectation;
+
+          }
+
+          else {
+
+            // --------------------------------------------------
+            // SAFE FALLBACK
+            // --------------------------------------------------
+
+            const viewerApplicable =
+              viewerToCandidateExpectation.applicable === true;
+
+            const candidateApplicable =
+              candidateToViewerExpectation.applicable === true;
+
+
+            let score = 0;
+
+            let maxScore = 0;
+
+
+            if (
+              viewerApplicable &&
+              candidateApplicable
+            ) {
+
+              score =
+                Number(
+                  viewerToCandidateExpectation.score
+                ) || 0;
+
+              score +=
+                Number(
+                  candidateToViewerExpectation.score
+                ) || 0;
+
+
+              maxScore =
+                Number(
+                  viewerToCandidateExpectation.maxScore
+                ) || 0;
+
+              maxScore +=
+                Number(
+                  candidateToViewerExpectation.maxScore
+                ) || 0;
+
+            }
+
+            else if (
+              viewerApplicable
+            ) {
+
+              score =
+                Number(
+                  viewerToCandidateExpectation.score
+                ) || 0;
+
+              maxScore =
+                Number(
+                  viewerToCandidateExpectation.maxScore
+                ) || 0;
+
+            }
+
+            else if (
+              candidateApplicable
+            ) {
+
+              score =
+                Number(
+                  candidateToViewerExpectation.score
+                ) || 0;
+
+              maxScore =
+                Number(
+                  candidateToViewerExpectation.maxScore
+                ) || 0;
+
+            }
+
+
+            const percentage =
+              maxScore > 0
+
+                ? Number(
+                    (
+                      score /
+                      maxScore *
+                      100
+                    ).toFixed(2)
+                  )
+
+                : 0;
+
+
+            const viewerKeywords =
+              Array.isArray(
+                viewerToCandidateExpectation.matchedKeywords
+              )
+
+                ? viewerToCandidateExpectation.matchedKeywords
+
+                : [];
+
+
+            const candidateKeywords =
+              Array.isArray(
+                candidateToViewerExpectation.matchedKeywords
+              )
+
+                ? candidateToViewerExpectation.matchedKeywords
+
+                : [];
+
+
+            mutualExpectation = {
+
+              applicable:
+                viewerApplicable ||
+                candidateApplicable,
+
+              score:
+                score,
+
+              maxScore:
+                maxScore,
+
+              percentage:
+                percentage,
+
+              matchedKeywords:
+                Array.from(
+                  new Set(
+                    viewerKeywords.concat(
+                      candidateKeywords
+                    )
+                  )
+                ),
+
+              viewerToCandidate:
+                viewerToCandidateExpectation,
+
+              candidateToViewer:
+                candidateToViewerExpectation
+
+            };
+
+          }
 
         }
 
@@ -886,6 +1161,71 @@ function calculateActualProfileRanking(
           );
 
         }
+
+
+        // ======================================================
+        // EXPECTATION DIRECTION DEBUG
+        // ======================================================
+
+        console.log(
+          "EXPECTATION DIRECTION INPUTS:",
+          JSON.stringify(
+            {
+
+              candidateId:
+                compatibilityCandidate.id || "",
+
+              viewerExpectation:
+                viewerExpectation,
+
+              candidateExpectation:
+                candidateExpectation,
+
+              viewerHasMeaningfulExpectation:
+                viewerHasMeaningfulExpectation,
+
+              candidateHasMeaningfulExpectation:
+                candidateHasMeaningfulExpectation,
+
+              viewerActualProfile:
+                actualProfileCriteria,
+
+              candidateActualProfile:
+                candidateActualProfileCriteria
+
+            },
+            null,
+            2
+          )
+        );
+
+
+        // ======================================================
+        // MUTUAL EXPECTATION DEBUG
+        // ======================================================
+
+        console.log(
+          "========== MUTUAL EXPECTATION DEBUG ==========",
+          JSON.stringify(
+            {
+
+              candidateId:
+                compatibilityCandidate.id || "",
+
+              viewerToCandidate:
+                viewerToCandidateExpectation,
+
+              candidateToViewer:
+                candidateToViewerExpectation,
+
+              mutualExpectation:
+                mutualExpectation
+
+            },
+            null,
+            2
+          )
+        );
 
 
         // ======================================================
@@ -914,13 +1254,20 @@ function calculateActualProfileRanking(
 
         try {
 
-          finalMutual =
-            calculateFinalMutualCompatibilityScore(
-              mutualHardMatch,
-              mutualExpectation,
-              mutualProfile
-            ) ||
-            finalMutual;
+          if (
+            typeof calculateFinalMutualCompatibilityScore ===
+            "function"
+          ) {
+
+            finalMutual =
+              calculateFinalMutualCompatibilityScore(
+                mutualHardMatch,
+                mutualExpectation,
+                mutualProfile
+              ) ||
+              finalMutual;
+
+          }
 
         }
 
@@ -950,45 +1297,15 @@ function calculateActualProfileRanking(
 
 
         // ======================================================
-        // PROFILE GATE
-        //
-        // NOTE:
-        // Kept exactly as in the working source.
-        // profileGateFail is currently diagnostic only.
-        // ======================================================
-
-        const profileApplicable =
-          mutualProfile &&
-          mutualProfile.applicable === true;
-
-
-        const profileMatched =
-          Number(
-            mutualProfile &&
-            mutualProfile.matched
-          ) || 0;
-
-         
-        // ==========================================================
         // ACCEPT CANDIDATE
-        // ==========================================================
+        // ======================================================
 
         diagnostic.accepted++;
 
 
-        // ==========================================================
+        // ======================================================
         // PROFILE PHOTO — FINAL SAFE VALUE
-        //
-        // IMPORTANT:
-        // The matching engine must return the same photo URL
-        // that the normal profile search uses.
-        //
-        // Priority:
-        // 1. profile.photo
-        // 2. profile.photoRaw
-        // 3. profile.photoUrl
-        // 4. profile.profilePhoto
-        // ==========================================================
+        // ======================================================
 
         let candidatePhotoRaw =
           profile &&
@@ -1000,22 +1317,20 @@ function calculateActualProfileRanking(
             ""
           );
 
+
         candidatePhotoRaw =
           String(
             candidatePhotoRaw || ""
           ).trim();
 
 
-        // ==========================================================
+        // ======================================================
         // CONVERT PHOTO URL
-        //
-        // Existing normalizer already converts Google Drive
-        // photo links. We also protect this layer here so that
-        // ranking results always contain a browser-displayable URL.
-        // ==========================================================
+        // ======================================================
 
         let candidatePhoto =
           candidatePhotoRaw;
+
 
         if (
           candidatePhotoRaw &&
@@ -1029,6 +1344,7 @@ function calculateActualProfileRanking(
               convertProfilePhotoUrl(
                 candidatePhotoRaw
               );
+
 
             if (
               convertedPhoto &&
@@ -1045,6 +1361,7 @@ function calculateActualProfileRanking(
             }
 
           }
+
           catch (photoError) {
 
             console.warn(
@@ -1053,7 +1370,6 @@ function calculateActualProfileRanking(
               photoError
             );
 
-            // Keep original URL as fallback
             candidatePhoto =
               candidatePhotoRaw;
 
@@ -1062,41 +1378,114 @@ function calculateActualProfileRanking(
         }
 
 
-        // ==========================================================
-        // PHOTO DEBUG
-        // ==========================================================
+        // ======================================================
+        // HARD STATUS DIAGNOSTIC
+        // ======================================================
 
-        console.log(
-          "📸 MATCHING FINAL PHOTO:",
-          JSON.stringify(
-            {
-              id:
-                profile.id || "",
-
-              name:
-                profile.name || "",
-
-              photoRaw:
-                candidatePhotoRaw,
-
-              photo:
-                candidatePhoto
-            },
-            null,
-            2
+        const diagnosticViewerHardStatus =
+          String(
+            viewerToCandidateHard &&
+            viewerToCandidateHard.matchStatus
+              ? viewerToCandidateHard.matchStatus
+              : ""
           )
-        );
+          .trim()
+          .toUpperCase();
 
 
-        // ==========================================================
+        const diagnosticCandidateHardStatus =
+          String(
+            candidateToViewerHard &&
+            candidateToViewerHard.matchStatus
+              ? candidateToViewerHard.matchStatus
+              : ""
+          )
+          .trim()
+          .toUpperCase();
+
+
+        if (
+          diagnosticViewerHardStatus ===
+            "HARD_MATCH" &&
+
+          diagnosticCandidateHardStatus ===
+            "HARD_MATCH"
+        ) {
+
+          hardMatchCount++;
+
+        }
+
+        else if (
+          diagnosticViewerHardStatus ===
+            "NO_HARD_CRITERIA" ||
+
+          diagnosticCandidateHardStatus ===
+            "NO_HARD_CRITERIA"
+        ) {
+
+          noHardCriteriaCount++;
+
+        }
+
+        else if (
+          diagnosticViewerHardStatus ===
+            "HARD_REJECT" ||
+
+          diagnosticCandidateHardStatus ===
+            "HARD_REJECT"
+        ) {
+
+          hardRejectCount++;
+
+        }
+
+        else {
+
+          unknownHardStatusCount++;
+
+        }
+
+
+        // ======================================================
+        // KEEP FIRST 10 HARD STATUS EXAMPLES
+        // ======================================================
+
+        if (
+          hardStatusExamples.length < 10
+        ) {
+
+          hardStatusExamples.push({
+
+            id:
+              compatibilityCandidate.id,
+
+            name:
+              compatibilityCandidate.name,
+
+            viewerToCandidate:
+              diagnosticViewerHardStatus,
+
+            candidateToViewer:
+              diagnosticCandidateHardStatus,
+
+            mutualHardMatch:
+              mutualHardMatch
+
+          });
+
+        }
+
+
+        // ======================================================
         // FINAL RESULT
-        // ==========================================================
+        // ======================================================
 
         results.push({
 
-          // ========================================================
+          // ====================================================
           // BASIC PROFILE
-          // ========================================================
+          // ====================================================
 
           id:
             profile.id || "",
@@ -1107,10 +1496,13 @@ function calculateActualProfileRanking(
           type:
             profile.type || "",
 
-
-          // ========================================================
-          // PROFILE PHOTO
-          // ========================================================
+          ownerMobile:
+            profile.mobile1 ||
+            profile.mobile2 ||
+            "",
+          // ====================================================
+          // PHOTO
+          // ====================================================
 
           photo:
             candidatePhoto,
@@ -1118,14 +1510,13 @@ function calculateActualProfileRanking(
           photoRaw:
             candidatePhotoRaw,
 
-
           found:
             true,
 
 
-          // ========================================================
-          // PROFILE DISPLAY DATA
-          // ========================================================
+          // ====================================================
+          // DISPLAY DATA
+          // ====================================================
 
           district:
             profile.district || "",
@@ -1176,28 +1567,31 @@ function calculateActualProfileRanking(
             profile.address || "",
 
 
-          // ========================================================
+          // ====================================================
           // EXPECTATION
-          // ========================================================
+          // ====================================================
 
           hasExpectation:
             hasExpectation,
 
           hasMeaningfulExpectation:
-            hasMeaningfulExpectation,
+            candidateHasMeaningfulExpectation,
 
 
-          // ========================================================
+          // ====================================================
           // MUTUAL HARD MATCH
-          // ========================================================
+          // ====================================================
 
           hardMatch:
             mutualHardMatch === true,
 
           matchStatus:
             mutualHardMatch === true
+
               ? "MUTUAL_HARD_MATCH"
+
               : "NO_HARD_CRITERIA",
+
 
           hardScore:
             Number(
@@ -1206,9 +1600,9 @@ function calculateActualProfileRanking(
             ) || 0,
 
 
-          // ========================================================
+          // ====================================================
           // MUTUAL EXPECTATION
-          // ========================================================
+          // ====================================================
 
           expectationCompatibilityScore:
             Number(
@@ -1216,11 +1610,13 @@ function calculateActualProfileRanking(
               mutualExpectation.score
             ) || 0,
 
+
           expectationCompatibilityMaxScore:
             Number(
               mutualExpectation &&
               mutualExpectation.maxScore
             ) || 0,
+
 
           expectationCompatibilityPercentage:
             Number(
@@ -1228,22 +1624,26 @@ function calculateActualProfileRanking(
               mutualExpectation.percentage
             ) || 0,
 
+
           matchedExpectationKeywords:
             Array.isArray(
               mutualExpectation &&
               mutualExpectation.matchedKeywords
             )
+
               ? mutualExpectation.matchedKeywords
+
               : [],
 
 
-          // ========================================================
+          // ====================================================
           // MUTUAL PROFILE
-          // ========================================================
+          // ====================================================
 
           profileCompatibilityApplicable:
             mutualProfile &&
             mutualProfile.applicable === true,
+
 
           profileCompatibilityPercentage:
             Number(
@@ -1251,11 +1651,13 @@ function calculateActualProfileRanking(
               mutualProfile.percentage
             ) || 0,
 
+
           profileMatched:
             Number(
               mutualProfile &&
               mutualProfile.matched
             ) || 0,
+
 
           profileFailed:
             Number(
@@ -1263,11 +1665,13 @@ function calculateActualProfileRanking(
               mutualProfile.failed
             ) || 0,
 
+
           profileUnknown:
             Number(
               mutualProfile &&
               mutualProfile.unknown
             ) || 0,
+
 
           profileTotalChecks:
             Number(
@@ -1276,9 +1680,9 @@ function calculateActualProfileRanking(
             ) || 0,
 
 
-          // ========================================================
+          // ====================================================
           // FINAL MUTUAL SCORE
-          // ========================================================
+          // ====================================================
 
           finalScore:
             Number(
@@ -1286,17 +1690,20 @@ function calculateActualProfileRanking(
               finalMutual.finalScore
             ) || 0,
 
+
           finalPercentage:
             Number(
               finalMutual &&
               finalMutual.finalPercentage
             ) || 0,
 
+
           rankingScore:
             Number(
               finalMutual &&
               finalMutual.finalScore
             ) || 0,
+
 
           rankingPercentage:
             Number(
@@ -1305,16 +1712,14 @@ function calculateActualProfileRanking(
             ) || 0,
 
 
-          // ========================================================
+          // ====================================================
           // RANKING MODE
-          // ========================================================
+          // ====================================================
 
           rankingMode:
             "FINAL_MUTUAL_COMPATIBILITY"
 
         });
-
-          
 
       }
 
@@ -1336,7 +1741,7 @@ function calculateActualProfileRanking(
           error
         );
 
-        // Continue processing remaining candidates.
+        // Continue remaining candidates.
 
       }
 
@@ -1381,7 +1786,7 @@ function calculateActualProfileRanking(
       if (
         !existing ||
         item.rankingScore >
-        existing.rankingScore
+          existing.rankingScore
       ) {
 
         uniqueResultsMap.set(
@@ -1596,6 +2001,48 @@ function calculateActualProfileRanking(
 
 
   // ==========================================================
+  // HARD MATCH DIAGNOSTIC OUTPUT
+  // ==========================================================
+
+  console.log(
+    "=================================================="
+  );
+
+  console.log(
+    "HARD MATCH DIAGNOSTIC"
+  );
+
+  console.log(
+    "HARD MATCH COUNT:",
+    hardMatchCount
+  );
+
+  console.log(
+    "NO HARD CRITERIA COUNT:",
+    noHardCriteriaCount
+  );
+
+  console.log(
+    "HARD REJECT COUNT:",
+    hardRejectCount
+  );
+
+  console.log(
+    "UNKNOWN HARD STATUS COUNT:",
+    unknownHardStatusCount
+  );
+
+  console.log(
+    "HARD STATUS EXAMPLES:",
+    hardStatusExamples
+  );
+
+  console.log(
+    "=================================================="
+  );
+
+
+  // ==========================================================
   // RETURN
   // ==========================================================
 
@@ -1643,8 +2090,8 @@ function testCalculateActualProfileRanking() {
 
   const result =
     calculateActualProfileRanking(
-      "ID001",
-      "groom"
+      "ID048",
+      "bride"
     );
 
 
@@ -1696,6 +2143,409 @@ function testCalculateActualProfileRanking() {
       null,
       2
     )
+  );
+
+}
+
+
+// testFinalMatchingPipeline
+
+
+function testFinalMatchingPipeline() {
+
+  // ==========================================================
+  // TEST USER
+  // ==========================================================
+
+  const viewerId =
+    "ID048";
+
+  const viewerType =
+    "bride";
+
+
+  console.log(
+    "=================================================="
+  );
+
+  console.log(
+    "FINAL MATCHING PIPELINE TEST"
+  );
+
+  console.log(
+    "Viewer:",
+    viewerId,
+    "| Type:",
+    viewerType
+  );
+
+  console.log(
+    "=================================================="
+  );
+
+
+  // ==========================================================
+  // EXISTING RANKING ENGINE
+  //
+  // DO NOT CHANGE THE RANKING FUNCTION
+  // ==========================================================
+
+  const result =
+    calculateActualProfileRanking(
+      viewerId,
+      viewerType
+    );
+
+
+  // ==========================================================
+  // RESULT VALIDATION
+  // ==========================================================
+
+  if (
+    !result ||
+    result.success !== true
+  ) {
+
+    console.log(
+      "❌ FINAL PIPELINE FAILED"
+    );
+
+    console.log(
+      "Message:",
+      result &&
+      result.message
+        ? result.message
+        : "Unknown error"
+    );
+
+    return;
+
+  }
+
+
+  // ==========================================================
+  // SUMMARY
+  // ==========================================================
+
+  const summary =
+    result.summary || {};
+
+
+  console.log(
+    "PIPELINE SUMMARY:",
+    {
+
+      totalCandidates:
+        summary.totalCandidates,
+
+      mutualHardMatched:
+        summary.mutualHardMatched,
+
+      finalMutualCompatibilityCandidates:
+        summary.finalMutualCompatibilityCandidates,
+
+      meaningfulExpectationCandidates:
+        summary.meaningfulExpectationCandidates,
+
+      topMatches:
+        summary.topMatches
+
+    }
+  );
+
+
+  // ==========================================================
+  // TOP 10
+  // ==========================================================
+
+  const topMatches =
+    Array.isArray(
+      result.top10
+    )
+      ? result.top10
+      : [];
+
+
+  console.log(
+    "--------------------------------------------------"
+  );
+
+  console.log(
+    "TOP MATCHES"
+  );
+
+  console.log(
+    "--------------------------------------------------"
+  );
+
+
+  topMatches.forEach(
+    function(candidate, index) {
+
+      if (!candidate) {
+        return;
+      }
+
+
+      const rank =
+        Number(
+          candidate.rank
+        ) || index + 1;
+
+
+      const hardScore =
+        Number(
+          candidate.hardScore
+        ) || 0;
+
+
+      const expectationPercentage =
+        Number(
+          candidate.expectationCompatibilityPercentage
+        ) || 0;
+
+
+      const expectationMaxScore =
+        Number(
+          candidate.expectationCompatibilityMaxScore
+        ) || 0;
+
+
+      const expectationScore =
+        Number(
+          candidate.expectationCompatibilityScore
+        ) || 0;
+
+
+      const profilePercentage =
+        Number(
+          candidate.profileCompatibilityPercentage
+        ) || 0;
+
+
+      const finalScore =
+        Number(
+          candidate.finalScore
+        ) || 0;
+
+
+      // ------------------------------------------------------
+      // PROFILE CONTRIBUTION
+      //
+      // Profile component has maximum weight = 20.
+      // ------------------------------------------------------
+
+      const profileScore =
+        (
+          profilePercentage *
+          20 /
+          100
+        );
+
+
+      console.log(
+        {
+
+          rank:
+            rank,
+
+          id:
+            candidate.id || "",
+
+          name:
+            candidate.name || "",
+
+          hardMatch:
+            candidate.hardMatch === true,
+
+          hardScore:
+            Number(
+              hardScore.toFixed(2)
+            ),
+
+          expectationPercentage:
+            Number(
+              expectationPercentage.toFixed(2)
+            ),
+
+          expectationScore:
+            Number(
+              expectationScore.toFixed(2)
+            ),
+
+          expectationMaxScore:
+            expectationMaxScore,
+
+          profilePercentage:
+            Number(
+              profilePercentage.toFixed(2)
+            ),
+
+          profileScore:
+            Number(
+              profileScore.toFixed(2)
+            ),
+
+          finalScore:
+            Number(
+              finalScore.toFixed(2)
+            )
+
+        }
+      );
+
+    }
+  );
+
+
+  // ==========================================================
+  // FINAL SCORE VALIDATION
+  // ==========================================================
+
+  console.log(
+    "--------------------------------------------------"
+  );
+
+  console.log(
+    "FINAL SCORE VALIDATION"
+  );
+
+  console.log(
+    "--------------------------------------------------"
+  );
+
+
+  let scoreValidationPassed =
+    true;
+
+
+  topMatches.forEach(
+    function(candidate, index) {
+
+      if (!candidate) {
+        return;
+      }
+
+
+      const finalScore =
+        Number(
+          candidate.finalScore
+        );
+
+
+      const valid =
+        !isNaN(finalScore) &&
+        finalScore >= 0 &&
+        finalScore <= 100;
+
+
+      if (!valid) {
+
+        scoreValidationPassed =
+          false;
+
+      }
+
+
+      console.log(
+        "#" +
+        (
+          candidate.rank ||
+          index + 1
+        ),
+
+        candidate.id || "",
+
+        "→",
+
+        isNaN(finalScore)
+          ? "INVALID"
+          : finalScore,
+
+        "/ 100",
+
+        valid
+          ? "✅"
+          : "❌"
+      );
+
+    }
+  );
+
+
+  // ==========================================================
+  // RANKING ORDER VALIDATION
+  // ==========================================================
+
+  let rankingCorrect =
+    true;
+
+
+  for (
+    let i = 1;
+    i < topMatches.length;
+    i++
+  ) {
+
+    const previousScore =
+      Number(
+        topMatches[i - 1].finalScore
+      );
+
+
+    const currentScore =
+      Number(
+        topMatches[i].finalScore
+      );
+
+
+    if (
+      isNaN(previousScore) ||
+      isNaN(currentScore) ||
+      currentScore > previousScore
+    ) {
+
+      rankingCorrect =
+        false;
+
+      break;
+
+    }
+
+  }
+
+
+  console.log(
+    "Ranking Order:",
+    rankingCorrect
+      ? "✅ CORRECT"
+      : "❌ INCORRECT"
+  );
+
+
+  // ==========================================================
+  // FINAL TEST RESULT
+  // ==========================================================
+
+  const pipelinePassed =
+    scoreValidationPassed &&
+    rankingCorrect;
+
+
+  console.log(
+    "=================================================="
+  );
+
+  console.log(
+    "FINAL PIPELINE TEST:",
+    pipelinePassed
+      ? "✅ PASSED"
+      : "⚠️ CHECK REQUIRED"
+  );
+
+  console.log(
+    "=================================================="
+
   );
 
 }

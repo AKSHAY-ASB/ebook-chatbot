@@ -385,6 +385,167 @@ function normalizeIncome(value) {
 }
 
 
+function parseMatchingIncomeRange(value) {
+
+  const raw =
+    String(value || "").trim();
+
+  if (!raw) {
+
+    return {
+      raw: "",
+      min: null,
+      max: null,
+      enabled: false
+    };
+
+  }
+
+  // Marathi digits → English digits
+  const normalized =
+    raw
+      .replace(/[०-९]/g, function(digit) {
+
+        return String(
+          "०१२३४५६७८९".indexOf(digit)
+        );
+
+      })
+      .replace(/,/g, "")
+      .replace(/₹/g, "")
+      .replace(/रु\./gi, "")
+      .replace(/रु/gi, "")
+      .replace(/मासिक उत्पन्न/gi, "")
+      .trim();
+
+
+  // ==========================================================
+  // ABOVE / MORE THAN
+  // Example:
+  // १००,००० पेक्षा जास्त
+  // 100000+
+  // ==========================================================
+
+  if (
+    /पेक्षा\s*जास्त|पेक्षा\s*अधिक|पेक्षा\s*वर|above|more\s*than|greater\s*than|\+/i
+      .test(normalized)
+  ) {
+
+    const match =
+      normalized.match(
+        /\d+(?:\.\d+)?/
+      );
+
+    if (match) {
+
+      return {
+
+        raw:
+          raw,
+
+        min:
+          Number(match[0]),
+
+        max:
+          null,
+
+        enabled:
+          true
+
+      };
+
+    }
+
+  }
+
+
+  // ==========================================================
+  // RANGE
+  // Example:
+  // २५,००० ते ३०,०००
+  // 25000 - 30000
+  // ==========================================================
+
+  const rangeMatch =
+    normalized.match(
+      /(\d+(?:\.\d+)?)\s*(?:ते|to|-|–|—)\s*(\d+(?:\.\d+)?)/i
+    );
+
+
+  if (rangeMatch) {
+
+    return {
+
+      raw:
+        raw,
+
+      min:
+        Number(rangeMatch[1]),
+
+      max:
+        Number(rangeMatch[2]),
+
+      enabled:
+        true
+
+    };
+
+  }
+
+
+  // ==========================================================
+  // SINGLE VALUE
+  // ==========================================================
+
+  const singleMatch =
+    normalized.match(
+      /\d+(?:\.\d+)/
+    );
+
+
+  if (singleMatch) {
+
+    const number =
+      Number(singleMatch[0]);
+
+    return {
+
+      raw:
+        raw,
+
+      min:
+        number,
+
+      max:
+        number,
+
+      enabled:
+        true
+
+    };
+
+  }
+
+
+  return {
+
+    raw:
+      raw,
+
+    min:
+      null,
+
+    max:
+      null,
+
+    enabled:
+      false
+
+  };
+
+}
+
+
 function searchProfiles(type, district, education, income, page, userMobile) {
 
   currentProfileScreen = "SEARCH";
@@ -1567,25 +1728,7 @@ function convertProfilePhotoUrl(url) {
 
 }
 
-function normalizeIncome(value) {
 
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "";
-  }
-
-  return value
-    .toString()
-    .toLowerCase()
-    .replace(/मासिक उत्पन्न/g, "")
-    .replace(/रु\./g, "")
-    .replace(/रु/g, "")
-    .replace(/₹/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 
 // ==========================================

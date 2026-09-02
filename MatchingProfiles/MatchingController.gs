@@ -849,6 +849,7 @@ function normalizeMatchingCandidateProfile(
         );
 
     }
+
     else if (
       typeof normalizeIncome ===
       "function"
@@ -870,6 +871,16 @@ function normalizeMatchingCandidateProfile(
     );
 
   }
+
+
+  // ==========================================================
+  // STRUCTURED INCOME FOR MATCHING
+  // ==========================================================
+
+  const matchingIncome =
+    parseMatchingIncomeRange(
+      normalizedIncome
+    );
 
 
   // ==========================================================
@@ -1038,36 +1049,44 @@ function normalizeMatchingCandidateProfile(
   // They are NOT expectation criteria.
   // ==========================================================
 
-  const actualProfileCriteria = {
+    const actualProfileCriteria = {
 
-    district:
-      districtRaw || "",
+      district:
+        districtRaw || "",
 
-    education:
-      educationRaw || "",
+      education:
+        educationRaw || "",
 
-    profession:
-      professionRaw || "",
+      profession:
+        professionRaw || "",
 
-    employmentType:
-      employmentType,
+      employmentType:
+        employmentType,
 
-    caste:
-      casteRaw || "",
+      caste:
+        casteRaw || "",
 
-    rashi:
-      rashiRaw || "",
+      rashi:
+        rashiRaw || "",
 
-    age:
-      normalizedAge,
+      age:
+        normalizedAge,
 
-    height:
-      normalizedHeight,
+      height:
+        normalizedHeight,
 
-    income:
-      normalizedIncome
+      // Keep existing normalized income
+      income:
+        normalizedIncome,
 
-  };
+      // Structured income for compatibility matching
+      minIncome:
+        matchingIncome.min,
+
+      maxIncome:
+        matchingIncome.max
+
+    };
 
 
   // ==========================================================
@@ -1169,6 +1188,14 @@ function normalizeMatchingCandidateProfile(
         rashiRaw,
 
 
+
+    // ========================================================
+    // ACTUAL PROFILE CRITERIA
+    // ========================================================
+
+    actualProfileCriteria:
+        actualProfileCriteria,
+
     // ========================================================
     // EDUCATION / PROFESSION
     // ========================================================
@@ -1187,6 +1214,8 @@ function normalizeMatchingCandidateProfile(
 
     profession:
         normalizedProfession,
+
+
 
 
     // ========================================================

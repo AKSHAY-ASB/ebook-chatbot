@@ -49,6 +49,62 @@ function evaluateCandidateMatch(
   expectationCriteria
 ) {
 
+
+    console.log(
+      "========== EXPECTATION CRITERIA DEBUG =========="
+    );
+
+    console.log(
+      JSON.stringify(
+        {
+          raw:
+            expectationCriteria.raw || "",
+
+          hasHardCriteria:
+            expectationCriteria.hasHardCriteria,
+
+          educationCategories:
+            expectationCriteria.educationCategories || [],
+
+          professionCategories:
+            expectationCriteria.professionCategories || [],
+
+          employmentTypes:
+            expectationCriteria.employmentTypes || [],
+
+          educationRequired:
+            expectationCriteria.educationRequired,
+
+          employmentRequired:
+            expectationCriteria.employmentRequired,
+
+          age:
+            expectationCriteria.age || {},
+
+          height:
+            expectationCriteria.height || {},
+
+          districts:
+            expectationCriteria.districts || [],
+
+          income:
+            expectationCriteria.income || {},
+
+          caste:
+            expectationCriteria.caste || {},
+
+          rashi:
+            expectationCriteria.rashi || {},
+
+          hasSoftPreferences:
+            expectationCriteria.hasSoftPreferences
+        },
+        null,
+        2
+      )
+    );
+
+
   // ----------------------------------------------------------
   // Validate candidate
   // ----------------------------------------------------------
@@ -181,7 +237,56 @@ function evaluateCandidateMatch(
   const candidate =
     candidateResult.criteria;
 
+        console.log(
+        "========== HARD MATCH INPUT ==========",
+        JSON.stringify(
+          {
+            candidateId:
+              candidate.id,
 
+            candidateName:
+              candidate.name,
+
+            expectationRaw:
+              expectationCriteria.raw,
+
+            hasHardCriteria:
+              expectationCriteria.hasHardCriteria,
+
+            educationRequired:
+              expectationCriteria.educationRequired,
+
+            educationCategories:
+              expectationCriteria.educationCategories,
+
+            professionCategories:
+              expectationCriteria.professionCategories,
+
+            employmentTypes:
+              expectationCriteria.employmentTypes,
+
+            age:
+              expectationCriteria.age,
+
+            height:
+              expectationCriteria.height,
+
+            districts:
+              expectationCriteria.districts,
+
+            income:
+              expectationCriteria.income,
+
+            caste:
+              expectationCriteria.caste,
+
+            rashi:
+              expectationCriteria.rashi
+          },
+          null,
+          2
+        )
+      );
   // ----------------------------------------------------------
   // Counters
   // ----------------------------------------------------------
@@ -271,42 +376,42 @@ function evaluateCandidateMatch(
   }
 
 
-  // ==========================================================
-  // 3. PROFESSION CATEGORY
-  // ==========================================================
+    // ==========================================================
+    // 3. PROFESSION CATEGORY
+    // ==========================================================
 
-  const professionCheck =
-    evaluateProfessionMatch(
-      candidate,
-      expectationCriteria
-    );
-
-  checks.push(
-    professionCheck
-  );
-
-  if (
-    professionCheck.applicable
-  ) {
-
-    applicableCriteria++;
-
-    if (
-      professionCheck.matched
-    ) {
-
-      matchedCriteria++;
-
-    }
-    else {
-
-      failedCriteria.push(
-        "professionCategory"
+    const professionCheck =
+      evaluateProfessionMatch(
+        candidate,
+        expectationCriteria
       );
 
-    }
+    checks.push(
+      professionCheck
+    );
 
-  }
+    if (
+      professionCheck.applicable
+    ) {
+
+      applicableCriteria++;
+
+      if (
+        professionCheck.matched
+      ) {
+
+        matchedCriteria++;
+
+      }
+      else {
+
+        failedCriteria.push(
+          "profession"
+        );
+
+      }
+
+    }
 
 
   // ==========================================================
@@ -574,7 +679,64 @@ function evaluateCandidateMatch(
 
   }
 
+  // ==========================================================
+  // HARD MATCH DIAGNOSTIC
+  // ==========================================================
 
+  console.log(
+    "🔥 HARD MATCH DIAGNOSTIC:",
+    JSON.stringify(
+      {
+        candidateId:
+          candidate.id || "",
+
+        candidateName:
+          candidate.name || "",
+
+        education:
+          educationCheck,
+
+        educationRequired:
+          educationRequiredCheck,
+
+        profession:
+          professionCheck,
+
+        employment:
+          employmentCheck,
+
+        age:
+          ageCheck,
+
+        height:
+          heightCheck,
+
+        income:
+          incomeCheck,
+
+        district:
+          districtCheck,
+
+        caste:
+          casteCheck,
+
+        rashi:
+          rashiCheck,
+
+        applicableCriteria:
+          applicableCriteria,
+
+        matchedCriteria:
+          matchedCriteria,
+
+        failedCriteria:
+          failedCriteria
+
+      },
+      null,
+      2
+    )
+  );
   // ==========================================================
   // HARD CRITERIA STATUS
   // ==========================================================
@@ -922,16 +1084,128 @@ function evaluateEducationMatch(
   criteria
 ) {
 
-  const expectedCategories =
+  // ==========================================================
+  // SAFE INPUT
+  // ==========================================================
+
+  const safeCandidate =
+    candidate || {};
+
+  const safeCriteria =
+    criteria || {};
+
+
+  // ==========================================================
+  // EXPECTED EDUCATION
+  //
+  // Support BOTH:
+  //
+  // 1. criteria.educationCategories
+  // 2. criteria.education
+  //
+  // Example:
+  // educationCategories:
+  // ["Engineering & Technology"]
+  //
+  // OR:
+  // education:
+  // "B.E (IT)"
+  // ==========================================================
+
+  let expectedCategories =
     Array.isArray(
-      criteria.educationCategories
+      safeCriteria.educationCategories
     )
-      ? criteria.educationCategories
+      ? safeCriteria.educationCategories.slice()
       : [];
 
 
+  let expectedRaw =
+    "";
+
+
   if (
-    expectedCategories.length === 0
+    safeCriteria.education !== null &&
+    safeCriteria.education !== undefined
+  ) {
+
+    if (
+      Array.isArray(
+        safeCriteria.education
+      )
+    ) {
+
+      expectedCategories =
+        expectedCategories.concat(
+          safeCriteria.education
+        );
+
+    }
+
+    else if (
+      typeof safeCriteria.education === "object"
+    ) {
+
+      if (
+        Array.isArray(
+          safeCriteria.education.categories
+        )
+      ) {
+
+        expectedCategories =
+          expectedCategories.concat(
+            safeCriteria.education.categories
+          );
+
+      }
+
+      expectedRaw =
+        String(
+          safeCriteria.education.raw || ""
+        );
+
+    }
+
+    else {
+
+      expectedRaw =
+        String(
+          safeCriteria.education || ""
+        );
+
+    }
+
+  }
+
+
+  // ==========================================================
+  // REMOVE DUPLICATES
+  // ==========================================================
+
+  expectedCategories =
+    Array.from(
+      new Set(
+        expectedCategories
+          .map(function(value) {
+
+            return String(
+              value || ""
+            )
+              .trim();
+
+          })
+          .filter(Boolean)
+      )
+    );
+
+
+  // ==========================================================
+  // NO EDUCATION REQUIREMENT
+  // ==========================================================
+
+  if (
+    expectedCategories.length === 0 &&
+    !expectedRaw.trim()
   ) {
 
     return {
@@ -945,6 +1219,12 @@ function evaluateEducationMatch(
       matched:
         true,
 
+      expectedCategories:
+        [],
+
+      candidateCategories:
+        [],
+
       matchedCategories:
         []
 
@@ -953,25 +1233,334 @@ function evaluateEducationMatch(
   }
 
 
-  const candidateCategories =
-    candidate.education &&
+  // ==========================================================
+  // CANDIDATE EDUCATION
+  // ==========================================================
+
+  const candidateEducation =
+    safeCandidate.education || null;
+
+
+  let candidateCategories =
+    candidateEducation &&
     Array.isArray(
-      candidate.education.categories
+      candidateEducation.categories
     )
-      ? candidate.education.categories
+      ? candidateEducation.categories.slice()
       : [];
 
 
-  const matchedCategories =
-    expectedCategories.filter(
-      function(category) {
+  const candidateRaw =
+    candidateEducation
+      ? String(
+          candidateEducation.raw || ""
+        )
+      : "";
 
-        return candidateCategories.includes(
-          category
+
+  // ==========================================================
+  // NORMALIZE EDUCATION TEXT
+  // ==========================================================
+
+  function normalizeEducationText(
+    value
+  ) {
+
+    return String(
+      value || ""
+    )
+      .toLowerCase()
+      .replace(/[().,\/\-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  }
+
+
+  const normalizedExpectedRaw =
+    normalizeEducationText(
+      expectedRaw
+    );
+
+
+  const normalizedCandidateRaw =
+    normalizeEducationText(
+      candidateRaw
+    );
+
+
+  const normalizedExpectedCategories =
+    expectedCategories
+      .map(
+        normalizeEducationText
+      )
+      .filter(Boolean);
+
+
+  const normalizedCandidateCategories =
+    candidateCategories
+      .map(
+        normalizeEducationText
+      )
+      .filter(Boolean);
+
+
+  // ==========================================================
+  // DEBUG
+  // ==========================================================
+
+  console.log(
+    "EDUCATION MATCH DEBUG:",
+    JSON.stringify(
+      {
+
+        expectedRaw:
+          normalizedExpectedRaw,
+
+        expectedCategories:
+          normalizedExpectedCategories,
+
+        candidateRaw:
+          normalizedCandidateRaw,
+
+        candidateCategories:
+          normalizedCandidateCategories
+
+      },
+      null,
+      2
+    )
+  );
+
+
+  // ==========================================================
+  // EMPTY CANDIDATE EDUCATION
+  // ==========================================================
+
+  if (
+    !normalizedCandidateRaw &&
+    normalizedCandidateCategories.length === 0
+  ) {
+
+    return {
+
+      criterion:
+        "education",
+
+      applicable:
+        true,
+
+      matched:
+        false,
+
+      expectedCategories:
+        expectedCategories,
+
+      candidateCategories:
+        candidateCategories,
+
+      matchedCategories:
+        [],
+
+      reason:
+        "Candidate education unavailable."
+
+    };
+
+  }
+
+
+  // ==========================================================
+  // 1. DIRECT CATEGORY MATCH
+  // ==========================================================
+
+  const matchedCategories =
+    normalizedExpectedCategories.filter(
+      function(expectedCategory) {
+
+        return normalizedCandidateCategories.some(
+          function(candidateCategory) {
+
+            return (
+              expectedCategory ===
+              candidateCategory
+            );
+
+          }
         );
 
       }
     );
+
+
+  if (
+    matchedCategories.length > 0
+  ) {
+
+    console.log(
+      "🟢 EDUCATION CATEGORY MATCH"
+    );
+
+    return {
+
+      criterion:
+        "education",
+
+      applicable:
+        true,
+
+      matched:
+        true,
+
+      expectedCategories:
+        expectedCategories,
+
+      candidateCategories:
+        candidateCategories,
+
+      matchedCategories:
+        matchedCategories
+
+    };
+
+  }
+
+
+  // ==========================================================
+  // 2. ENGINEERING DEGREE COMPATIBILITY
+  //
+  // B.E
+  // B.E. (IT)
+  // BE
+  // BE CSE
+  // B.Tech
+  // M.E
+  // M.Tech
+  //
+  // All are Engineering & Technology.
+  // ==========================================================
+
+  const engineeringDegreePattern =
+    /\b(?:b\s*e|be|b\s*tech|btech|m\s*e|me|m\s*tech|mtech)\b/i;
+
+
+  const expectedEngineering =
+    engineeringDegreePattern.test(
+      normalizedExpectedRaw
+    ) ||
+    normalizedExpectedCategories.includes(
+      "engineering & technology"
+    );
+
+
+  const candidateEngineering =
+    engineeringDegreePattern.test(
+      normalizedCandidateRaw
+    ) ||
+    normalizedCandidateCategories.includes(
+      "engineering & technology"
+    );
+
+
+  if (
+    expectedEngineering &&
+    candidateEngineering
+  ) {
+
+    console.log(
+      "🟢 EDUCATION ENGINEERING DEGREE MATCH"
+    );
+
+    return {
+
+      criterion:
+        "education",
+
+      applicable:
+        true,
+
+      matched:
+        true,
+
+      expectedCategories:
+        expectedCategories,
+
+      candidateCategories:
+        candidateCategories,
+
+      matchedCategories:
+        [
+          "Engineering & Technology"
+        ]
+
+    };
+
+  }
+
+
+  // ==========================================================
+  // 3. COMPUTER / IT ENGINEERING
+  // ==========================================================
+
+  const computerEngineeringPattern =
+    /\b(?:computer|cse|it|information technology|computer science|computer engineering)\b/i;
+
+
+  const expectedComputerEngineering =
+    computerEngineeringPattern.test(
+      normalizedExpectedRaw
+    );
+
+
+  const candidateComputerEngineering =
+    computerEngineeringPattern.test(
+      normalizedCandidateRaw
+    );
+
+
+  if (
+    expectedComputerEngineering &&
+    candidateComputerEngineering
+  ) {
+
+    console.log(
+      "🟢 EDUCATION COMPUTER / IT ENGINEERING MATCH"
+    );
+
+    return {
+
+      criterion:
+        "education",
+
+      applicable:
+        true,
+
+      matched:
+        true,
+
+      expectedCategories:
+        expectedCategories,
+
+      candidateCategories:
+        candidateCategories,
+
+      matchedCategories:
+        [
+          "Computer / IT Engineering"
+        ]
+
+    };
+
+  }
+
+
+  // ==========================================================
+  // 4. FINAL NO MATCH
+  // ==========================================================
+
+  console.log(
+    "🔴 EDUCATION COMPATIBILITY FALSE"
+  );
 
 
   return {
@@ -983,22 +1572,26 @@ function evaluateEducationMatch(
       true,
 
     matched:
-      matchedCategories.length > 0,
+      false,
 
     expectedCategories:
       expectedCategories,
 
+    expectedRaw:
+      expectedRaw,
+
     candidateCategories:
       candidateCategories,
 
+    candidateRaw:
+      candidateRaw,
+
     matchedCategories:
-      matchedCategories
+      []
 
   };
 
 }
-
-
 
 // ============================================================
 // EDUCATION REQUIRED
@@ -1052,8 +1645,6 @@ function evaluateEducationRequiredMatch(
 
 }
 
-
-
 // ============================================================
 // PROFESSION CATEGORY MATCH
 // ============================================================
@@ -1063,13 +1654,45 @@ function evaluateProfessionMatch(
   criteria
 ) {
 
-  const expectedCategories =
+  // ==========================================================
+  // EXPECTED PROFESSION CATEGORIES
+  // ==========================================================
+
+  let expectedCategories = [];
+
+
+  if (
     Array.isArray(
       criteria.professionCategories
     )
-      ? criteria.professionCategories
-      : [];
+  ) {
 
+    expectedCategories =
+      criteria.professionCategories.slice();
+
+  }
+
+
+  // ----------------------------------------------------------
+  // FALLBACK
+  // ----------------------------------------------------------
+
+  if (
+    expectedCategories.length === 0 &&
+    Array.isArray(
+      criteria.profession
+    )
+  ) {
+
+    expectedCategories =
+      criteria.profession.slice();
+
+  }
+
+
+  // ==========================================================
+  // NO PROFESSION CRITERIA
+  // ==========================================================
 
   if (
     expectedCategories.length === 0
@@ -1086,6 +1709,12 @@ function evaluateProfessionMatch(
       matched:
         true,
 
+      expectedCategories:
+        [],
+
+      candidateCategories:
+        [],
+
       matchedCategories:
         []
 
@@ -1094,26 +1723,100 @@ function evaluateProfessionMatch(
   }
 
 
+  // ==========================================================
+  // CANDIDATE PROFESSION
+  // ==========================================================
+
+  const candidateProfession =
+    candidate &&
+    candidate.profession
+      ? candidate.profession
+      : null;
+
+
   const candidateCategories =
-    candidate.profession &&
+    candidateProfession &&
     Array.isArray(
-      candidate.profession.categories
+      candidateProfession.categories
     )
-      ? candidate.profession.categories
+      ? candidateProfession.categories
       : [];
 
 
-  const matchedCategories =
-    expectedCategories.filter(
-      function(category) {
+  // ==========================================================
+  // NORMALIZE CATEGORY VALUES
+  // ==========================================================
 
-        return candidateCategories.includes(
-          category
+  const normalizedExpectedCategories =
+    expectedCategories
+      .map(
+        function(category) {
+
+          return String(
+            category || ""
+          )
+          .trim()
+          .toLowerCase();
+
+        }
+      )
+      .filter(Boolean);
+
+
+  const normalizedCandidateCategories =
+    candidateCategories
+      .map(
+        function(category) {
+
+          return String(
+            category || ""
+          )
+          .trim()
+          .toLowerCase();
+
+        }
+      )
+      .filter(Boolean);
+
+
+  // ==========================================================
+  // CATEGORY MATCH ONLY
+  //
+  // IMPORTANT:
+  //
+  // DO NOT compare:
+  //
+  // J P Morgan Chase
+  // Infosys
+  // ArtCode Pvt Limited
+  //
+  // against profession.
+  //
+  // ONLY normalized categories are compared.
+  // ==========================================================
+
+  const matchedCategories =
+    normalizedExpectedCategories.filter(
+      function(expectedCategory) {
+
+        return normalizedCandidateCategories.some(
+          function(candidateCategory) {
+
+            return (
+              candidateCategory ===
+              expectedCategory
+            );
+
+          }
         );
 
       }
     );
 
+
+  // ==========================================================
+  // RESULT
+  // ==========================================================
 
   return {
 
@@ -1138,8 +1841,6 @@ function evaluateProfessionMatch(
   };
 
 }
-
-
 
 // ============================================================
 // EMPLOYMENT TYPE MATCH
@@ -1249,8 +1950,6 @@ function evaluateEmploymentMatch(
   };
 
 }
-
-
 
 // ============================================================
 // AGE MATCH
@@ -1366,8 +2065,6 @@ function evaluateAgeMatch(
 
 }
 
-
-
 // ============================================================
 // HEIGHT MATCH
 // ============================================================
@@ -1481,8 +2178,6 @@ function evaluateHeightMatch(
   };
 
 }
-
-
 
 // ============================================================
 // INCOME MATCH
@@ -1635,7 +2330,6 @@ function evaluateIncomeMatch(
   };
 
 }
-
 
 // ============================================================
 // NORMALIZE DISTRICT FOR MATCHING
@@ -1891,11 +2585,9 @@ function normalizeMatchingDistrict(
 
 }
 
-
 // ============================================================
 // DISTRICT MATCH
 // ============================================================
-
 
 function evaluateDistrictMatch(
   candidate,
@@ -2085,7 +2777,6 @@ function evaluateDistrictMatch(
 
 }
 
-
 // ============================================================
 // CASTE MATCH
 // ============================================================
@@ -2188,8 +2879,6 @@ function evaluateCasteMatch(
 
 }
 
-
-
 // ============================================================
 // RASHI MATCH
 // ============================================================
@@ -2288,8 +2977,6 @@ function evaluateRashiMatch(
 
 }
 
-
-
 // ============================================================
 // TEXT NORMALIZATION
 // ============================================================
@@ -2315,387 +3002,6 @@ function normalizeMatchingText(
 
 }
 
-
-
-// ============================================================
-// TEST — SINGLE CANDIDATE
-//
-// Uses:
-//
-// Candidate:
-// ID003
-//
-// Expectation:
-// Age 25-30
-// Height 5'2 - 5'7
-// Education required
-//
-// ============================================================
-
-function testSingleCandidateMatch() {
-
-  const candidateProfile = {
-
-    id:
-      "ID003",
-
-    name:
-      "डॉ. श्रेया विकास कोष्टी",
-
-    type:
-      "bride",
-
-    district:
-      "नाशिक",
-
-    ageRaw:
-      "28 years, 8 months, 11 days",
-
-    heightRaw:
-      "५ फूट २ इंच",
-
-    incomeRaw:
-      "मासिक उत्पन्न रु. १०,००० पेक्षा कमी",
-
-    casteRaw:
-      "हिंदू - देवांग कोष्टी",
-
-    rashiRaw:
-      "कर्क",
-
-    education: {
-
-      raw:
-        "BHMS, MD (SCHOLAR)",
-
-      categories: [
-
-        "Medical & Healthcare"
-
-      ],
-
-      matchedKeywords: [
-
-        "md",
-        "bhms"
-
-      ],
-
-      hasEducationData:
-        true
-
-    },
-
-    profession: {
-
-      raw:
-        "शिक्षण चालू",
-
-      categories: [
-
-        "Education & Teaching"
-
-      ],
-
-      matchedKeywords: [
-
-        "शिक्षण"
-
-      ],
-
-      employmentType:
-        "STUDENT",
-
-      hasProfessionData:
-        true
-
-    }
-
-  };
-
-
-  // ----------------------------------------------------------
-  // Expectation
-  // ----------------------------------------------------------
-
-  const expectationText =
-    "वय 25 ते 30, उंची ५ फूट २ इंच ते ५ फूट ७ इंच, सुशिक्षित";
-
-
-  const criteria =
-    parseExpectationCriteria(
-      expectationText
-    );
-
-
-  // ----------------------------------------------------------
-  // Match
-  // ----------------------------------------------------------
-
-  const result =
-    evaluateCandidateMatch(
-      candidateProfile,
-      criteria
-    );
-
-
-  console.log(
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
-  );
-
-
-  return result;
-
-}
-
-
-
-// ============================================================
-// TEST — GOVERNMENT JOB
-// ============================================================
-
-function testGovernmentEmploymentMatch() {
-
-  const candidateProfile = {
-
-    id:
-      "TEST001",
-
-    name:
-      "Government Candidate",
-
-    type:
-      "bride",
-
-    district:
-      "पुणे",
-
-    ageRaw:
-      "27 years",
-
-    heightRaw:
-      "५ फूट ४ इंच",
-
-    incomeRaw:
-      "मासिक उत्पन्न रु. ३०,०००",
-
-    casteRaw:
-      "हिंदू",
-
-    rashiRaw:
-      "कर्क",
-
-    education: {
-
-      raw:
-        "BE Computer Engineering",
-
-      categories: [
-
-        "Engineering & Technology"
-
-      ],
-
-      matchedKeywords: [
-
-        "be",
-        "engineering"
-
-      ],
-
-      hasEducationData:
-        true
-
-    },
-
-    profession: {
-
-      raw:
-        "सरकारी अभियंता",
-
-      categories: [
-
-        "Engineering & Technology",
-        "Government / Public Sector"
-
-      ],
-
-      matchedKeywords: [
-
-        "engineer"
-
-      ],
-
-      employmentType:
-        "GOVERNMENT",
-
-      hasProfessionData:
-        true
-
-    }
-
-  };
-
-
-  const expectation =
-    "सुशिक्षित, सरकारी नोकरी";
-
-
-  const criteria =
-    parseExpectationCriteria(
-      expectation
-    );
-
-
-  const result =
-    evaluateCandidateMatch(
-      candidateProfile,
-      criteria
-    );
-
-
-  console.log(
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
-  );
-
-
-  return result;
-
-}
-
-
-
-// ============================================================
-// TEST — NON MATCH GOVERNMENT
-// ============================================================
-
-function testNonGovernmentEmploymentMatch() {
-
-  const candidateProfile = {
-
-    id:
-      "TEST002",
-
-    name:
-      "Private Candidate",
-
-    type:
-      "bride",
-
-    district:
-      "नाशिक",
-
-    ageRaw:
-      "27 years",
-
-    heightRaw:
-      "५ फूट ४ इंच",
-
-    incomeRaw:
-      "मासिक उत्पन्न रु. ३०,०००",
-
-    casteRaw:
-      "हिंदू",
-
-    rashiRaw:
-      "कर्क",
-
-    education: {
-
-      raw:
-        "BE Computer Engineering",
-
-      categories: [
-
-        "Engineering & Technology"
-
-      ],
-
-      matchedKeywords: [
-
-        "be",
-        "engineering"
-
-      ],
-
-      hasEducationData:
-        true
-
-    },
-
-    profession: {
-
-      raw:
-        "Software Engineer",
-
-      categories: [
-
-        "IT & Software"
-
-      ],
-
-      matchedKeywords: [
-
-        "software",
-        "engineer"
-
-      ],
-
-      employmentType:
-        "PRIVATE",
-
-      hasProfessionData:
-        true
-
-    }
-
-  };
-
-
-  const expectation =
-    "सुशिक्षित, सरकारी नोकरी";
-
-
-  const criteria =
-    parseExpectationCriteria(
-      expectation
-    );
-
-
-  const result =
-    evaluateCandidateMatch(
-      candidateProfile,
-      criteria
-    );
-
-
-  console.log(
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
-  );
-
-
-  return result;
-
-}
-
-
-
-
-
-
-
 // ============================================================
 // SOFT PREFERENCE SCORING
 //
@@ -2713,10 +3019,6 @@ function testNonGovernmentEmploymentMatch() {
 // familyOriented
 // goodNature
 // ============================================================
-
-
-
-
 
 // ============================================================
 // BUILD CANDIDATE SOFT PREFERENCE TEXT
@@ -2779,7 +3081,6 @@ function buildCandidateSoftPreferenceText(candidateProfile) {
     .trim();
 
 }
-
 
 // ============================================================
 // CHECK WHETHER CANDIDATE IS EDUCATED
@@ -2865,8 +3166,6 @@ function isCandidateEducated(
 
 }
 
-
-
 // ============================================================
 // KEYWORD CHECK
 // ============================================================
@@ -2920,8 +3219,6 @@ function containsSoftPreferenceKeyword(
   );
 
 }
-
-
 
 // ============================================================
 // EXPECTATION COMPATIBILITY V2
@@ -3551,9 +3848,6 @@ function calculateExpectationCompatibility(
 
 }
 
-
-
-
 // ============================================================
 // NORMALIZE EXPECTATION TEXT
 // ============================================================
@@ -3608,8 +3902,6 @@ function normalizeExpectationCompatibilityText(
 
 }
 
-
-
 // ============================================================
 // SOFT PREFERENCE SCORING V2
 //
@@ -3620,7 +3912,6 @@ function normalizeExpectationCompatibilityText(
 // Soft preferences NEVER reject a candidate.
 // They are used only for ranking.
 // ============================================================
-
 
 function calculateSoftPreferenceScoreV2(
   candidateProfile,
@@ -3827,7 +4118,7 @@ function calculateSoftPreferenceScoreV2(
   );
 
 
-  const totalRequiredPreferences =
+  let totalRequiredPreferences =
     maxScore / 10;
 
 
@@ -3874,62 +4165,99 @@ function calculateSoftPreferenceScoreV2(
       : 0;
 
 
-  return {
+    return {
 
-    applicable:
-      maxScore > 0,
+      applicable:
+        maxScore > 0,
 
-    score:
-      score,
+      score:
+        score,
 
-    maxScore:
-      maxScore,
+      maxScore:
+        maxScore,
 
-    percentage:
-      Number(
-        rawPreferencePercentage.toFixed(2)
-      ),
+      // ========================================================
+      // RAW SCORE PERCENTAGE
+      //
+      // Example:
+      // 10 / 70 = 14.29%
+      //
+      // This considers ALL requested preferences.
+      // ========================================================
 
-    // IMPORTANT:
-    // This is verified compatibility,
-    // NOT raw score percentage.
-    softMatchPercentage:
-      Number(
-        verifiedCompatibility.toFixed(2)
-      ),
+      percentage:
+        Number(
+          rawPreferencePercentage.toFixed(2)
+        ),
 
-    verifiedCompatibility:
-      Number(
-        verifiedCompatibility.toFixed(2)
-      ),
 
-    softDataCoverage:
-      Number(
-        softDataCoverage.toFixed(2)
-      ),
+      // ========================================================
+      // SOFT MATCH PERCENTAGE
+      //
+      // IMPORTANT:
+      // Use RAW SCORE percentage here.
+      //
+      // DO NOT use verifiedCompatibility here.
+      //
+      // Otherwise:
+      // 1 MATCH + 6 UNKNOWN
+      // becomes 100%, which is misleading.
+      // ========================================================
 
-    matchedPreferences:
-      matchedPreferences,
+      softMatchPercentage:
+        Number(
+          rawPreferencePercentage.toFixed(2)
+        ),
 
-    knownPreferences:
-      knownPreferences,
 
-    unknownPreferences:
-      unknownPreferences,
+      // ========================================================
+      // VERIFIED COMPATIBILITY
+      //
+      // MATCH / (MATCH + CONFLICT)
+      //
+      // UNKNOWN excluded.
+      //
+      // Keep this separately for diagnostics.
+      // DO NOT use this as the main ranking percentage.
+      // ========================================================
 
-    conflictPreferences:
-      conflictPreferences,
+      verifiedCompatibility:
+        Number(
+          verifiedCompatibility.toFixed(2)
+        ),
 
-    totalRequiredPreferences:
-      totalRequiredPreferences,
 
-    checks:
-      checks
+      // ========================================================
+      // DATA COVERAGE
+      // ========================================================
 
-  };
+      softDataCoverage:
+        Number(
+          softDataCoverage.toFixed(2)
+        ),
+
+
+      matchedPreferences:
+        matchedPreferences,
+
+      knownPreferences:
+        knownPreferences,
+
+      unknownPreferences:
+        unknownPreferences,
+
+      conflictPreferences:
+        conflictPreferences,
+
+      totalRequiredPreferences:
+        totalRequiredPreferences,
+
+      checks:
+        checks
+
+    };
 
 }
-
 
 // ============================================================
 // EVALUATE ONE SOFT PREFERENCE
@@ -3940,27 +4268,84 @@ function evaluateSoftPreference(
   candidateProfile
 ) {
 
-  candidateProfile =
+  const safeProfile =
     candidateProfile || {};
 
 
+  // ==========================================================
+  // BUILD ACTUAL PROFILE EVIDENCE
+  //
+  // IMPORTANT:
+  // This function evaluates the requested preference against
+  // the ACTUAL PROFILE of the person being evaluated.
+  //
+  // It does NOT use the person's expectation as evidence.
+  //
+  // Example:
+  //
+  // Candidate expectation:
+  // "सुशिक्षित, समजूतदार असावी"
+  //
+  // Candidate being evaluated:
+  // Viewer profile
+  //
+  // Therefore:
+  // "educated" / "understanding"
+  // must be checked against Viewer actual profile.
+  // ==========================================================
+
   const candidateText =
     buildCandidateSoftPreferenceText(
-      candidateProfile
+      safeProfile
     );
+
+
+  const safePreference =
+    String(
+      preference || ""
+    )
+    .trim();
+
+
+  if (!safePreference) {
+
+    return {
+
+      status:
+        "UNKNOWN",
+
+      matched:
+        false,
+
+      known:
+        false,
+
+      keyword:
+        "",
+
+      reason:
+        "No preference supplied."
+
+    };
+
+  }
 
 
   // ==========================================================
   // EDUCATED
+  //
+  // Education is verified from actual education data.
+  //
+  // Do NOT depend on textual expectation evidence here.
   // ==========================================================
 
   if (
-    preference === "educated"
+    safePreference === "educated"
   ) {
 
     const educated =
       isCandidateEducated(
-        candidateProfile
+        safeProfile
       );
 
 
@@ -3972,6 +4357,9 @@ function evaluateSoftPreference(
           "MATCH",
 
         matched:
+          true,
+
+        known:
           true,
 
         keyword:
@@ -3993,6 +4381,12 @@ function evaluateSoftPreference(
       matched:
         false,
 
+      known:
+        false,
+
+      keyword:
+        "",
+
       reason:
         "No education data available."
 
@@ -4002,7 +4396,7 @@ function evaluateSoftPreference(
 
 
   // ==========================================================
-  // NO TEXTUAL EVIDENCE
+  // NO ACTUAL PROFILE TEXT
   // ==========================================================
 
   if (!candidateText) {
@@ -4014,6 +4408,12 @@ function evaluateSoftPreference(
 
       matched:
         false,
+
+      known:
+        false,
+
+      keyword:
+        "",
 
       reason:
         "No explicit self/profile evidence available."
@@ -4305,6 +4705,7 @@ function evaluateSoftPreference(
       "संवाद करत नाही",
       "मोकळा संवाद नाही",
       "स्पष्ट संवाद नाही",
+      "संवाद नाही",
       "communication नाही",
       "not good communication",
       "does not communicate",
@@ -4317,13 +4718,13 @@ function evaluateSoftPreference(
 
   const keywords =
     preferenceKeywords[
-      preference
+      safePreference
     ] || [];
 
 
   const negativeKeywords =
     conflictKeywords[
-      preference
+      safePreference
     ] || [];
 
 
@@ -4344,6 +4745,12 @@ function evaluateSoftPreference(
       matched:
         false,
 
+      known:
+        false,
+
+      keyword:
+        "",
+
       reason:
         "No matching rule configured."
 
@@ -4353,16 +4760,7 @@ function evaluateSoftPreference(
 
 
   // ==========================================================
-  // 1. CHECK CONFLICT FIRST
-  //
-  // Important:
-  // Negative evidence must be checked BEFORE positive evidence.
-  //
-  // Example:
-  // "मी इतरांचा आदर करत नाही"
-  //
-  // contains "आदर"
-  // but should be CONFLICT, not MATCH.
+  // CONFLICT FIRST
   // ==========================================================
 
   const matchedConflictKeyword =
@@ -4405,7 +4803,7 @@ function evaluateSoftPreference(
 
 
   // ==========================================================
-  // 2. CHECK POSITIVE EVIDENCE
+  // POSITIVE EVIDENCE
   // ==========================================================
 
   const matchedKeyword =
@@ -4448,7 +4846,7 @@ function evaluateSoftPreference(
 
 
   // ==========================================================
-  // 3. UNKNOWN
+  // UNKNOWN
   //
   // Absence of evidence is NOT conflict.
   // ==========================================================
@@ -4473,7 +4871,6 @@ function evaluateSoftPreference(
   };
 
 }
-
 
 // ============================================================
 // KEYWORD PREFERENCE
@@ -4551,8 +4948,6 @@ function evaluateKeywordPreference(
 
 }
 
-
-
 // ============================================================
 // GET PROFILE EXPECTATION TEXT
 //
@@ -4607,34 +5002,10 @@ function getMatchingExpectationText(
 
 }
 
-
 function calculateMutualMatch(
   viewerProfile,
   candidateProfile
 ) {
-
-    const viewerExpectationText =
-      getMatchingExpectationText(
-        viewerProfile
-      );
-
-
-    const candidateExpectationText =
-      getMatchingExpectationText(
-        candidateProfile
-      );
-
-
-    // const viewerExpectation =
-    //   parseExpectationCriteria(
-    //     viewerExpectationText
-    //   );
-
-
-    // const candidateExpectation =
-    //   parseExpectationCriteria(
-    //     candidateExpectationText
-    //   );
 
     // ==========================================================
     // EXPECTATION COMPATIBILITY
@@ -4712,15 +5083,13 @@ function calculateMutualMatch(
 
 }
 
-
-
 function evaluateCandidateAgainstExpectation(
   candidate,
   criteria
 ) {
 
   const hardResult =
-    evaluateHardCriteria(
+    evaluateCandidateMatch(
       candidate,
       criteria
     );
@@ -4786,9 +5155,6 @@ function evaluateCandidateAgainstExpectation(
   };
 
 }
-
-
-
 
 // ============================================================
 // GENERIC EXPECTATION DETECTOR
@@ -4911,9 +5277,6 @@ function isGenericMatchingExpectation(
   return false;
 
 }
-
-
-
 
 // ============================================================
 // MEANINGFUL EXPECTATION CHECK
@@ -5060,2576 +5423,84 @@ function hasMeaningfulMatchingExpectation(
 
 }
 
-
-
-
-
-
-function testMatchingByIds(
-  viewerId,
-  candidateId
-) {
-
-  viewerId =
-    String(viewerId || "").trim();
-
-  candidateId =
-    String(candidateId || "").trim();
-
-
-  if (!viewerId || !candidateId) {
-
-    console.log(
-      "Please provide viewerId and candidateId."
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 1. LOAD ALL PROFILE DATA
-  // ==========================================================
-
-  const repositoryResult =
-    getAllMatchingCandidateData([
-      "bride",
-      "groom",
-      "other"
-    ]);
-
-
-  if (
-    !repositoryResult ||
-    !repositoryResult.success
-  ) {
-
-    console.log(
-      "Repository failed:"
-    );
-
-    console.log(
-      JSON.stringify(
-        repositoryResult,
-        null,
-        2
-      )
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 2. NORMALIZE ALL PROFILES
-  // ==========================================================
-
-  const allProfiles = [];
-
-
-  repositoryResult.profiles.forEach(
-    function(sheetData) {
-
-      const rows =
-        sheetData.rows || [];
-
-      rows.forEach(
-        function(row) {
-
-          const profile =
-            normalizeMatchingCandidateProfile(
-              row,
-              sheetData.headers,
-              sheetData.profileType
-            );
-
-          if (profile) {
-
-            allProfiles.push(
-              profile
-            );
-
-          }
-
-        }
-      );
-
-    }
-  );
-
-
-  // ==========================================================
-  // 3. FIND VIEWER
-  // ==========================================================
-
-  const viewerProfile =
-    allProfiles.find(
-      function(profile) {
-
-        return String(
-          profile.id || ""
-        ).trim()
-        ===
-        viewerId;
-
-      }
-    );
-
-
-  if (!viewerProfile) {
-
-    console.log(
-      "Viewer not found:"
-    );
-
-    console.log(
-      viewerId
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 4. FIND CANDIDATE
-  // ==========================================================
-
-  const candidateProfile =
-    allProfiles.find(
-      function(profile) {
-
-        return String(
-          profile.id || ""
-        ).trim()
-        ===
-        candidateId;
-
-      }
-    );
-
-
-  if (!candidateProfile) {
-
-    console.log(
-      "Candidate not found:"
-    );
-
-    console.log(
-      candidateId
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 5. PARSE VIEWER EXPECTATION
-  // ==========================================================
-
-  const expectationCriteria =
-    parseExpectationCriteria(
-      viewerProfile.expectationRaw || ""
-    );
-
-
-  // ==========================================================
-  // 6. RUN MATCHING ENGINE
-  // ==========================================================
-
-  const matchingResult =
-    evaluateCandidateMatch(
-      candidateProfile,
-      expectationCriteria
-    );
-
-
-  // ==========================================================
-  // 7. PRINT USEFUL RESULT ONLY
-  // ==========================================================
-
-  const output = {
-
-    viewer: {
-
-      id:
-        viewerProfile.id,
-
-      name:
-        viewerProfile.name,
-
-      type:
-        viewerProfile.type,
-
-      expectation:
-        viewerProfile.expectationRaw
-
-    },
-
-    candidate: {
-
-      id:
-        candidateProfile.id,
-
-      name:
-        candidateProfile.name,
-
-      type:
-        candidateProfile.type,
-
-      education:
-        candidateProfile.educationRaw,
-
-      profession:
-        candidateProfile.professionRaw,
-
-      district:
-        candidateProfile.district
-
-    },
-
-    expectationCriteria: {
-
-      educationRequired:
-        expectationCriteria.educationRequired,
-
-      employmentRequired:
-        expectationCriteria.employmentRequired,
-
-      softPreferences:
-        expectationCriteria.softPreferences
-
-    },
-
-    matchingResult:
-      matchingResult
-
-  };
-
-
-  console.log(
-    JSON.stringify(
-      output,
-      null,
-      2
-    )
-  );
-
-
-  return output;
-
-}
-
-
-
-function testMatchingByIds(
-  viewerId,
-  candidateId
-) {
-
-  viewerId =
-    String(viewerId || "").trim();
-
-  candidateId =
-    String(candidateId || "").trim();
-
-
-  if (!viewerId || !candidateId) {
-
-    console.log(
-      "Please provide viewerId and candidateId."
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 1. LOAD PROFILE SHEETS
-  // ==========================================================
-
-  const repositoryResult =
-    getAllMatchingCandidateData([
-      "bride",
-      "groom",
-      "other"
-    ]);
-
-
-  if (
-    !repositoryResult ||
-    !repositoryResult.success
-  ) {
-
-    console.log(
-      "Repository failed:"
-    );
-
-    console.log(
-      JSON.stringify(
-        repositoryResult,
-        null,
-        2
-      )
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 2. NORMALIZE ALL PROFILES
-  // ==========================================================
-
-  const allProfiles = [];
-
-
-  repositoryResult.profiles.forEach(
-    function(sheetData) {
-
-      const rows =
-        sheetData.rows || [];
-
-
-      rows.forEach(
-        function(row) {
-
-          const profile =
-            normalizeMatchingCandidateProfile(
-              sheetData.headers,
-              row,
-              sheetData.profileType
-            );
-
-
-          if (profile) {
-
-            allProfiles.push(
-              profile
-            );
-
-          }
-
-        }
-      );
-
-    }
-  );
-
-
-  console.log(
-    "TOTAL PROFILES:",
-    allProfiles.length
-  );
-
-
-  // ==========================================================
-  // 3. FIND VIEWER
-  // ==========================================================
-
-  const viewerProfile =
-    allProfiles.find(
-      function(profile) {
-
-        return String(
-          profile.id || ""
-        )
-        .trim()
-        .toUpperCase()
-        ===
-        viewerId
-          .trim()
-          .toUpperCase();
-
-      }
-    );
-
-
-  if (!viewerProfile) {
-
-    console.log(
-      "Viewer not found:"
-    );
-
-    console.log(
-      viewerId
-    );
-
-    console.log(
-      "Available first IDs:"
-    );
-
-    console.log(
-      JSON.stringify(
-        allProfiles
-          .slice(0, 20)
-          .map(
-            function(profile) {
-              return profile.id;
-            }
-          ),
-        null,
-        2
-      )
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 4. FIND CANDIDATE
-  // ==========================================================
-
-  const candidateProfile =
-    allProfiles.find(
-      function(profile) {
-
-        return String(
-          profile.id || ""
-        )
-        .trim()
-        .toUpperCase()
-        ===
-        candidateId
-          .trim()
-          .toUpperCase();
-
-      }
-    );
-
-
-  if (!candidateProfile) {
-
-    console.log(
-      "Candidate not found:"
-    );
-
-    console.log(
-      candidateId
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 5. VIEWER EXPECTATION
-  // ==========================================================
-
-  const expectationCriteria =
-    viewerProfile.expectation;
-
-
-  // ==========================================================
-  // 6. RUN MATCHING
-  // ==========================================================
-
-  const matchingResult =
-    evaluateCandidateMatch(
-      candidateProfile,
-      expectationCriteria
-    );
-
-
-  // ==========================================================
-  // 7. FINAL DEBUG OUTPUT
-  // ==========================================================
-
-  const output = {
-
-    success:
-      true,
-
-    viewer: {
-
-      id:
-        viewerProfile.id,
-
-      name:
-        viewerProfile.name,
-
-      type:
-        viewerProfile.type,
-
-      expectation:
-        viewerProfile.expectationRaw
-
-    },
-
-    candidate: {
-
-      id:
-        candidateProfile.id,
-
-      name:
-        candidateProfile.name,
-
-      type:
-        candidateProfile.type,
-
-      district:
-        candidateProfile.district,
-
-      ageRaw:
-        candidateProfile.ageRaw,
-
-      heightRaw:
-        candidateProfile.heightRaw,
-
-      incomeRaw:
-        candidateProfile.incomeRaw,
-
-      educationRaw:
-        candidateProfile.educationRaw,
-
-      professionRaw:
-        candidateProfile.professionRaw,
-
-      expectation:
-        candidateProfile.expectationRaw
-
-    },
-
-    expectationCriteria:
-      expectationCriteria,
-
-    matchingResult:
-      matchingResult
-
-  };
-
-
-  console.log(
-    JSON.stringify(
-      output,
-      null,
-      2
-    )
-  );
-
-
-  return output;
-
-}
-
-
-
-function testMultipleCandidateRanking() {
-
-  const viewerId =
-    "ID001";
-
-
-  const candidateIds = [
-
-    "ID003",
-    "ID005",
-    "ID012",
-    "ID036",
-    "ID072",
-    "ID173",
-    "ID227",
-    "ID294",
-    "ID628"
-
-  ];
-
-
-  // ==========================================================
-  // 1. LOAD PROFILE SHEETS
-  // ==========================================================
-
-  const repositoryResult =
-    getAllMatchingCandidateData([
-      "bride",
-      "groom",
-      "other"
-    ]);
-
-
-  if (
-    !repositoryResult ||
-    !repositoryResult.success
-  ) {
-
-    console.log(
-      "Repository failed:"
-    );
-
-    console.log(
-      JSON.stringify(
-        repositoryResult,
-        null,
-        2
-      )
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 2. NORMALIZE ALL PROFILES
-  // ==========================================================
-
-  const allProfiles = [];
-
-
-  repositoryResult.profiles.forEach(
-    function(sheetData) {
-
-      const rows =
-        sheetData.rows || [];
-
-
-      rows.forEach(
-        function(row) {
-
-          const profile =
-            normalizeMatchingCandidateProfile(
-              sheetData.headers,
-              row,
-              sheetData.profileType
-            );
-
-
-          if (profile) {
-
-            allProfiles.push(
-              profile
-            );
-
-          }
-
-        }
-      );
-
-    }
-  );
-
-
-  console.log(
-    "TOTAL PROFILES:",
-    allProfiles.length
-  );
-
-
-  // ==========================================================
-  // 3. FIND VIEWER
-  // ==========================================================
-
-  const viewerProfile =
-    allProfiles.find(
-      function(profile) {
-
-        return String(
-          profile.id || ""
-        )
-        .trim()
-        .toUpperCase()
-        ===
-        viewerId
-          .trim()
-          .toUpperCase();
-
-      }
-    );
-
-
-  if (!viewerProfile) {
-
-    console.log(
-      "Viewer not found:",
-      viewerId
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 4. GET VIEWER EXPECTATION
-  // ==========================================================
-
-  const expectationCriteria =
-    viewerProfile.expectation;
-
-
-  if (!expectationCriteria) {
-
-    console.log(
-      "Viewer expectation missing:",
-      viewerId
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 5. FIND REQUESTED CANDIDATES
-  // ==========================================================
-
-  const rankingResults = [];
-
-
-  candidateIds.forEach(
-    function(candidateId) {
-
-      const candidateProfile =
-        allProfiles.find(
-          function(profile) {
-
-            return String(
-              profile.id || ""
-            )
-            .trim()
-            .toUpperCase()
-            ===
-            String(
-              candidateId || ""
-            )
-            .trim()
-            .toUpperCase();
-
-          }
-        );
-
-
-      if (!candidateProfile) {
-
-        rankingResults.push({
-
-          id:
-            candidateId,
-
-          found:
-            false,
-
-          error:
-            "Candidate not found."
-
-        });
-
-        return;
-
-      }
-
-
-      // ======================================================
-      // 6. RUN MATCHING
-      // ======================================================
-
-      const matchingResult =
-        evaluateCandidateMatch(
-          candidateProfile,
-          expectationCriteria
-        );
-
-
-      const softPreferenceScore =
-        matchingResult
-          .softPreferenceScore || {};
-
-
-      rankingResults.push({
-
-        id:
-          candidateProfile.id,
-
-        name:
-          candidateProfile.name,
-
-        found:
-          true,
-
-        hardMatch:
-          matchingResult.hardMatch === true,
-
-        softScore:
-          Number(
-            matchingResult.softScore
-          ) || 0,
-
-        maxSoftScore:
-          Number(
-            matchingResult.maxSoftScore
-          ) || 0,
-
-        softMatchPercentage:
-          Number(
-            matchingResult.softMatchPercentage
-          ) || 0,
-
-        softDataCoverage:
-          Number(
-            matchingResult.softDataCoverage
-          ) || 0,
-
-        matchedPreferences:
-          Number(
-            softPreferenceScore
-              .matchedPreferences
-          ) || 0,
-
-        knownPreferences:
-          Number(
-            softPreferenceScore
-              .knownPreferences
-          ) || 0
-
-      });
-
-    }
-  );
-
-
-  // ==========================================================
-  // 7. SORT RANKING
-  // ==========================================================
-
-  rankingResults.sort(
-    function(a, b) {
-
-      // ------------------------------------------------------
-      // Candidates not found go last
-      // ------------------------------------------------------
-
-      if (
-        a.found !== b.found
-      ) {
-
-        return a.found
-          ? -1
-          : 1;
-
-      }
-
-
-      if (!a.found) {
-
-        return 0;
-
-      }
-
-
-      // ------------------------------------------------------
-      // HARD MATCH FIRST
-      // ------------------------------------------------------
-
-      if (
-        a.hardMatch !==
-        b.hardMatch
-      ) {
-
-        return a.hardMatch
-          ? -1
-          : 1;
-
-      }
-
-
-      // ------------------------------------------------------
-      // SOFT SCORE
-      // ------------------------------------------------------
-
-      if (
-        b.softScore !==
-        a.softScore
-      ) {
-
-        return (
-          b.softScore -
-          a.softScore
-        );
-
-      }
-
-
-      // ------------------------------------------------------
-      // DATA COVERAGE
-      // ------------------------------------------------------
-
-      if (
-        b.softDataCoverage !==
-        a.softDataCoverage
-      ) {
-
-        return (
-          b.softDataCoverage -
-          a.softDataCoverage
-        );
-
-      }
-
-
-      // ------------------------------------------------------
-      // MATCH PERCENTAGE
-      // ------------------------------------------------------
-
-      return (
-        b.softMatchPercentage -
-        a.softMatchPercentage
-      );
-
-    }
-  );
-
-
-  // ==========================================================
-  // 8. ADD RANK
-  // ==========================================================
-
-  rankingResults.forEach(
-    function(item, index) {
-
-      item.rank =
-        index + 1;
-
-    }
-  );
-
-
-  // ==========================================================
-  // 9. FINAL OUTPUT
-  // ==========================================================
-
-  const output = {
-
-    success:
-      true,
-
-    viewer: {
-
-      id:
-        viewerProfile.id,
-
-      name:
-        viewerProfile.name,
-
-      type:
-        viewerProfile.type
-
-    },
-
-    candidateCount:
-      rankingResults.length,
-
-    ranking:
-      rankingResults
-
-  };
-
-
-  console.log(
-    "=================================================="
-  );
-
-  console.log(
-    "MULTIPLE CANDIDATE RANKING TEST"
-  );
-
-  console.log(
-    "=================================================="
-  );
-
-
-  console.log(
-    JSON.stringify(
-      output,
-      null,
-      2
-    )
-  );
-
-
-  return output;
-
-}
-
-
-function testCandidateEducationStructure(
-  candidateId
-) {
-
-  candidateId =
-    String(candidateId || "").trim();
-
-
-  const repositoryResult =
-    getAllMatchingCandidateData([
-      "bride",
-      "groom",
-      "other"
-    ]);
-
-
-  const allProfiles = [];
-
-
-  repositoryResult.profiles.forEach(
-    function(sheetData) {
-
-      (sheetData.rows || []).forEach(
-        function(row) {
-
-          const profile =
-            normalizeMatchingCandidateProfile(
-              sheetData.headers,
-              row,
-              sheetData.profileType
-            );
-
-          if (profile) {
-            allProfiles.push(profile);
-          }
-
-        }
-      );
-
-    }
-  );
-
-
-  const candidate =
-    allProfiles.find(
-      function(profile) {
-
-        return String(
-          profile.id || ""
-        ).trim()
-        .toUpperCase()
-        ===
-        candidateId.toUpperCase();
-
-      }
-    );
-
-
-  if (!candidate) {
-
-    console.log(
-      "Candidate not found:",
-      candidateId
-    );
-
-    return;
-
-  }
-
-
-  const result = {
-
-    id:
-      candidate.id,
-
-    name:
-      candidate.name,
-
-    education:
-      candidate.education,
-
-    educationRaw:
-      candidate.educationRaw,
-
-    isCandidateEducated:
-      isCandidateEducated(
-        candidate
-      )
-
-  };
-
-
-  console.log(
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
-  );
-
-
-  return result;
-
-}
-
-
-function testID001toID628() {
-
-  return testMatchingByIds(
-    "ID001",
-    "ID628"
-  );
-
-}
-
-
-function testID001toID003() {
-
-  return testMatchingByIds(
-    "ID001",
-    "ID003"
-  );
-
-}
-
-
-function testID628Education() {
-
-  return testCandidateEducationStructure(
-    "ID628"
-  );
-
-}
-
-
-function testMatchingHeaders() {
-
-  const result =
-    getAllMatchingCandidateData([
-      "bride",
-      "groom"
-    ]);
-
-  if (
-    !result ||
-    !result.success
-  ) {
-
-    console.log(
-      JSON.stringify(
-        result,
-        null,
-        2
-      )
-    );
-
-    return;
-
-  }
-
-
-  result.profiles.forEach(
-    function(sheetData) {
-
-      console.log(
-        "======================================"
-      );
-
-      console.log(
-        "SHEET:",
-        sheetData.sheetName
-      );
-
-      console.log(
-        JSON.stringify(
-          sheetData.headers,
-          null,
-          2
-        )
-      );
-
-    }
-  );
-
-}
-
-
-
-function testCandidateDataCoverage() {
-
-  // ==========================================================
-  // 1. LOAD PROFILE SHEETS
-  // ==========================================================
-
-  const repositoryResult =
-    getAllMatchingCandidateData([
-      "bride",
-      "groom",
-      "other"
-    ]);
-
-
-  if (
-    !repositoryResult ||
-    !repositoryResult.success
-  ) {
-
-    console.log(
-      "Repository failed:"
-    );
-
-    console.log(
-      JSON.stringify(
-        repositoryResult,
-        null,
-        2
-      )
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 2. NORMALIZE ALL PROFILES
-  // ==========================================================
-
-  const allProfiles = [];
-
-
-  repositoryResult.profiles.forEach(
-    function(sheetData) {
-
-      const rows =
-        sheetData.rows || [];
-
-
-      rows.forEach(
-        function(row) {
-
-          const profile =
-            normalizeMatchingCandidateProfile(
-              sheetData.headers,
-              row,
-              sheetData.profileType
-            );
-
-
-          if (profile) {
-
-            allProfiles.push(
-              profile
-            );
-
-          }
-
-        }
-      );
-
-    }
-  );
-
-
-  // ==========================================================
-  // 3. FIELD DEFINITIONS
-  // ==========================================================
-
-  const fields = [
-
-    {
-      key: "education",
-      label: "Education",
-      getter: function(profile) {
-        return profile.educationRaw;
-      }
-    },
-
-    {
-      key: "profession",
-      label: "Profession",
-      getter: function(profile) {
-        return profile.professionRaw;
-      }
-    },
-
-    {
-      key: "age",
-      label: "Age",
-      getter: function(profile) {
-        return profile.ageRaw;
-      }
-    },
-
-    {
-      key: "height",
-      label: "Height",
-      getter: function(profile) {
-        return profile.heightRaw;
-      }
-    },
-
-    {
-      key: "income",
-      label: "Income",
-      getter: function(profile) {
-        return profile.incomeRaw;
-      }
-    },
-
-    {
-      key: "district",
-      label: "District",
-      getter: function(profile) {
-        return profile.district;
-      }
-    },
-
-    {
-      key: "caste",
-      label: "Caste",
-      getter: function(profile) {
-        return profile.casteRaw;
-      }
-    },
-
-    {
-      key: "rashi",
-      label: "Rashi",
-      getter: function(profile) {
-        return profile.rashiRaw;
-      }
-    },
-
-    {
-      key: "expectation",
-      label: "Expectation",
-      getter: function(profile) {
-        return profile.expectationRaw;
-      }
-    }
-
-  ];
-
-
-  // ==========================================================
-  // 4. INITIALIZE ANALYSIS
-  // ==========================================================
-
-  const analysis = {};
-
-
-  fields.forEach(
-    function(field) {
-
-      analysis[field.key] = {
-
-        label:
-          field.label,
-
-        total:
-          allProfiles.length,
-
-        known:
-          0,
-
-        missing:
-          0,
-
-        coveragePercentage:
-          0
-
-      };
-
-    }
-  );
-
-
-  // ==========================================================
-  // 5. ANALYZE EVERY PROFILE
-  // ==========================================================
-
-  allProfiles.forEach(
-    function(profile) {
-
-      fields.forEach(
-        function(field) {
-
-          let value = "";
-
-
-          try {
-
-            value =
-              field.getter(
-                profile
-              );
-
-          }
-
-          catch (error) {
-
-            value = "";
-
-          }
-
-
-          const hasData =
-            value !== null &&
-            value !== undefined &&
-            String(
-              value
-            ).trim() !== "";
-
-
-          if (hasData) {
-
-            analysis[field.key].known++;
-
-          }
-          else {
-
-            analysis[field.key].missing++;
-
-          }
-
-        }
-      );
-
-    }
-  );
-
-
-  // ==========================================================
-  // 6. CALCULATE COVERAGE
-  // ==========================================================
-
-  fields.forEach(
-    function(field) {
-
-      const item =
-        analysis[field.key];
-
-
-      item.coveragePercentage =
-        item.total > 0
-          ? Number(
-              (
-                item.known /
-                item.total
-              * 100
-              ).toFixed(2)
-            )
-          : 0;
-
-    }
-  );
-
-
-  // ==========================================================
-  // 7. PROFILE TYPE ANALYSIS
-  // ==========================================================
-
-  const typeAnalysis = {};
-
-
-  [
-    "bride",
-    "groom",
-    "other"
-  ].forEach(
-    function(type) {
-
-      const profilesOfType =
-        allProfiles.filter(
-          function(profile) {
-
-            return profile.type === type;
-
-          }
-        );
-
-
-      typeAnalysis[type] = {
-
-        total:
-          profilesOfType.length
-
-      };
-
-    }
-  );
-
-
-  // ==========================================================
-  // 8. SOFT EVIDENCE ANALYSIS
-  //
-  // This checks whether the current profile structure
-  // contains explicit evidence for soft preferences.
-  // ==========================================================
-
-  const softEvidenceFields = {
-
-    understanding: 0,
-    cultured: 0,
-    loving: 0,
-    respectful: 0,
-    honest: 0,
-    responsible: 0,
-    familyOriented: 0,
-    dreamSupportive: 0,
-    careerSupportive: 0,
-    communication: 0
-
-  };
-
-
-  // ----------------------------------------------------------
-  // IMPORTANT
-  //
-  // At present there are no dedicated profile columns
-  // for these preferences.
-  //
-  // Therefore we DO NOT infer them from expectations.
-  //
-  // This section intentionally remains zero unless
-  // evaluateSoftPreference() has explicit evidence.
-  // ----------------------------------------------------------
-
-  allProfiles.forEach(
-    function(profile) {
-
-      Object.keys(
-        softEvidenceFields
-      ).forEach(
-        function(preference) {
-
-          const result =
-            evaluateSoftPreference(
-              preference,
-              profile
-            );
-
-
-          if (
-            result &&
-            (
-              result.status === "MATCH" ||
-              result.status === "CONFLICT"
-            )
-          ) {
-
-            softEvidenceFields[
-              preference
-            ]++;
-
-          }
-
-        }
-      );
-
-    }
-  );
-
-
-  // ==========================================================
-  // 9. SOFT EVIDENCE COVERAGE
-  // ==========================================================
-
-  const softEvidenceAnalysis = {};
-
-
-  Object.keys(
-    softEvidenceFields
-  ).forEach(
-    function(preference) {
-
-      const known =
-        softEvidenceFields[
-          preference
-        ];
-
-
-      softEvidenceAnalysis[
-        preference
-      ] = {
-
-        known:
-          known,
-
-        missing:
-          allProfiles.length -
-          known,
-
-        coveragePercentage:
-          allProfiles.length > 0
-            ? Number(
-                (
-                  known /
-                  allProfiles.length
-                  * 100
-                ).toFixed(2)
-              )
-            : 0
-
-      };
-
-    }
-  );
-
-
-  // ==========================================================
-  // 10. FINAL OUTPUT
-  // ==========================================================
-
-  const output = {
-
-    success:
-      true,
-
-    totalProfiles:
-      allProfiles.length,
-
-    typeAnalysis:
-      typeAnalysis,
-
-    fieldCoverage:
-      analysis,
-
-    softEvidenceAnalysis:
-      softEvidenceAnalysis
-
-  };
-
-
-  // ==========================================================
-  // 11. LOG SUMMARY
-  // ==========================================================
-
-  console.log(
-    "=================================================="
-  );
-
-  console.log(
-    "PROFILE EVIDENCE ANALYSIS"
-  );
-
-  console.log(
-    "=================================================="
-  );
-
-
-  console.log(
-    "TOTAL PROFILES:",
-    allProfiles.length
-  );
-
-
-  console.log(
-    "=================================================="
-  );
-
-  console.log(
-    "FIELD COVERAGE"
-  );
-
-  console.log(
-    "=================================================="
-  );
-
-
-  fields.forEach(
-    function(field) {
-
-      const item =
-        analysis[field.key];
-
-
-      console.log(
-
-        field.label +
-        " | Known: " +
-        item.known +
-        " | Missing: " +
-        item.missing +
-        " | Coverage: " +
-        item.coveragePercentage +
-        "%"
-
-      );
-
-    }
-  );
-
-
-  console.log(
-    "=================================================="
-  );
-
-  console.log(
-    "SOFT EVIDENCE COVERAGE"
-  );
-
-  console.log(
-    "=================================================="
-  );
-
-
-  console.log(
-    JSON.stringify(
-      softEvidenceAnalysis,
-      null,
-      2
-    )
-  );
-
-
-  console.log(
-    "=================================================="
-  );
-
-  console.log(
-    "COMPLETE ANALYSIS"
-  );
-
-  console.log(
-    "=================================================="
-  );
-
-
-  console.log(
-    JSON.stringify(
-      output,
-      null,
-      2
-    )
-  );
-
-
-  return output;
-
-}
-
-
-
-
-function testID001HardMatchingAnalysis() {
-
-  // ==========================================================
-  // 1. LOAD ONLY BRIDE PROFILES
-  // ==========================================================
-
-  const repositoryResult =
-    getAllMatchingCandidateData([
-      "bride"
-    ]);
-
-
-  if (
-    !repositoryResult ||
-    !repositoryResult.success
-  ) {
-
-    console.log(
-      "Repository failed:"
-    );
-
-    console.log(
-      JSON.stringify(
-        repositoryResult,
-        null,
-        2
-      )
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 2. NORMALIZE ALL BRIDE PROFILES
-  // ==========================================================
-
-  const brideProfiles = [];
-
-
-  repositoryResult.profiles.forEach(
-    function(sheetData) {
-
-      const rows =
-        sheetData.rows || [];
-
-
-      rows.forEach(
-        function(row) {
-
-          const profile =
-            normalizeMatchingCandidateProfile(
-              sheetData.headers,
-              row,
-              sheetData.profileType
-            );
-
-
-          if (profile) {
-
-            brideProfiles.push(
-              profile
-            );
-
-          }
-
-        }
-      );
-
-    }
-  );
-
-
-  // ==========================================================
-  // 3. FIND VIEWER ID001
-  // ==========================================================
-
-  let viewerProfile =
-    brideProfiles.find(
-      function(profile) {
-
-        return String(
-          profile.id || ""
-        )
-        .trim()
-        .toUpperCase()
-        ===
-        "ID001";
-
-      }
-    );
-
-
-  // ----------------------------------------------------------
-  // ID001 is a groom, so it will not be inside brideProfiles.
-  // Therefore load groom profile separately.
-  // ----------------------------------------------------------
-
-  if (!viewerProfile) {
-
-    const groomRepositoryResult =
-      getAllMatchingCandidateData([
-        "groom"
-      ]);
-
-
-    if (
-      groomRepositoryResult &&
-      groomRepositoryResult.success
-    ) {
-
-      groomRepositoryResult.profiles.forEach(
-        function(sheetData) {
-
-          const rows =
-            sheetData.rows || [];
-
-
-          rows.forEach(
-            function(row) {
-
-              const profile =
-                normalizeMatchingCandidateProfile(
-                  sheetData.headers,
-                  row,
-                  sheetData.profileType
-                );
-
-
-              if (
-                profile &&
-                String(
-                  profile.id || ""
-                )
-                .trim()
-                .toUpperCase()
-                ===
-                "ID001"
-              ) {
-
-                viewerProfile =
-                  profile;
-
-              }
-
-            }
-          );
-
-        }
-      );
-
-    }
-
-  }
-
-
-  // ==========================================================
-  // 4. VIEWER VALIDATION
-  // ==========================================================
-
-  if (!viewerProfile) {
-
-    console.log(
-      "Viewer ID001 not found."
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 5. GET EXPECTATION
-  // ==========================================================
-
-  const expectationCriteria =
-    viewerProfile.expectation;
-
-
-  if (!expectationCriteria) {
-
-    console.log(
-      "Expectation criteria not found for ID001."
-    );
-
-    return;
-
-  }
-
-
-  // ==========================================================
-  // 6. SUMMARY COUNTERS
-  // ==========================================================
-
-  let totalCandidates =
-    brideProfiles.length;
-
-  let hardMatched =
-    0;
-
-  let rejected =
-    0;
-
-
-  const rejectionReasons = {
-
-    education: 0,
-
-    educationRequired: 0,
-
-    professionCategory: 0,
-
-    employmentType: 0,
-
-    age: 0,
-
-    height: 0,
-
-    income: 0,
-
-    district: 0,
-
-    caste: 0,
-
-    rashi: 0
-
-  };
-
-
-  const results = [];
-
-
-  // ==========================================================
-  // 7. EVALUATE EVERY BRIDE
-  // ==========================================================
-
-  brideProfiles.forEach(
-    function(candidateProfile) {
-
-      const matchingResult =
-        evaluateCandidateMatch(
-          candidateProfile,
-          expectationCriteria
-        );
-
-
-      const failedCriteria =
-        matchingResult &&
-        Array.isArray(
-          matchingResult.failedCriteria
-        )
-          ? matchingResult.failedCriteria
-          : [];
-
-
-      const hardMatch =
-        matchingResult &&
-        matchingResult.hardMatch === true;
-
-
-      if (hardMatch) {
-
-        hardMatched++;
-
-      }
-      else {
-
-        rejected++;
-
-      }
-
-
-      // --------------------------------------------------------
-      // COUNT REJECTION REASONS
-      // --------------------------------------------------------
-
-      failedCriteria.forEach(
-        function(reason) {
-
-          if (
-            Object.prototype.hasOwnProperty.call(
-              rejectionReasons,
-              reason
-            )
-          ) {
-
-            rejectionReasons[
-              reason
-            ]++;
-
-          }
-
-        }
-      );
-
-
-      // --------------------------------------------------------
-      // STORE RESULT
-      // --------------------------------------------------------
-
-      results.push({
-
-        id:
-          candidateProfile.id,
-
-        name:
-          candidateProfile.name,
-
-        hardMatch:
-          hardMatch,
-
-        applicableCriteria:
-          matchingResult.applicableCriteria,
-
-        matchedCriteria:
-          matchingResult.matchedCriteria,
-
-        failedCriteria:
-          failedCriteria
-
-      });
-
-    }
-  );
-
-
-  // ==========================================================
-  // 8. CALCULATE PERCENTAGES
-  // ==========================================================
-
-  const hardMatchPercentage =
-    totalCandidates > 0
-      ? Number(
-          (
-            hardMatched /
-            totalCandidates *
-            100
-          ).toFixed(2)
-        )
-      : 0;
-
-
-  const rejectionPercentage =
-    totalCandidates > 0
-      ? Number(
-          (
-            rejected /
-            totalCandidates *
-            100
-          ).toFixed(2)
-        )
-      : 0;
-
-
-  // ==========================================================
-  // 9. FINAL OUTPUT
-  // ==========================================================
-
-  const output = {
-
-    success:
-      true,
-
-    viewer: {
-
-      id:
-        viewerProfile.id,
-
-      name:
-        viewerProfile.name,
-
-      type:
-        viewerProfile.type
-
-    },
-
-    candidatePool: {
-
-      type:
-        "bride",
-
-      total:
-        totalCandidates
-
-    },
-
-    expectationCriteria:
-      expectationCriteria,
-
-    summary: {
-
-      totalCandidates:
-        totalCandidates,
-
-      hardMatched:
-        hardMatched,
-
-      rejected:
-        rejected,
-
-      hardMatchPercentage:
-        hardMatchPercentage,
-
-      rejectionPercentage:
-        rejectionPercentage
-
-    },
-
-    rejectionReasons:
-      rejectionReasons,
-
-    results:
-      results
-
-  };
-
-
-  // ==========================================================
-  // 10. CONSOLE OUTPUT
-  // ==========================================================
-
-  console.log(
-    "=================================================="
-  );
-
-  console.log(
-    "ID001 HARD MATCHING ANALYSIS"
-  );
-
-  console.log(
-    "=================================================="
-  );
-
-
-  console.log(
-    "Viewer:",
-    viewerProfile.name
-  );
-
-
-  console.log(
-    "Candidate Pool: BRIDE"
-  );
-
-
-  console.log(
-    "Total Candidates:",
-    totalCandidates
-  );
-
-
-  console.log(
-    "Hard Matched:",
-    hardMatched
-  );
-
-
-  console.log(
-    "Rejected:",
-    rejected
-  );
-
-
-  console.log(
-    "Hard Match Percentage:",
-    hardMatchPercentage + "%"
-  );
-
-
-  console.log(
-    "Rejection Percentage:",
-    rejectionPercentage + "%"
-  );
-
-
-  console.log(
-    "=================================================="
-  );
-
-  console.log(
-    "REJECTION REASONS"
-  );
-
-  console.log(
-    "=================================================="
-  );
-
-
-  Object.keys(
-    rejectionReasons
-  ).forEach(
-    function(reason) {
-
-      console.log(
-        reason +
-        " : " +
-        rejectionReasons[reason]
-      );
-
-    }
-  );
-
-
-  console.log(
-    "=================================================="
-  );
-
-  console.log(
-    "COMPLETE RESULT"
-  );
-
-  console.log(
-    "=================================================="
-  );
-
-
-  console.log(
-    JSON.stringify(
-      output,
-      null,
-      2
-    )
-  );
-
-
-  return output;
-
-}
-
-
-
-function testExpectationParserValidation() {
-
-  const testCases = [
-
-    {
-      label: "1 - Education only",
-      input: "सुशिक्षित मुलगी हवी."
-    },
-
-    {
-      label: "2 - Government Job",
-      input: "सुशिक्षित आणि सरकारी नोकरी करणारी मुलगी हवी."
-    },
-
-    {
-      label: "3 - Engineering",
-      input: "Engineering किंवा IT क्षेत्रातील मुलगी हवी."
-    },
-
-    {
-      label: "4 - Medical",
-      input: "Doctor किंवा Medical field मधील मुलगी हवी."
-    },
-
-    {
-      label: "5 - Age",
-      input: "वय 25 ते 30 वर्षे असावे."
-    },
-
-    {
-      label: "6 - Height",
-      input: "उंची 5 फूट 3 इंच किंवा त्यापेक्षा जास्त असावी."
-    },
-
-    {
-      label: "7 - Income",
-      input: "मासिक उत्पन्न 50,000 पेक्षा जास्त असावे."
-    },
-
-    {
-      label: "8 - District",
-      input: "पुणे किंवा कोल्हापूर जिल्ह्यातील मुलगी हवी."
-    },
-
-    {
-      label: "9 - Caste",
-      input: "विशिष्ट पोटजातीतील मुलगी हवी."
-    },
-
-    {
-      label: "10 - Rashi",
-      input: "रास मेष किंवा सिंह असावी."
-    },
-
-    {
-      label: "11 - Profession + Government",
-      input: "सुशिक्षित, सरकारी नोकरी करणारी आणि समजूतदार मुलगी हवी."
-    },
-
-    {
-      label: "12 - Multiple Criteria",
-      input:
-        "MBA किंवा Engineering केलेली, पुणे जिल्ह्यातील, वय 25 ते 30 वर्षे आणि सरकारी नोकरी करणारी मुलगी हवी."
-    },
-
-    {
-      label: "13 - Soft Preferences",
-      input:
-        "समजूतदार, संस्कारी, प्रेमळ आणि कुटुंबाला महत्त्व देणारी मुलगी हवी."
-    },
-
-    {
-      label: "14 - Career Support",
-      input:
-        "करिअर आणि स्वप्नांचा आदर करणारी, career supportive जीवनसाथी हवी."
-    },
-
-    {
-      label: "15 - Complete Natural Language",
-      input:
-        "आयुष्यभराची विश्वासू मैत्रीण, सुशिक्षित, समजूतदार, संस्कारी आणि प्रेमळ व करिअरचा आणि स्वप्नांचा आदर करणारी जीवनसाथी असावी."
-    }
-
-  ];
-
-
-  const results = [];
-
-
-  testCases.forEach(
-    function(testCase) {
-
-      let output = null;
-
-      let error = "";
-
-
-      try {
-
-        output =
-          parseExpectationCriteria(
-            testCase.input
-          );
-
-      }
-
-      catch (e) {
-
-        error =
-          e.message || String(e);
-
-      }
-
-
-      results.push({
-
-        label:
-          testCase.label,
-
-        input:
-          testCase.input,
-
-        success:
-          !error,
-
-        error:
-          error,
-
-        output:
-          output
-
-      });
-
-    }
-  );
-
-
-  console.log(
-    "=================================================="
-  );
-
-  console.log(
-    "EXPECTATION PARSER VALIDATION"
-  );
-
-  console.log(
-    "=================================================="
-  );
-
-
-  results.forEach(
-    function(result) {
-
-      console.log(
-        "--------------------------------------------------"
-      );
-
-      console.log(
-        result.label
-      );
-
-      console.log(
-        "INPUT:",
-        result.input
-      );
-
-
-      if (result.error) {
-
-        console.log(
-          "ERROR:",
-          result.error
-        );
-
-      }
-      else {
-
-        console.log(
-          JSON.stringify(
-            result.output,
-            null,
-            2
-          )
-        );
-
-      }
-
-    }
-  );
-
-
-  console.log(
-    "=================================================="
-  );
-
-
-  return results;
-
-}
-
-
-
-
-function testExpectationHeightParser() {
-
-  const testCases = [
-
-    "उंची 5 फूट 3 इंच किंवा त्यापेक्षा जास्त असावी.",
-
-    "उंची 5 फूट 3 इंच ते 5 फूट 7 इंच असावी.",
-
-    "किमान 5 फूट 3 इंच उंची असावी.",
-
-    "height 5 feet 3 inches or above"
-
-  ];
-
-
-  testCases.forEach(
-    function(input) {
-
-      const result =
-        parseExpectationHeight(
-          input
-        );
-
-
-      console.log(
-        "INPUT:",
-        input
-      );
-
-
-      console.log(
-        "OUTPUT:",
-        JSON.stringify(
-          result,
-          null,
-          2
-        )
-      );
-
-
-      console.log(
-        "--------------------------------------"
-      );
-
-    }
-  );
-
-}
-
-
-
-
 // ============================================================
 // WEIGHTED EXPECTATION COMPATIBILITY
 // ============================================================
 
 function calculateWeightedExpectationCompatibility(
   viewerExpectation,
-  candidateExpectation
+  candidateProfile
 ) {
+
+  // ==========================================================
+  // SAFE INPUT
+  // ==========================================================
 
   const viewerText =
     String(
       viewerExpectation || ""
     ).trim();
 
+
+  const safeCandidateProfile =
+    candidateProfile || {};
+
+
+  // ==========================================================
+  // CANDIDATE EXPECTATION
+  //
+  // IMPORTANT:
+  // Candidate expectation is used only for evaluating
+  // expectation-based soft preferences.
+  //
+  // Candidate's actual profile data is still passed to
+  // evaluateSoftPreference().
+  // ==========================================================
+
   const candidateText =
     String(
-      candidateExpectation || ""
+      safeCandidateProfile.expectationRaw ||
+      safeCandidateProfile.expectation ||
+      safeCandidateProfile.expectationText ||
+      safeCandidateProfile.candidateExpectation ||
+      ""
     ).trim();
 
 
+  // ==========================================================
+  // EMPTY VIEWER EXPECTATION
+  // ==========================================================
+  //
+  // Candidate expectation is OPTIONAL.
+  //
+  // We can still evaluate the viewer's preferences
+  // against the candidate's actual profile.
+  //
+  // ==========================================================
+
   if (
-    !viewerText ||
-    !candidateText
+    !viewerText
   ) {
 
     return {
 
-      score: 0,
+      score:
+        0,
 
-      maxScore: 0,
+      maxScore:
+        0,
 
-      percentage: 0,
+      percentage:
+        0,
 
-      matchedKeywords: [],
+      matchedKeywords:
+        [],
 
-      matchedDetails: [],
+      matchedDetails:
+        [],
 
-      applicable: false
+      applicable:
+        false
 
     };
 
@@ -7733,23 +5604,33 @@ function calculateWeightedExpectationCompatibility(
   );
 
 
+  // ==========================================================
+  // NO SOFT PREFERENCES
+  // ==========================================================
+
   if (
     requiredPreferences.length === 0
   ) {
 
     return {
 
-      score: 0,
+      score:
+        0,
 
-      maxScore: 0,
+      maxScore:
+        0,
 
-      percentage: 0,
+      percentage:
+        0,
 
-      matchedKeywords: [],
+      matchedKeywords:
+        [],
 
-      matchedDetails: [],
+      matchedDetails:
+        [],
 
-      applicable: false
+      applicable:
+        false
 
     };
 
@@ -7757,35 +5638,79 @@ function calculateWeightedExpectationCompatibility(
 
 
   // ==========================================================
-  // EVALUATE EACH PREFERENCE
+  // SCORE VARIABLES
   // ==========================================================
 
-  let score = 0;
+  let score =
+    0;
 
-  let maxScore = 0;
+  let maxScore =
+    0;
 
-  const matchedKeywords = [];
+  const matchedKeywords =
+    [];
 
-  const matchedDetails = [];
+  const matchedDetails =
+    [];
 
+  let matchedPreferences =
+    0;
+
+  let knownPreferences =
+    0;
+
+  let unknownPreferences =
+    0;
+
+  let conflictPreferences =
+    0;
+
+  const totalRequiredPreferences =
+    requiredPreferences.length;
+
+  // ==========================================================
+  // EVALUATE EACH PREFERENCE
+  // ==========================================================
 
   requiredPreferences.forEach(
     function(preference) {
 
       const weight =
-        preferenceWeights[
-          preference
-        ] || 0;
+        Number(
+          preferenceWeights[
+            preference
+          ]
+        ) || 0;
 
 
-      maxScore += weight;
+      if (
+        weight <= 0
+      ) {
+
+        return;
+
+      }
 
 
-      // ------------------------------------------------------
-      // Use existing evaluator
-      // ------------------------------------------------------
+      maxScore +=
+        weight;
 
-      let result = null;
+
+      // ======================================================
+      // IMPORTANT
+      //
+      // Pass the COMPLETE candidate profile.
+      //
+      // This fixes:
+      //
+      // isCandidateEducated()
+      // buildCandidateSoftPreferenceText()
+      //
+      // because both functions need actual profile data.
+      // ======================================================
+
+      let result =
+        null;
 
 
       try {
@@ -7794,6 +5719,13 @@ function calculateWeightedExpectationCompatibility(
           evaluateSoftPreference(
             preference,
             {
+
+              ...safeCandidateProfile,
+
+              // ----------------------------------------------
+              // Explicit expectation aliases
+              // ----------------------------------------------
+
               expectationRaw:
                 candidateText,
 
@@ -7811,13 +5743,26 @@ function calculateWeightedExpectationCompatibility(
 
               normalizedExpectation:
                 normalizedCandidate
+
             }
           );
 
       }
       catch (error) {
 
-        result = null;
+        console.error(
+          "evaluateSoftPreference ERROR:",
+          {
+            preference:
+              preference,
+
+            error:
+              error
+          }
+        );
+
+        result =
+          null;
 
       }
 
@@ -7830,18 +5775,28 @@ function calculateWeightedExpectationCompatibility(
             )
             .trim()
             .toUpperCase()
-          : "";
+          : "UNKNOWN";
 
 
-      // ------------------------------------------------------
+      // ======================================================
       // MATCH
-      // ------------------------------------------------------
+      // ======================================================
 
       if (
         status === "MATCH"
       ) {
 
-        score += weight;
+        score +=
+          weight;
+
+        matchedPreferences++;
+
+        knownPreferences++;
+
+        const keyword =
+          result.keyword ||
+          preference;
+
 
         matchedKeywords.push(
           preference
@@ -7852,6 +5807,9 @@ function calculateWeightedExpectationCompatibility(
 
           preference:
             preference,
+
+          keyword:
+            keyword,
 
           weight:
             weight,
@@ -7864,178 +5822,95 @@ function calculateWeightedExpectationCompatibility(
 
         });
 
+
+        return;
+
+      }
+
+
+      // ======================================================
+      // CONFLICT
+      // ======================================================
+
+      if (
+        status === "CONFLICT"
+      ) {
+
+        knownPreferences++;
+
+        conflictPreferences++;
+
+        matchedDetails.push({
+
+          preference:
+            preference,
+
+          keyword:
+            result.keyword ||
+            "",
+
+          weight:
+            weight,
+
+          status:
+            "CONFLICT",
+
+          score:
+            0
+
+        });
+
+
+        return;
+
       }
 
 
-      // ------------------------------------------------------
-      // FALLBACK TEXT MATCH
-      // ------------------------------------------------------
+      // ======================================================
+      // UNKNOWN
+      // ======================================================
+      unknownPreferences++;
 
-      else {
+      matchedDetails.push({
 
-        const keywordMap = {
+        preference:
+          preference,
 
-          honest: [
-            "honest",
-            "loyal",
-            "trustworthy",
-            "प्रामाणिक",
-            "विश्वासू",
-            "निष्ठावान"
-          ],
+        keyword:
+          result &&
+          result.keyword
+            ? result.keyword
+            : "",
 
-          respectful: [
-            "respectful",
-            "respect",
-            "आदर",
-            "सन्मान"
-          ],
+        weight:
+          weight,
 
-          understanding: [
-            "understanding",
-            "समजूतदार",
-            "समंजस"
-          ],
+        status:
+          "UNKNOWN",
 
-          familyOriented: [
-            "family",
-            "family oriented",
-            "family-oriented",
-            "कुटुंब",
-            "कुटुंबवत्सल",
-            "कुटुंबप्रिय"
-          ],
+        score:
+          0
 
-          communication: [
-            "communication",
-            "communicative",
-            "संवाद"
-          ],
-
-          responsible: [
-            "responsible",
-            "reliable",
-            "जबाबदार",
-            "विश्वसनीय"
-          ],
-
-          loving: [
-            "loving",
-            "caring",
-            "kind",
-            "प्रेमळ",
-            "काळजी",
-            "दयाळू"
-          ],
-
-          cultured: [
-            "cultured",
-            "संस्कारी"
-          ],
-
-          educated: [
-            "educated",
-            "well educated",
-            "शिक्षित",
-            "सुशिक्षित"
-          ],
-
-          dreamSupportive: [
-            "dream",
-            "dreams",
-            "स्वप्न",
-            "ध्येय"
-          ],
-
-          careerSupportive: [
-            "career",
-            "professional growth",
-            "करिअर",
-            "नोकरी",
-            "व्यवसाय"
-          ]
-
-        };
-
-
-        const keywords =
-          keywordMap[
-            preference
-          ] || [];
-
-
-        let matched =
-          false;
-
-        let matchedKeyword =
-          "";
-
-
-        for (
-          let i = 0;
-          i < keywords.length;
-          i++
-        ) {
-
-          if (
-            normalizedCandidate.indexOf(
-              keywords[i]
-            ) !== -1
-          ) {
-
-            matched =
-              true;
-
-            matchedKeyword =
-              keywords[i];
-
-            break;
-
-          }
-
-        }
-
-
-        if (
-          matched
-        ) {
-
-          score += weight;
-
-          matchedKeywords.push(
-            preference
-          );
-
-
-          matchedDetails.push({
-
-            preference:
-              preference,
-
-            keyword:
-              matchedKeyword,
-
-            weight:
-              weight,
-
-            status:
-              "MATCH",
-
-            score:
-              weight
-
-          });
-
-        }
-
-      }
+      });
 
     }
   );
 
 
   // ==========================================================
-  // FINAL %
+  // REMOVE DUPLICATE MATCHED KEYWORDS
+  // ==========================================================
+
+  const uniqueMatchedKeywords =
+    Array.from(
+      new Set(
+        matchedKeywords
+      )
+    );
+
+
+  // ==========================================================
+  // FINAL PERCENTAGE
   // ==========================================================
 
   const percentage =
@@ -8052,467 +5927,45 @@ function calculateWeightedExpectationCompatibility(
       : 0;
 
 
-  return {
-
-    score:
-      score,
-
-    maxScore:
-      maxScore,
-
-    percentage:
-      percentage,
-
-    matchedKeywords:
-      matchedKeywords,
-
-    matchedDetails:
-      matchedDetails,
-
-    applicable:
-      maxScore > 0
-
-  };
-
-}
-
-
-
-
-// ============================================================
-// TEST WEIGHTED EXPECTATION COMPATIBILITY
-// ============================================================
-
-function testWeightedExpectationCompatibility() {
-
-  console.log(
-    "=================================================="
-  );
-
-  console.log(
-    "WEIGHTED EXPECTATION VALIDATION"
-  );
-
-  console.log(
-    "=================================================="
-  );
-
-
   // ==========================================================
-  // TEST CASES
-  // ==========================================================
-
-  const tests = [
-
-    // --------------------------------------------------------
-    // TEST 1 - PERFECT MATCH
-    // --------------------------------------------------------
-
-    {
-      name:
-        "Perfect Match",
-
-      viewer:
-        "Honest, respectful, understanding, family-oriented, loving",
-
-      candidate:
-        "Honest, respectful, understanding, family-oriented, loving"
-    },
-
-
-    // --------------------------------------------------------
-    // TEST 2 - PARTIAL MATCH
-    // --------------------------------------------------------
-
-    {
-      name:
-        "Partial Match",
-
-      viewer:
-        "Honest, respectful, understanding, family-oriented, loving",
-
-      candidate:
-        "Honest, respectful and understanding partner"
-    },
-
-
-    // --------------------------------------------------------
-    // TEST 3 - NO MATCH
-    // --------------------------------------------------------
-
-    {
-      name:
-        "No Match",
-
-      viewer:
-        "Honest, respectful, understanding, family-oriented",
-
-      candidate:
-        "Career-oriented and financially responsible partner"
-    },
-
-
-    // --------------------------------------------------------
-    // TEST 4 - GENERIC EXPECTATION
-    // --------------------------------------------------------
-
-    {
-      name:
-        "Generic Expectation",
-
-      viewer:
-        "Honest, respectful, understanding, family-oriented",
-
-      candidate:
-        "सर्व साधारण"
-    },
-
-
-    // --------------------------------------------------------
-    // TEST 5 - MARATHI / ENGLISH
-    // --------------------------------------------------------
-
-    {
-      name:
-        "Marathi English Match",
-
-      viewer:
-        "Honest, respectful, understanding, family-oriented",
-
-      candidate:
-        "प्रामाणिक, आदर करणारा, समजूतदार आणि कुटुंबवत्सल जीवनसाथी"
-    }
-
-  ];
-
-
-  // ==========================================================
-  // RESULTS
-  // ==========================================================
-
-  const results = [];
-
-
-  tests.forEach(
-    function(test, index) {
-
-      let result = null;
-
-      let error = "";
-
-
-      try {
-
-        // ------------------------------------------------------
-        // GENERIC EXPECTATION
-        // ------------------------------------------------------
-
-        const isGeneric =
-          isGenericMatchingExpectation(
-            test.candidate
-          );
-
-
-        // ------------------------------------------------------
-        // MEANINGFUL EXPECTATION
-        // ------------------------------------------------------
-
-        const meaningful =
-          hasMeaningfulMatchingExpectation(
-            test.candidate
-          );
-
-
-        // ------------------------------------------------------
-        // COMPATIBILITY
-        // ------------------------------------------------------
-
-        if (
-          meaningful
-        ) {
-
-          result =
-            calculateWeightedExpectationCompatibility(
-              test.viewer,
-              test.candidate
-            );
-
-        }
-
-        else {
-
-          result = {
-
-            score: 0,
-
-            maxScore: 0,
-
-            percentage: 0,
-
-            matchedKeywords: [],
-
-            applicable: false
-
-          };
-
-        }
-
-
-        // ------------------------------------------------------
-        // RESULT
-        // ------------------------------------------------------
-
-        results.push({
-
-          test:
-            index + 1,
-
-          name:
-            test.name,
-
-          generic:
-            isGeneric,
-
-          meaningful:
-            meaningful,
-
-          score:
-            Number(
-              result.score || 0
-            ),
-
-          maxScore:
-            Number(
-              result.maxScore || 0
-            ),
-
-          percentage:
-            Number(
-              result.percentage || 0
-            ),
-
-          matchedKeywords:
-            Array.isArray(
-              result.matchedKeywords
-            )
-              ? result.matchedKeywords
-              : [],
-
-          passed:
-            true
-
-        });
-
-      }
-
-      catch (err) {
-
-        error =
-          err &&
-          err.message
-            ? err.message
-            : String(err);
-
-
-        results.push({
-
-          test:
-            index + 1,
-
-          name:
-            test.name,
-
-          generic:
-            false,
-
-          meaningful:
-            false,
-
-          score:
-            0,
-
-          maxScore:
-            0,
-
-          percentage:
-            0,
-
-          matchedKeywords:
-            [],
-
-          passed:
-            false,
-
-          error:
-            error
-
-        });
-
-      }
-
-    }
-  );
-
-
-  // ==========================================================
-  // EXPECTED BEHAVIOUR
-  // ==========================================================
-
-  const test1 =
-    results[0];
-
-
-  const test2 =
-    results[1];
-
-
-  const test3 =
-    results[2];
-
-
-  const test4 =
-    results[3];
-
-
-  const test5 =
-    results[4];
-
-
-  // ----------------------------------------------------------
-  // TEST 1
-  // Perfect should be high
-  // ----------------------------------------------------------
-
-  const test1Passed =
-    test1 &&
-    test1.passed === true &&
-    test1.percentage >= 90;
-
-
-  // ----------------------------------------------------------
-  // TEST 2
-  // Partial should be between 0 and 100
-  // ----------------------------------------------------------
-
-  const test2Passed =
-    test2 &&
-    test2.passed === true &&
-    test2.percentage > 0 &&
-    test2.percentage < 100;
-
-
-  // ----------------------------------------------------------
-  // TEST 3
-  // No match should be 0
-  // ----------------------------------------------------------
-
-  const test3Passed =
-    test3 &&
-    test3.passed === true &&
-    test3.percentage === 0;
-
-
-  // ----------------------------------------------------------
-  // TEST 4
-  // Generic should not be meaningful
-  // ----------------------------------------------------------
-
-  const test4Passed =
-    test4 &&
-    test4.passed === true &&
-    test4.generic === true &&
-    test4.meaningful === false &&
-    test4.percentage === 0;
-
-
-  // ----------------------------------------------------------
-  // TEST 5
-  // Marathi / English should match
-  // ----------------------------------------------------------
-
-  const test5Passed =
-    test5 &&
-    test5.passed === true &&
-    test5.percentage > 0;
-
-
-  // ==========================================================
-  // FINAL TEST STATUS
-  // ==========================================================
-
-  const testStatuses = [
-
-    test1Passed,
-
-    test2Passed,
-
-    test3Passed,
-
-    test4Passed,
-
-    test5Passed
-
-  ];
-
-
-  const passed =
-    testStatuses.filter(
-      function(status) {
-
-        return status === true;
-
-      }
-    ).length;
-
-
-  const failed =
-    testStatuses.length -
-    passed;
-
-
-  const summary = {
-
-    totalTests:
-      testStatuses.length,
-
-    passed:
-      passed,
-
-    failed:
-      failed,
-
-    allPassed:
-      failed === 0
-
-  };
-
-
-  // ==========================================================
-  // ONLY REQUIRED OUTPUT
+  // DEBUG
   // ==========================================================
 
   console.log(
-    "WEIGHTED EXPECTATION TEST RESULTS"
-  );
-
-
-  console.log(
+    "EXPECTATION COMPATIBILITY:",
     JSON.stringify(
-      results,
-      null,
-      2
-    )
-  );
+      {
 
+        viewerExpectation:
+          viewerText,
 
-  console.log(
-    "WEIGHTED EXPECTATION TEST SUMMARY"
-  );
+        candidateId:
+          safeCandidateProfile.id ||
+          "",
 
+        candidateName:
+          safeCandidateProfile.name ||
+          "",
 
-  console.log(
-    JSON.stringify(
-      summary,
+        candidateExpectation:
+          candidateText,
+
+        requiredPreferences:
+          requiredPreferences,
+
+        score:
+          score,
+
+        maxScore:
+          maxScore,
+
+        percentage:
+          percentage,
+
+        matchedKeywords:
+          uniqueMatchedKeywords
+
+      },
       null,
       2
     )
@@ -8523,25 +5976,88 @@ function testWeightedExpectationCompatibility() {
   // RETURN
   // ==========================================================
 
-  return {
+      return {
 
-    success:
-      failed === 0,
+        score:
+          score,
 
-    summary:
-      summary,
+        maxScore:
+          maxScore,
 
-    results:
-      results
+        percentage:
+          percentage,
 
-  };
+        // ----------------------------------------------------------
+        // VERIFIED COMPATIBILITY
+        // UNKNOWN IS EXCLUDED
+        // ----------------------------------------------------------
+
+        softMatchPercentage:
+          Number(
+            (
+              knownPreferences > 0
+                ? (
+                    matchedPreferences /
+                    knownPreferences *
+                    100
+                  )
+                : 0
+            ).toFixed(2)
+          ),
+
+        verifiedCompatibility:
+          Number(
+            (
+              knownPreferences > 0
+                ? (
+                    matchedPreferences /
+                    knownPreferences *
+                    100
+                  )
+                : 0
+            ).toFixed(2)
+          ),
+
+        softDataCoverage:
+          Number(
+            (
+              totalRequiredPreferences > 0
+                ? (
+                    knownPreferences /
+                    totalRequiredPreferences *
+                    100
+                  )
+                : 0
+            ).toFixed(2)
+          ),
+
+        matchedPreferences:
+          matchedPreferences,
+
+        knownPreferences:
+          knownPreferences,
+
+        unknownPreferences:
+          unknownPreferences,
+
+        conflictPreferences:
+          conflictPreferences,
+
+        totalRequiredPreferences:
+          totalRequiredPreferences,
+
+        matchedKeywords:
+          uniqueMatchedKeywords,
+
+        matchedDetails:
+          matchedDetails,
+
+        applicable:
+          maxScore > 0
+
+      };
 
 }
-
-
-
-
-
 
 // ============================================================
 // FINAL COMPATIBILITY SCORE V1
@@ -8876,97 +6392,331 @@ function calculateFinalMutualCompatibilityScore(
   mutualProfileCompatibility
 ) {
 
-  mutualHardMatch =
+  // ==========================================================
+  // SAFE INPUT
+  // ==========================================================
+
+  const hardMatch =
     mutualHardMatch === true;
 
-  mutualExpectationCompatibility =
-    mutualExpectationCompatibility || {};
+  const expectation =
+    mutualExpectationCompatibility &&
+    typeof mutualExpectationCompatibility === "object"
 
-  mutualProfileCompatibility =
-    mutualProfileCompatibility || {};
+      ? mutualExpectationCompatibility
+
+      : {};
+
+  const profile =
+    mutualProfileCompatibility &&
+    typeof mutualProfileCompatibility === "object"
+
+      ? mutualProfileCompatibility
+
+      : {};
 
 
   // ==========================================================
-  // WEIGHTS
+  // FIXED WEIGHTS
+  //
+  // Total possible score = 100
+  //
+  // HARD MATCH       = 50
+  // EXPECTATION      = 30
+  // ACTUAL PROFILE   = 20
+  //
+  // IMPORTANT:
+  // These weights are ALWAYS fixed.
+  // We do NOT redistribute missing/N/A weight.
   // ==========================================================
 
-  const HARD_MATCH_WEIGHT = 50;
-  const EXPECTATION_WEIGHT = 30;
-  const PROFILE_WEIGHT = 20;
+  const HARD_MATCH_WEIGHT =
+    50;
+
+  const EXPECTATION_WEIGHT =
+    30;
+
+  const PROFILE_WEIGHT =
+    20;
 
 
   // ==========================================================
-  // HARD SCORE
+  // HARD MATCH SCORE
   // ==========================================================
 
   const hardScore =
-    mutualHardMatch
+    hardMatch
       ? HARD_MATCH_WEIGHT
       : 0;
 
 
   // ==========================================================
-  // MUTUAL EXPECTATION SCORE
+  // EXPECTATION APPLICABILITY
+  //
+  // applicable = false means:
+  // There is NO meaningful expectation evidence.
+  //
+  // Example:
+  // "अनुरूप"
+  //
+  // IMPORTANT:
+  // N/A is NOT treated as a mismatch.
+  // N/A simply gives NO expectation contribution.
   // ==========================================================
 
-  const expectationPercentage =
-    Number(
-      mutualExpectationCompatibility.percentage || 0
-    );
+  const expectationApplicable =
+    expectation.applicable === true;
 
+
+  // ==========================================================
+  // EXPECTATION PERCENTAGE
+  // ==========================================================
+
+  let expectationPercentage =
+    0;
+
+
+  if (
+    expectationApplicable
+  ) {
+
+    expectationPercentage =
+      Number(
+        expectation.percentage
+      ) || 0;
+
+    // Safety clamp
+    expectationPercentage =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          expectationPercentage
+        )
+      );
+
+  }
+
+
+  // ==========================================================
+  // EXPECTATION SCORE
+  //
+  // Applicable:
+  //     percentage contributes up to 30 points.
+  //
+  // Not applicable:
+  //     0 points.
+  //
+  // IMPORTANT:
+  // We DO NOT increase the final score by
+  // removing the 30-point expectation weight.
+  // ==========================================================
 
   const expectationScore =
-    expectationPercentage *
-    EXPECTATION_WEIGHT /
-    100;
+    expectationApplicable
+
+      ? (
+          expectationPercentage *
+          EXPECTATION_WEIGHT /
+          100
+        )
+
+      : 0;
 
 
   // ==========================================================
-  // MUTUAL PROFILE SCORE
+  // PROFILE APPLICABILITY
+  //
+  // Existing behaviour PRESERVED.
+  //
+  // Profile is considered applicable unless it explicitly
+  // returns applicable:false.
+  //
+  // DO NOT change this rule as part of the
+  // Expectation N/A fix.
   // ==========================================================
 
-  const profilePercentage =
-    Number(
-      mutualProfileCompatibility.percentage || 0
-    );
+  const profileApplicable =
+    profile.applicable !== false;
 
+
+  // ==========================================================
+  // PROFILE PERCENTAGE
+  // ==========================================================
+
+  let profilePercentage =
+    0;
+
+
+  if (
+    profileApplicable
+  ) {
+
+    profilePercentage =
+      Number(
+        profile.percentage
+      ) || 0;
+
+    // Safety clamp
+    profilePercentage =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          profilePercentage
+        )
+      );
+
+  }
+
+
+  // ==========================================================
+  // PROFILE SCORE
+  //
+  // Maximum = 20 points
+  // ==========================================================
 
   const profileScore =
-    profilePercentage *
-    PROFILE_WEIGHT /
-    100;
+    profileApplicable
+
+      ? (
+          profilePercentage *
+          PROFILE_WEIGHT /
+          100
+        )
+
+      : 0;
 
 
   // ==========================================================
-  // FINAL MUTUAL SCORE
+  // AVAILABLE WEIGHT
+  //
+  // IMPORTANT:
+  //
+  // Keep this property for backward compatibility /
+  // diagnostics.
+  //
+  // BUT:
+  // It is NO LONGER used to normalize finalScore.
+  //
+  // This prevents:
+  //
+  // Hard       = 50
+  // Expectation = N/A
+  // Profile     = 16.33
+  //
+  // 66.33 / 70 * 100
+  // = 94.76  ❌
+  //
+  // Instead:
+  //
+  // 50 + 0 + 16.33
+  // = 66.33 / 100
   // ==========================================================
 
-  const finalScore =
+  let availableWeight =
+    HARD_MATCH_WEIGHT;
+
+
+  if (
+    expectationApplicable
+  ) {
+
+    availableWeight +=
+      EXPECTATION_WEIGHT;
+
+  }
+
+
+  if (
+    profileApplicable
+  ) {
+
+    availableWeight +=
+      PROFILE_WEIGHT;
+
+  }
+
+
+  // ==========================================================
+  // RAW SCORE
+  //
+  // Always calculated against the fixed 100-point model.
+  // ==========================================================
+
+  const rawScore =
     hardScore +
     expectationScore +
     profileScore;
 
 
-  const finalPercentage =
-    Number(
+  // ==========================================================
+  // FINAL SCORE
+  //
+  // IMPORTANT TARGETED FIX:
+  //
+  // DO NOT normalize using availableWeight.
+  //
+  // Final score is always:
+  //
+  //     Hard Score
+  //   + Expectation Score
+  //   + Profile Score
+  //
+  // out of 100.
+  //
+  // Therefore:
+  //
+  // Expectation N/A
+  // does NOT inflate the remaining components.
+  // ==========================================================
+
+  let finalScore =
+    rawScore;
+
+
+  // ==========================================================
+  // SAFETY CLAMP
+  // ==========================================================
+
+  finalScore =
+    Math.max(
+      0,
       Math.min(
         100,
         finalScore
-      ).toFixed(2)
+      )
+    );
+
+
+  finalScore =
+    Number(
+      finalScore.toFixed(2)
     );
 
 
   // ==========================================================
   // RETURN
+  //
+  // Existing property names are preserved.
   // ==========================================================
 
   return {
 
+    // --------------------------------------------------------
+    // FINAL
+    // --------------------------------------------------------
+
     finalScore:
-      finalPercentage,
+      finalScore,
 
     finalPercentage:
-      finalPercentage,
+      finalScore,
+
+
+    // --------------------------------------------------------
+    // COMPONENT SCORES
+    // --------------------------------------------------------
 
     hardScore:
       Number(
@@ -8978,151 +6728,55 @@ function calculateFinalMutualCompatibilityScore(
         expectationScore.toFixed(2)
       ),
 
-    expectationPercentage:
-      expectationPercentage,
-
     profileScore:
       Number(
         profileScore.toFixed(2)
       ),
 
+
+    // --------------------------------------------------------
+    // COMPONENT PERCENTAGES
+    // --------------------------------------------------------
+
+    expectationPercentage:
+      expectationPercentage,
+
     profilePercentage:
-      profilePercentage
+      profilePercentage,
+
+
+    // --------------------------------------------------------
+    // APPLICABILITY
+    //
+    // Existing + diagnostic fields preserved.
+    // --------------------------------------------------------
+
+    expectationApplicable:
+      expectationApplicable,
+
+    profileApplicable:
+      profileApplicable,
+
+
+    // --------------------------------------------------------
+    // DIAGNOSTIC
+    //
+    // Kept for backward compatibility.
+    // IMPORTANT:
+    // availableWeight is NOT used for final normalization.
+    // --------------------------------------------------------
+
+    availableWeight:
+      availableWeight,
+
+    rawScore:
+      Number(
+        rawScore.toFixed(2)
+      )
 
   };
 
 }
-
-
-
-
-
-// ============================================================
-// TEST FINAL COMPATIBILITY SCORE
-// ============================================================
-
-function testFinalCompatibilityScore() {
-
-  const testProfile = {
-
-    ageRaw:
-      "27 years, 10 months, 3 days",
-
-    heightRaw:
-      "५ फूट ३ इंच",
-
-    incomeRaw:
-      "मासिक उत्पन्न रु. ३५,००० ते ४०,०००",
-
-    district:
-      "पुणे (Pune)",
-
-    education:
-      "B.Com",
-
-    profession:
-      "Interior Designer",
-
-    casteRaw:
-      "हिंदू - देवांग कोष्टी",
-
-    rashiRaw:
-      "वृश्चिक"
-
-  };
-
-
-  const expectationCompatibility = {
-
-    score:
-      63,
-
-    maxScore:
-      92,
-
-    percentage:
-      68.48
-
-  };
-
-
-  const result =
-    calculateFinalCompatibilityScore(
-      false,
-      expectationCompatibility,
-      testProfile
-    );
-
-
-  console.log(
-    "FINAL COMPATIBILITY TEST"
-  );
-
-
-  console.log(
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
-  );
-
-
-  return result;
-
-}
-
-
-
-// ============================================================
-// ACTUAL PROFILE COMPATIBILITY
-// ============================================================
-
-// ============================================================
-// ACTUAL PROFILE COMPATIBILITY
-// ============================================================
-
-// const profileCompatibility =
-//   calculateActualProfileCompatibility(
-//     viewerProfile,
-//     normalizedCandidate
-//   );
-
-// Logger.log(
-//   "PROFILE COMPATIBILITY RESULT: " +
-//   JSON.stringify(profileCompatibility, null, 2)
-// );
-
-
-// ============================================================
-// ACTUAL PROFILE COMPATIBILITY
-// ============================================================
-// Calculates compatibility using ACTUAL candidate profile data.
-//
-// HARD / OBJECTIVE CHECKS:
-//   - Age
-//   - Height
-//   - Income
-//   - District
-//   - Caste
-//   - Rashi
-//   - Education
-//   - Profession
-//
-// SOFT / PROFILE-EVIDENCE CHECKS:
-//   - Educated
-//   - Understanding
-//   - Cultured
-//   - Loving
-//   - Respectful
-//   - Career Supportive
-//   - Dream Supportive
-//
-// IMPORTANT:
-// UNKNOWN is NOT treated as MATCH.
-// Only actual evidence can increase compatibility.
-// ============================================================
-
 
 /**
  * ============================================================
@@ -9146,12 +6800,11 @@ function testFinalCompatibilityScore() {
  * }
  */
 
-
-
 function calculateActualProfileCompatibility(
   actualProfileCriteria,
-  compatibilityCandidate
+  compatibilityCandidate,
 ) {
+ 
 
   const result = {
     applicable: false,
@@ -9164,6 +6817,24 @@ function calculateActualProfileCompatibility(
     failedCriteria: [],
     unknownCriteria: []
   };
+
+
+   console.log(
+    "========== EDUCATION TEST RESULT =========="
+    );
+
+    console.log(
+      JSON.stringify(
+        result.matchedCriteria &&
+        result.matchedCriteria.filter(
+          function(item) {
+            return item.criterion === "education";
+          }
+        ),
+        null,
+        2
+      )
+    );
 
   // ==========================================================
   // VALIDATION
@@ -9801,11 +7472,127 @@ function calculateActualProfileCompatibility(
 
   }
 
-  addCheck(
-    "education",
-    educationCriteria,
-    candidate.education
-  );
+
+
+    
+  // ==========================================================
+  // EDUCATION COMPATIBILITY
+  // ==========================================================
+
+  if (
+    hasValue(educationCriteria)
+  ) {
+
+    result.totalChecks++;
+    result.applicable = true;
+
+
+    const expectedEducation =
+      educationCriteria;
+
+
+    const actualEducation =
+      candidate.education;
+
+
+    const educationMatched =
+      educationFieldsCompatible(
+        expectedEducation,
+        actualEducation
+      );
+
+
+    // --------------------------------------------------------
+    // MATCH
+    // --------------------------------------------------------
+
+    if (
+      educationMatched === true
+    ) {
+
+      result.matched++;
+
+
+      result.matchedCriteria.push({
+
+        criterion:
+          "education",
+
+        expected:
+          expectedEducation,
+
+        actual:
+          extractText(
+            actualEducation
+          )
+
+      });
+
+    }
+
+
+    // --------------------------------------------------------
+    // FAILED
+    // --------------------------------------------------------
+
+    else if (
+      educationMatched === false
+    ) {
+
+      result.failed++;
+
+
+      result.failedCriteria.push({
+
+        criterion:
+          "education",
+
+        expected:
+          expectedEducation,
+
+        actual:
+          hasValue(actualEducation)
+            ? extractText(
+                actualEducation
+              )
+            : null
+
+      });
+
+    }
+
+
+    // --------------------------------------------------------
+    // UNKNOWN
+    // --------------------------------------------------------
+
+    else {
+
+      result.unknown++;
+
+
+      result.unknownCriteria.push({
+
+        criterion:
+          "education",
+
+        expected:
+          expectedEducation,
+
+        actual:
+          hasValue(actualEducation)
+            ? extractText(
+                actualEducation
+              )
+            : null
+
+      });
+
+    }
+
+  }
+
+
 
   // ==========================================================
   // 3. PROFESSION
@@ -10135,34 +7922,96 @@ function calculateActualProfileCompatibility(
     candidate.height
   );
 
-  
 
 
-    // ==========================================================
-    // 9. INCOME
-    // ==========================================================
 
-    const expectedMinIncome =
-      Number(
-        actualProfileCriteria.minIncome
-      );
+      // ==========================================================
+      // 9. INCOME
+      // ==========================================================
 
-    const expectedMaxIncome =
-      Number(
-        actualProfileCriteria.maxIncome
-      );
+      let expectedMinIncome =
+        criteria.minIncome;
+
+      let expectedMaxIncome =
+        criteria.maxIncome;
+
+
+      // ----------------------------------------------------------
+      // Support normalized format:
+      //
+      // criteria.income = {
+      //   enabled: true,
+      //   min: 15000,
+      //   max: 30000
+      // }
+      // ----------------------------------------------------------
+
+      if (
+        criteria.income &&
+        typeof criteria.income === "object" &&
+        criteria.income.enabled === true
+      ) {
+
+        if (
+          hasValue(criteria.income.min)
+        ) {
+
+          expectedMinIncome =
+            criteria.income.min;
+
+        }
+
+        if (
+          hasValue(criteria.income.max)
+        ) {
+
+          expectedMaxIncome =
+            criteria.income.max;
+
+        }
+
+      }
+
 
     const candidateIncome =
       candidate.income || {};
 
-    const candidateMinIncome =
+    let candidateMinIncome =
       Number(candidateIncome.min);
 
-    const candidateMaxIncome =
+    let candidateMaxIncome =
       Number(candidateIncome.max);
 
     const candidateIncomeValue =
       Number(candidateIncome.value);
+
+
+    // ----------------------------------------------------------
+    // FALLBACK TO TOP-LEVEL NORMALIZED INCOME RANGE
+    // ----------------------------------------------------------
+
+    if (
+      !Number.isFinite(candidateMinIncome) &&
+      candidate.minIncome !== undefined &&
+      candidate.minIncome !== null
+    ) {
+
+      candidateMinIncome =
+        Number(candidate.minIncome);
+
+    }
+
+
+    if (
+      !Number.isFinite(candidateMaxIncome) &&
+      candidate.maxIncome !== undefined &&
+      candidate.maxIncome !== null
+    ) {
+
+      candidateMaxIncome =
+        Number(candidate.maxIncome);
+
+    }
 
 
     // ----------------------------------------------------------
@@ -10416,114 +8265,384 @@ function calculateActualProfileCompatibility(
 }
 
 
-// ============================================================
-// TEST ACTUAL PROFILE COMPATIBILITY
-// ============================================================
+function educationFieldsCompatible(
+  expectedEducation,
+  actualEducation
+) {
 
-function testActualProfileCompatibility() {
+  // ==========================================================
+  // SAFE INPUT
+  // ==========================================================
 
-  const viewerProfile = {
+  if (
+    expectedEducation === null ||
+    expectedEducation === undefined ||
+    actualEducation === null ||
+    actualEducation === undefined
+  ) {
 
-    id:
-      "ID628",
+    return null;
 
-    name:
-      "Shrutika Ashok Ware"
-
-  };
-
-
-  const candidateProfile = {
-
-    id:
-      "ID001",
-
-    name:
-      "अक्षय माधवी सुभाष बुचडे",
-
-    ageRaw:
-      "32 years, 4 months, 6 days",
-
-    heightRaw:
-      "५ फूट ७ इंच",
-
-    incomeRaw:
-      "मासिक उत्पन्न रु. १५,००० ते २०,०००",
-
-    district:
-      "कोल्हापूर (Kolhapur)",
-
-    educationRaw:
-      "BE computer science & engineering",
-
-    education:
-      "BE computer science & engineering",
-
-    professionRaw:
-      "Entrepreneur in Web Design & Development",
-
-    profession:
-      "Entrepreneur in Web Design & Development",
-
-    casteRaw:
-      "हिंदू - देवांग कोष्टी",
-
-    rashiRaw:
-      "कन्या"
-
-  };
+  }
 
 
   // ==========================================================
-  // TEST EXPECTATION
+  // EXTRACT EXPECTED CATEGORIES / TEXT
   // ==========================================================
 
-  const expectation =
-    "Age 28 to 32, height 5'5 to 5'8, income 15000 to 70000, Pune or Kolhapur, BE or MBA, Engineering and Technology, Hindu Devang Koshti, Rashi Kanya, understanding, respectful, family-oriented";
+  let expectedCategories = [];
+
+  let expectedRaw = "";
+
+
+  if (
+    Array.isArray(expectedEducation)
+  ) {
+
+    expectedCategories =
+      expectedEducation.slice();
+
+  }
+
+  else if (
+    typeof expectedEducation === "object"
+  ) {
+
+    if (
+      Array.isArray(
+        expectedEducation.categories
+      )
+    ) {
+
+      expectedCategories =
+        expectedEducation.categories.slice();
+
+    }
+
+
+    expectedRaw =
+      String(
+        expectedEducation.raw || ""
+      );
+
+  }
+
+  else {
+
+    expectedRaw =
+      String(
+        expectedEducation || ""
+      );
+
+  }
 
 
   // ==========================================================
-  // PARSE EXPECTATION
+  // EXTRACT ACTUAL CATEGORIES
   // ==========================================================
 
-  const criteria =
-    parseExpectationCriteria(
-      expectation
+  let actualCategories = [];
+
+  let actualRaw = "";
+
+
+  if (
+    typeof actualEducation === "object"
+  ) {
+
+    if (
+      Array.isArray(
+        actualEducation.categories
+      )
+    ) {
+
+      actualCategories =
+        actualEducation.categories.slice();
+
+    }
+
+
+    actualRaw =
+      String(
+        actualEducation.raw || ""
+      );
+
+  }
+
+  else {
+
+    actualRaw =
+      String(
+        actualEducation || ""
+      );
+
+  }
+
+
+  // ==========================================================
+  // NORMALIZE TEXT
+  // ==========================================================
+
+  function normalizeEducationValue(
+    value
+  ) {
+
+    return String(
+      value || ""
+    )
+      .toLowerCase()
+      .replace(/[().,\/\-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  }
+
+
+  expectedCategories =
+    expectedCategories
+      .map(
+        normalizeEducationValue
+      )
+      .filter(Boolean);
+
+
+  actualCategories =
+    actualCategories
+      .map(
+        normalizeEducationValue
+      )
+      .filter(Boolean);
+
+
+  expectedRaw =
+    normalizeEducationValue(
+      expectedRaw
+    );
+
+
+  actualRaw =
+    normalizeEducationValue(
+      actualRaw
     );
 
 
   // ==========================================================
-  // PROFILE COMPATIBILITY
-  // ==========================================================
-
-  const result =
-    calculateActualProfileCompatibility(
-      viewerProfile,
-      candidateProfile,
-      criteria
-    );
-
-
-  // ==========================================================
-  // ONLY REQUIRED TEST OUTPUT
+  // DEBUG
   // ==========================================================
 
   console.log(
-    "ACTUAL PROFILE COMPATIBILITY TEST"
-  );
-
-  console.log(
+    "EDUCATION COMPATIBILITY INPUT:",
     JSON.stringify(
-      result,
+      {
+        expectedEducation:
+          expectedEducation,
+
+        expectedCategories:
+          expectedCategories,
+
+        expectedRaw:
+          expectedRaw,
+
+        actualEducation:
+          actualEducation,
+
+        actualCategories:
+          actualCategories,
+
+        actualRaw:
+          actualRaw
+      },
       null,
       2
     )
   );
 
 
-  return result;
+  // ==========================================================
+  // EMPTY ACTUAL
+  // ==========================================================
+
+  if (
+    !actualRaw &&
+    actualCategories.length === 0
+  ) {
+
+    return null;
+
+  }
+
+
+  // ==========================================================
+  // 1. DIRECT CATEGORY MATCH
+  //
+  // Engineering & Technology
+  //       ==
+  // Engineering & Technology
+  //
+  // Commerce & Management
+  //       ==
+  // Commerce & Management
+  // ==========================================================
+
+  const categoryMatch =
+    expectedCategories.some(
+      function(expectedCategory) {
+
+        return actualCategories.some(
+          function(actualCategory) {
+
+            return (
+              expectedCategory ===
+              actualCategory
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  if (
+    categoryMatch
+  ) {
+
+    console.log(
+      "EDUCATION CATEGORY MATCH: TRUE"
+    );
+
+    return true;
+
+  }
+
+
+  // ==========================================================
+  // 2. ENGINEERING CATEGORY
+  // ==========================================================
+
+  const expectedEngineering =
+    expectedCategories.indexOf(
+      "engineering & technology"
+    ) !== -1;
+
+
+  const actualEngineering =
+    actualCategories.indexOf(
+      "engineering & technology"
+    ) !== -1;
+
+
+  if (
+    expectedEngineering &&
+    actualEngineering
+  ) {
+
+    console.log(
+      "EDUCATION ENGINEERING CATEGORY MATCH: TRUE"
+    );
+
+    return true;
+
+  }
+
+
+  // ==========================================================
+  // 3. ENGINEERING DEGREE ALIASES
+  //
+  // B.E (IT)
+  // B.E
+  // BE
+  // BE CSE
+  // BE C.S.E
+  // B.Tech
+  // B.Tech CSE
+  // M.E
+  // M.Tech
+  // ==========================================================
+
+  const engineeringDegreePattern =
+    /\b(?:b\s*e|be|b\s*tech|btech|m\s*e|me|m\s*tech|mtech)\b/i;
+
+
+  const expectedEngineeringDegree =
+    engineeringDegreePattern.test(
+      expectedRaw
+    );
+
+
+  const actualEngineeringDegree =
+    engineeringDegreePattern.test(
+      actualRaw
+    );
+
+
+  if (
+    expectedEngineeringDegree &&
+    actualEngineeringDegree
+  ) {
+
+    console.log(
+      "EDUCATION ENGINEERING DEGREE MATCH: TRUE"
+    );
+
+    return true;
+
+  }
+
+
+  // ==========================================================
+  // 4. COMPUTER / IT ENGINEERING
+  //
+  // BE IT
+  // BE CSE
+  // BE Computer Science
+  // BE Information Technology
+  // Computer Engineering
+  // ==========================================================
+
+  const computerEngineeringPattern =
+    /\b(?:computer|cse|it|information technology|computer science|computer engineering)\b/i;
+
+
+  const expectedComputerEngineering =
+    computerEngineeringPattern.test(
+      expectedRaw
+    );
+
+
+  const actualComputerEngineering =
+    computerEngineeringPattern.test(
+      actualRaw
+    );
+
+
+  if (
+    expectedComputerEngineering &&
+    actualComputerEngineering
+  ) {
+
+    console.log(
+      "EDUCATION COMPUTER/IT ENGINEERING MATCH: TRUE"
+    );
+
+    return true;
+
+  }
+
+
+  // ==========================================================
+  // 5. FINAL NO MATCH
+  // ==========================================================
+
+  console.log(
+    "EDUCATION COMPATIBILITY: FALSE"
+  );
+
+
+  return false;
 
 }
+
 // ============================================================
 // FINAL COMPATIBILITY SCORE V2
 // ============================================================
@@ -10675,65 +8794,6 @@ function calculateFinalCompatibilityScoreV2(
 
 }
 
-
-// ============================================================
-// TEST FINAL COMPATIBILITY SCORE V2
-// ============================================================
-
-function testFinalCompatibilityScoreV2() {
-
-  // ----------------------------------------------------------
-  // Example values from our validated profile test
-  // ----------------------------------------------------------
-
-  const hardScore =
-    0;
-
-
-  const expectationPercentage =
-    68.48;
-
-
-  const profilePercentage =
-    75;
-
-
-  const result =
-    calculateFinalCompatibilityScoreV2(
-
-      hardScore,
-
-      expectationPercentage,
-
-      profilePercentage
-
-    );
-
-
-  console.log(
-    "=================================================="
-  );
-
-
-  console.log(
-    "FINAL COMPATIBILITY SCORE V2"
-  );
-
-
-  console.log(
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
-  );
-
-
-  return result;
-
-}
-
-
 function calculateCandidateFinalRankingScoreV2(
   matchResult,
   expectationCompatibilityPercentage,
@@ -10776,561 +8836,6 @@ function calculateCandidateFinalRankingScoreV2(
   return final;
 
 }
-
-
-
-function testDirectProfileCompatibility() {
-
-  const viewerProfile = {
-
-    id:
-      "ID628",
-
-    name:
-      "Shrutika Ashok Ware"
-
-  };
-
-
-  const candidateProfile = {
-
-    id:
-      "ID001",
-
-    name:
-      "अक्षय माधवी सुभाष बुचडे",
-
-    ageRaw:
-      "32 years, 4 months, 6 days",
-
-    heightRaw:
-      "५ फूट ७ इंच",
-
-    incomeRaw:
-      "मासिक उत्पन्न रु. १५,००० ते २०,०००",
-
-    district:
-      "कोल्हापूर (Kolhapur)",
-
-    educationRaw:
-      "BE computer science & engineering",
-
-    education:
-      "BE computer science & engineering",
-
-    professionRaw:
-      "Entrepreneur in Web Design & Development",
-
-    profession:
-      "Entrepreneur in Web Design & Development",
-
-    casteRaw:
-      "हिंदू - देवांग कोष्टी",
-
-    rashiRaw:
-      "कन्या"
-
-  };
-
-
-  const expectation =
-    "Age 28 to 32, height 5'5 to 5'8, income 15000 to 70000, Pune or Kolhapur, BE or MBA, Engineering and Technology, Hindu Devang Koshti, Rashi Kanya, understanding, respectful, family-oriented";
-
-
-  const criteria =
-    parseExpectationCriteria(
-      expectation
-    );
-
-
-  console.log(
-    "DIRECT PROFILE TEST START"
-  );
-
-
-  const result =
-    calculateActualProfileCompatibility(
-      viewerProfile,
-      candidateProfile,
-      criteria
-    );
-
-
-  console.log(
-    "DIRECT PROFILE TEST RESULT:",
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
-  );
-
-
-  return result;
-
-}
-
-
-
-
-function testActualProfileCompatibilityStandalone() {
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "🧪 STANDALONE ACTUAL PROFILE COMPATIBILITY TEST"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-
-  // ==========================================================
-  // 1. TEST VIEWER
-  // ==========================================================
-
-  const viewerProfile = {
-
-    id:
-      "TEST_VIEWER_001",
-
-    name:
-      "Test Bride",
-
-    type:
-      "bride",
-
-    criteria: {
-
-      district:
-        "कोल्हापूर",
-
-      education:
-        "Engineering",
-
-      profession:
-        "IT",
-
-      employmentType:
-        "BUSINESS",
-
-      caste:
-        "देवांग कोष्टी",
-
-      rashi:
-        "कन्या",
-
-      minAge:
-        28,
-
-      maxAge:
-        34,
-
-      minHeight:
-        65,
-
-      maxHeight:
-        70,
-
-      // ------------------------------------------------------
-      // RAW INCOME FOR TEST
-      // ------------------------------------------------------
-
-      income:
-        "१५,००० ते ३०,०००"
-
-    }
-
-  };
-
-
-  // ==========================================================
-  // 2. TEST CANDIDATE
-  // ==========================================================
-
-  const candidateProfile = {
-
-    id:
-      "TEST_CANDIDATE_001",
-
-    name:
-      "Test Groom",
-
-    type:
-      "groom",
-
-    district: {
-
-      raw:
-        "कोल्हापूर (Kolhapur)",
-
-      normalized:
-        "कोल्हापूर kolhapur"
-
-    },
-
-    education: {
-
-      raw:
-        "BE Computer Science",
-
-      categories: [
-
-        "Engineering & Technology"
-
-      ]
-
-    },
-
-    profession: {
-
-      raw:
-        "Entrepreneur in IT and Software",
-
-      categories: [
-
-        "IT & Software"
-
-      ]
-
-    },
-
-    employmentType:
-      "BUSINESS",
-
-    caste: {
-
-      raw:
-        "हिंदू - देवांग कोष्टी",
-
-      normalized:
-        "हिंदू देवांग कोष्टी"
-
-    },
-
-    rashi: {
-
-      raw:
-        "कन्या",
-
-      normalized:
-        "कन्या"
-
-    },
-
-    age: {
-
-      decimalAge:
-        32
-
-    },
-
-    height: {
-
-      totalInches:
-        67
-
-    },
-
-    income: {
-
-      min:
-        20000,
-
-      max:
-        25000,
-
-      value:
-        null
-
-    }
-
-  };
-
-
-  // ==========================================================
-  // 3. EXTRACT CRITERIA
-  // ==========================================================
-
-  const actualProfileCriteria = {
-
-    ...viewerProfile.criteria
-
-  };
-
-
-  // ==========================================================
-  // 4. NORMALIZE RAW INCOME
-  // ==========================================================
-
-  const incomeRange =
-    parseActualProfileIncomeRange(
-      actualProfileCriteria.income
-    );
-
-
-  actualProfileCriteria.minIncome =
-    incomeRange.minIncome;
-
-
-  actualProfileCriteria.maxIncome =
-    incomeRange.maxIncome;
-
-
-  // Keep raw income for debugging if required.
-  // It does not participate directly in calculation.
-
-
-  // ==========================================================
-  // 5. VALIDATION
-  // ==========================================================
-
-  if (
-    !actualProfileCriteria ||
-    typeof actualProfileCriteria !== "object"
-  ) {
-
-    console.error(
-      "❌ TEST FAILED: Actual profile criteria not found."
-    );
-
-    return {
-
-      applicable:
-        false,
-
-      percentage:
-        0,
-
-      matched:
-        0,
-
-      failed:
-        0,
-
-      unknown:
-        0,
-
-      totalChecks:
-        0
-
-    };
-
-  }
-
-
-  // ==========================================================
-  // 6. DISPLAY CRITERIA
-  // ==========================================================
-
-  console.log(
-    "🔴 TEST VIEWER CRITERIA:"
-  );
-
-  console.log(
-    JSON.stringify(
-      actualProfileCriteria,
-      null,
-      2
-    )
-  );
-
-
-  // ==========================================================
-  // 7. DISPLAY CANDIDATE
-  // ==========================================================
-
-  console.log(
-    "🔵 TEST CANDIDATE:"
-  );
-
-  console.log(
-    JSON.stringify(
-      candidateProfile,
-      null,
-      2
-    )
-  );
-
-
-  // ==========================================================
-  // 8. CALL ACTUAL COMPATIBILITY FUNCTION
-  // ==========================================================
-
-  let result = null;
-
-
-  try {
-
-    result =
-      calculateActualProfileCompatibility(
-        actualProfileCriteria,
-        candidateProfile
-      );
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "❌ ACTUAL PROFILE COMPATIBILITY TEST ERROR:",
-      error &&
-      error.stack
-        ? error.stack
-        : String(error)
-    );
-
-    return null;
-
-  }
-
-
-  // ==========================================================
-  // 9. DISPLAY RESULT
-  // ==========================================================
-
-  console.log(
-    "🟢 ACTUAL PROFILE COMPATIBILITY RESULT:"
-  );
-
-  console.log(
-    JSON.stringify(
-      result,
-      null,
-      2
-    )
-  );
-
-
-  // ==========================================================
-  // 10. SUMMARY
-  // ==========================================================
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "📊 TEST SUMMARY"
-  );
-
-  console.log(
-    JSON.stringify(
-      {
-
-        applicable:
-          result?.applicable || false,
-
-        percentage:
-          result?.percentage || 0,
-
-        matched:
-          result?.matched || 0,
-
-        failed:
-          result?.failed || 0,
-
-        unknown:
-          result?.unknown || 0,
-
-        totalChecks:
-          result?.totalChecks || 0
-
-      },
-      null,
-      2
-    )
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-
-  // ==========================================================
-  // 11. EXPECTED RESULT
-  // ==========================================================
-
-  const expected = {
-
-    applicable:
-      true,
-
-    percentage:
-      100,
-
-    matched:
-      9,
-
-    failed:
-      0,
-
-    unknown:
-      0,
-
-    totalChecks:
-      9
-
-  };
-
-
-  const passed =
-    result &&
-    result.applicable === expected.applicable &&
-    result.percentage === expected.percentage &&
-    result.matched === expected.matched &&
-    result.failed === expected.failed &&
-    result.unknown === expected.unknown &&
-    result.totalChecks === expected.totalChecks;
-
-
-  if (passed) {
-
-    console.log(
-      "✅ STANDALONE TEST PASSED: 9/9 = 100%"
-    );
-
-  }
-
-  else {
-
-    console.log(
-      "⚠️ STANDALONE TEST RESULT IS NOT 9/9."
-    );
-
-    console.log(
-      "EXPECTED:",
-      JSON.stringify(
-        expected,
-        null,
-        2
-      )
-    );
-
-    console.log(
-      "ACTUAL:",
-      JSON.stringify(
-        result,
-        null,
-        2
-      )
-    );
-
-  }
-
-
-  // ==========================================================
-  // 12. RETURN
-  // ==========================================================
-
-  return result;
-
-}
-
-
 
 function parseActualProfileIncomeRange(value) {
 
@@ -11444,7 +8949,6 @@ function parseActualProfileIncomeRange(value) {
 }
 
 
-
 // PHASE 2
 
 
@@ -11526,1184 +9030,6 @@ function calculateMutualCompatibility(
   };
 
 }
-
-
-
-
-function testMutualCompatibility() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-
-  // ----------------------------------------------------------
-  // VALIDATE VIEWER
-  // ----------------------------------------------------------
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ STEP 1 FAILED — VIEWER PROFILE NOT FOUND"
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // VALIDATE CANDIDATE
-  // ----------------------------------------------------------
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ STEP 1 FAILED — CANDIDATE PROFILE NOT FOUND"
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // EXTRACT ACTUAL PROFILES
-  // ----------------------------------------------------------
-
-  const viewer =
-    viewerResult.profile;
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ----------------------------------------------------------
-  // STEP 1 RESULT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — STEP 1 MUTUAL COMPATIBILITY TEST"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-
-  console.log(
-    "🟢 STEP 1 PASS:",
-    JSON.stringify(
-      {
-
-        viewer: {
-          id:
-            viewer.id || viewerResult.id || "",
-
-          name:
-            viewer.name || viewerResult.name || "",
-
-          type:
-            viewer.type || viewerResult.type || ""
-        },
-
-
-        candidate: {
-          id:
-            candidate.id || candidateResult.id || "",
-
-          name:
-            candidate.name || candidateResult.name || "",
-
-          type:
-            candidate.type || candidateResult.type || ""
-        },
-
-
-        viewerProfileLoaded:
-          true,
-
-        candidateProfileLoaded:
-          true
-
-      },
-      null,
-      2
-    )
-  );
-
-}
-
-
-
-function testPhase2ViewerToCandidate() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  // ----------------------------------------------------------
-  // 1. LOAD VIEWER
-  // ----------------------------------------------------------
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 2 FAILED — VIEWER"
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 2. LOAD CANDIDATE
-  // ----------------------------------------------------------
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 2 FAILED — CANDIDATE"
-    );
-
-    return;
-
-  }
-
-
-  const viewer =
-    viewerResult.profile;
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ----------------------------------------------------------
-  // 3. GET VIEWER EXPECTATION
-  // ----------------------------------------------------------
-
-  const viewerExpectation =
-    String(
-      viewer.expectationRaw ||
-      viewerResult.expectation ||
-      ""
-    ).trim();
-
-
-  if (!viewerExpectation) {
-
-    console.log(
-      "❌ PHASE 2 STEP 2 FAILED — VIEWER EXPECTATION MISSING"
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 4. BUILD VIEWER CRITERIA
-  // ----------------------------------------------------------
-
-  const viewerCriteria =
-    parseExpectationCriteria(
-      viewerExpectation
-    );
-
-
-  if (!viewerCriteria) {
-
-    console.log(
-      "❌ PHASE 2 STEP 2 FAILED — CRITERIA PARSE"
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 5. VIEWER → CANDIDATE
-  // ----------------------------------------------------------
-
-  let matchResult = null;
-
-
-  try {
-
-    matchResult =
-      evaluateCandidateMatch(
-        candidate,
-        viewerCriteria
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 2 FAILED — MATCH ERROR"
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 6. MINIMAL TEST OUTPUT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — STEP 2 VIEWER → CANDIDATE"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    JSON.stringify(
-      {
-
-        viewerId:
-          viewer.id ||
-          viewerResult.id,
-
-        candidateId:
-          candidate.id ||
-          candidateResult.id,
-
-        direction:
-          "VIEWER_TO_CANDIDATE",
-
-        hardMatch:
-          matchResult &&
-          matchResult.hardMatch === true,
-
-        matchStatus:
-          matchResult &&
-          matchResult.matchStatus
-            ? matchResult.matchStatus
-            : "",
-
-        applicableCriteria:
-          Number(
-            matchResult &&
-            matchResult.applicableCriteria
-          ) || 0,
-
-        matchedCriteria:
-          Number(
-            matchResult &&
-            matchResult.matchedCriteria
-          ) || 0,
-
-        failedCriteria:
-          Array.isArray(
-            matchResult &&
-            matchResult.failedCriteria
-          )
-            ? matchResult.failedCriteria
-            : []
-
-      },
-      null,
-      2
-    )
-  );
-
-}
-
-
-
-function testPhase2CandidateToViewer() {
-
-      const viewerId = "ID001";
-      const viewerType = "groom";
-
-      const candidateId = "ID801";
-      const candidateType = "bride";
-
-
-      // ----------------------------------------------------------
-      // 1. LOAD VIEWER
-      // ----------------------------------------------------------
-
-      const viewerResult =
-        getMatchingViewerProfile(
-          viewerId,
-          viewerType
-        );
-
-
-      if (
-        !viewerResult ||
-        viewerResult.success !== true ||
-        !viewerResult.profile
-      ) {
-
-        console.log(
-          "❌ PHASE 2 STEP 3 FAILED — VIEWER"
-        );
-
-        return;
-
-      }
-
-
-      // ----------------------------------------------------------
-      // 2. LOAD CANDIDATE
-      // ----------------------------------------------------------
-
-      const candidateResult =
-        getMatchingViewerProfile(
-          candidateId,
-          candidateType
-        );
-
-
-      if (
-        !candidateResult ||
-        candidateResult.success !== true ||
-        !candidateResult.profile
-      ) {
-
-        console.log(
-          "❌ PHASE 2 STEP 3 FAILED — CANDIDATE"
-        );
-
-        return;
-
-      }
-
-
-      const viewer =
-        viewerResult.profile;
-
-      const candidate =
-        candidateResult.profile;
-
-
-      // ----------------------------------------------------------
-      // 3. GET CANDIDATE EXPECTATION
-      // ----------------------------------------------------------
-
-      const candidateExpectation =
-        String(
-          candidate.expectationRaw ||
-          candidateResult.expectation ||
-          ""
-        ).trim();
-
-
-      if (!candidateExpectation) {
-
-        console.log(
-          "❌ PHASE 2 STEP 3 FAILED — CANDIDATE EXPECTATION MISSING"
-        );
-
-        return;
-
-      }
-
-
-      // ----------------------------------------------------------
-      // 4. BUILD CANDIDATE CRITERIA
-      // ----------------------------------------------------------
-
-      const candidateCriteria =
-        parseExpectationCriteria(
-          candidateExpectation
-        );
-
-
-        console.log(
-      "STEP 3 EXPECTATION:",
-      candidateExpectation
-    );
-
-  console.log(
-    "STEP 3 CRITERIA:",
-    JSON.stringify(
-      {
-        hasHardCriteria:
-          candidateCriteria.hasHardCriteria,
-
-        district:
-          candidateCriteria.district,
-
-        educationCategories:
-          candidateCriteria.educationCategories,
-
-        professionCategories:
-          candidateCriteria.professionCategories,
-
-        caste:
-          candidateCriteria.caste,
-
-        rashi:
-          candidateCriteria.rashi,
-
-        age:
-          candidateCriteria.age,
-
-        height:
-          candidateCriteria.height,
-
-        income:
-          candidateCriteria.income
-      },
-      null,
-      2
-    )
-  );
-
-
-  if (!candidateCriteria) {
-
-    console.log(
-      "❌ PHASE 2 STEP 3 FAILED — CRITERIA PARSE"
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 5. CANDIDATE → VIEWER
-  // ----------------------------------------------------------
-
-  let matchResult = null;
-
-
-  try {
-
-    matchResult =
-      evaluateCandidateMatch(
-        viewer,
-        candidateCriteria
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 3 FAILED — MATCH ERROR"
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 6. MINIMAL RESULT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — STEP 3 CANDIDATE → VIEWER"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-
-  console.log(
-    JSON.stringify(
-      {
-
-        candidateId:
-          candidate.id ||
-          candidateResult.id,
-
-        viewerId:
-          viewer.id ||
-          viewerResult.id,
-
-        direction:
-          "CANDIDATE_TO_VIEWER",
-
-        hardMatch:
-          !!(
-            matchResult &&
-            matchResult.hardMatch === true
-          ),
-
-        matchStatus:
-          matchResult &&
-          matchResult.matchStatus
-            ? matchResult.matchStatus
-            : "",
-
-        applicableCriteria:
-          Number(
-            matchResult &&
-            matchResult.applicableCriteria
-          ) || 0,
-
-        matchedCriteria:
-          Number(
-            matchResult &&
-            matchResult.matchedCriteria
-          ) || 0,
-
-        failedCriteria:
-          Array.isArray(
-            matchResult &&
-            matchResult.failedCriteria
-          )
-            ? matchResult.failedCriteria
-            : []
-
-      },
-      null,
-      2
-    )
-  );
-
-}
-
-
-
-function testPhase2MutualHardMatch() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  // ----------------------------------------------------------
-  // 1. LOAD VIEWER
-  // ----------------------------------------------------------
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 4 FAILED — VIEWER"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 2. LOAD CANDIDATE
-  // ----------------------------------------------------------
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 4 FAILED — CANDIDATE"
-    );
-
-    return;
-  }
-
-
-  const viewer =
-    viewerResult.profile;
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ----------------------------------------------------------
-  // 3. VIEWER → CANDIDATE
-  // ----------------------------------------------------------
-
-  const viewerExpectation =
-    String(
-      viewer.expectationRaw ||
-      viewerResult.expectation ||
-      ""
-    ).trim();
-
-  let viewerToCandidate = null;
-
-
-  if (viewerExpectation) {
-
-    const viewerCriteria =
-      parseExpectationCriteria(
-        viewerExpectation
-      );
-
-    if (viewerCriteria) {
-
-      viewerToCandidate =
-        evaluateCandidateMatch(
-          candidate,
-          viewerCriteria
-        );
-
-    }
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 4. CANDIDATE → VIEWER
-  // ----------------------------------------------------------
-
-  const candidateExpectation =
-    String(
-      candidate.expectationRaw ||
-      candidateResult.expectation ||
-      ""
-    ).trim();
-
-  let candidateToViewer = null;
-
-
-  if (candidateExpectation) {
-
-    const candidateCriteria =
-      parseExpectationCriteria(
-        candidateExpectation
-      );
-
-    if (candidateCriteria) {
-
-      candidateToViewer =
-        evaluateCandidateMatch(
-          viewer,
-          candidateCriteria
-        );
-
-    }
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 5. HARD STATUS
-  // ----------------------------------------------------------
-
-  const viewerStatus =
-    viewerToCandidate &&
-    viewerToCandidate.matchStatus
-      ? String(
-          viewerToCandidate.matchStatus
-        ).trim().toUpperCase()
-      : "NO_HARD_CRITERIA";
-
-
-  const candidateStatus =
-    candidateToViewer &&
-    candidateToViewer.matchStatus
-      ? String(
-          candidateToViewer.matchStatus
-        ).trim().toUpperCase()
-      : "NO_HARD_CRITERIA";
-
-
-  // ----------------------------------------------------------
-  // 6. MUTUAL HARD MATCH
-  // ----------------------------------------------------------
-
-  const mutualHardMatch =
-    viewerStatus !== "HARD_REJECT" &&
-    candidateStatus !== "HARD_REJECT";
-
-
-  // ----------------------------------------------------------
-  // 7. RESULT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — STEP 4 MUTUAL HARD MATCH"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-
-  console.log(
-    JSON.stringify(
-      {
-
-        viewerId:
-          viewer.id ||
-          viewerResult.id,
-
-        candidateId:
-          candidate.id ||
-          candidateResult.id,
-
-        viewerToCandidate: {
-
-          hardMatch:
-            viewerToCandidate &&
-            viewerToCandidate.hardMatch === true,
-
-          matchStatus:
-            viewerStatus
-
-        },
-
-        candidateToViewer: {
-
-          hardMatch:
-            candidateToViewer &&
-            candidateToViewer.hardMatch === true,
-
-          matchStatus:
-            candidateStatus
-
-        },
-
-        mutualHardMatch:
-          mutualHardMatch,
-
-        result:
-          mutualHardMatch
-            ? "MUTUAL_COMPATIBLE"
-            : "MUTUAL_REJECT"
-
-      },
-      null,
-      2
-    )
-  );
-
-}
-
-
-
-function testPhase2ViewerToCandidateProfile() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  // ----------------------------------------------------------
-  // 1. LOAD VIEWER
-  // ----------------------------------------------------------
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 5A FAILED — VIEWER"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 2. LOAD CANDIDATE
-  // ----------------------------------------------------------
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 5A FAILED — CANDIDATE"
-    );
-
-    return;
-  }
-
-
-  const viewer =
-    viewerResult.profile;
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ----------------------------------------------------------
-  // 3. GET VIEWER ACTUAL PROFILE CRITERIA
-  // ----------------------------------------------------------
-
-  const viewerCriteria =
-    viewer.actualProfileCriteria || {};
-
-
-  // ----------------------------------------------------------
-  // 4. VIEWER → CANDIDATE
-  // ----------------------------------------------------------
-
-  let result = null;
-
-  try {
-
-    result =
-      calculateActualProfileCompatibility(
-        candidate,
-        viewerCriteria
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 5A FAILED — PROFILE COMPATIBILITY ERROR"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 5. MINIMAL RESULT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — STEP 5A VIEWER → CANDIDATE PROFILE"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    JSON.stringify(
-      {
-
-        viewerId:
-          viewer.id ||
-          viewerResult.id,
-
-        candidateId:
-          candidate.id ||
-          candidateResult.id,
-
-        direction:
-          "VIEWER_TO_CANDIDATE",
-
-        applicable:
-          result &&
-          result.applicable === true,
-
-        percentage:
-          Number(
-            result &&
-            result.percentage
-          ) || 0,
-
-        matched:
-          Number(
-            result &&
-            result.matched
-          ) || 0,
-
-        failed:
-          Number(
-            result &&
-            result.failed
-          ) || 0,
-
-        unknown:
-          Number(
-            result &&
-            result.unknown
-          ) || 0,
-
-        totalChecks:
-          Number(
-            result &&
-            result.totalChecks
-          ) || 0
-
-      },
-      null,
-      2
-    )
-  );
-
-}
-
-
-
-function testPhase2CandidateToViewerProfile() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  // ----------------------------------------------------------
-  // 1. LOAD VIEWER
-  // ----------------------------------------------------------
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 5B FAILED — VIEWER"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 2. LOAD CANDIDATE
-  // ----------------------------------------------------------
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 5B FAILED — CANDIDATE"
-    );
-
-    return;
-  }
-
-
-  const viewer =
-    viewerResult.profile;
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ----------------------------------------------------------
-  // 3. GET CANDIDATE ACTUAL PROFILE CRITERIA
-  // ----------------------------------------------------------
-
-  const candidateCriteria =
-    candidate.actualProfileCriteria || {};
-
-
-  // ----------------------------------------------------------
-  // 4. CANDIDATE → VIEWER
-  // ----------------------------------------------------------
-
-  let result = null;
-
-  try {
-
-    result =
-      calculateActualProfileCompatibility(
-        viewer,
-        candidateCriteria
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 5B FAILED — PROFILE COMPATIBILITY ERROR"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 5. MINIMAL RESULT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — STEP 5B CANDIDATE → VIEWER PROFILE"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    JSON.stringify(
-      {
-
-        candidateId:
-          candidate.id ||
-          candidateResult.id,
-
-        viewerId:
-          viewer.id ||
-          viewerResult.id,
-
-        direction:
-          "CANDIDATE_TO_VIEWER",
-
-        applicable:
-          result &&
-          result.applicable === true,
-
-        percentage:
-          Number(
-            result &&
-            result.percentage
-          ) || 0,
-
-        matched:
-          Number(
-            result &&
-            result.matched
-          ) || 0,
-
-        failed:
-          Number(
-            result &&
-            result.failed
-          ) || 0,
-
-        unknown:
-          Number(
-            result &&
-            result.unknown
-          ) || 0,
-
-        totalChecks:
-          Number(
-            result &&
-            result.totalChecks
-          ) || 0
-
-      },
-      null,
-      2
-    )
-  );
-
-}
-
-
 
 function calculateMutualProfileCompatibility(
   viewer,
@@ -12971,666 +9297,6 @@ function calculateMutualProfileCompatibility(
 
 }
 
-
-function testPhase2MutualProfileCompatibility() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  // ----------------------------------------------------------
-  // 1. LOAD VIEWER
-  // ----------------------------------------------------------
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 5C FAILED — VIEWER"
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 2. LOAD CANDIDATE
-  // ----------------------------------------------------------
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 5C FAILED — CANDIDATE"
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 3. USE NORMALIZED PROFILES
-  // ----------------------------------------------------------
-
-  const viewer =
-    viewerResult.profile;
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ----------------------------------------------------------
-  // 4. MUTUAL PROFILE COMPATIBILITY
-  // ----------------------------------------------------------
-
-  let result = null;
-
-
-  try {
-
-    result =
-      calculateMutualProfileCompatibility(
-        viewer,
-        candidate
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 5C FAILED — PROFILE ERROR"
-    );
-
-    console.log(
-      error.message || ""
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 5. MINIMAL TEST OUTPUT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — STEP 5C MUTUAL PROFILE COMPATIBILITY"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-
-  console.log(
-    JSON.stringify(
-      {
-
-        viewerId:
-          viewer.id ||
-          viewerResult.id,
-
-        candidateId:
-          candidate.id ||
-          candidateResult.id,
-
-        direction:
-          "MUTUAL_PROFILE_COMPATIBILITY",
-
-        applicable:
-          result &&
-          result.applicable === true,
-
-        percentage:
-          Number(
-            result &&
-            result.percentage
-          ) || 0,
-
-        matched:
-          Number(
-            result &&
-            result.matched
-          ) || 0,
-
-        failed:
-          Number(
-            result &&
-            result.failed
-          ) || 0,
-
-        unknown:
-          Number(
-            result &&
-            result.unknown
-          ) || 0,
-
-        totalChecks:
-          Number(
-            result &&
-            result.totalChecks
-          ) || 0,
-
-        viewerToCandidate:
-          result &&
-          result.viewerToCandidate
-            ? {
-
-                percentage:
-                  Number(
-                    result
-                      .viewerToCandidate
-                      .percentage
-                  ) || 0,
-
-                matched:
-                  Number(
-                    result
-                      .viewerToCandidate
-                      .matched
-                  ) || 0,
-
-                failed:
-                  Number(
-                    result
-                      .viewerToCandidate
-                      .failed
-                  ) || 0,
-
-                unknown:
-                  Number(
-                    result
-                      .viewerToCandidate
-                      .unknown
-                  ) || 0
-
-              }
-            : null,
-
-        candidateToViewer:
-          result &&
-          result.candidateToViewer
-            ? {
-
-                percentage:
-                  Number(
-                    result
-                      .candidateToViewer
-                      .percentage
-                  ) || 0,
-
-                matched:
-                  Number(
-                    result
-                      .candidateToViewer
-                      .matched
-                  ) || 0,
-
-                failed:
-                  Number(
-                    result
-                      .candidateToViewer
-                      .failed
-                  ) || 0,
-
-                unknown:
-                  Number(
-                    result
-                      .candidateToViewer
-                      .unknown
-                  ) || 0
-
-              }
-            : null
-
-      },
-      null,
-      2
-    )
-  );
-
-}
-
-
-
-
-function testPhase2ViewerToCandidateExpectation() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  // ----------------------------------------------------------
-  // 1. LOAD VIEWER
-  // ----------------------------------------------------------
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6A FAILED — VIEWER"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 2. LOAD CANDIDATE
-  // ----------------------------------------------------------
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6A FAILED — CANDIDATE"
-    );
-
-    return;
-  }
-
-
-  const viewer =
-    viewerResult.profile;
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ----------------------------------------------------------
-  // 3. GET EXPECTATIONS
-  // ----------------------------------------------------------
-
-  const viewerExpectation =
-    String(
-      viewer.expectationRaw ||
-      viewerResult.expectation ||
-      ""
-    ).trim();
-
-
-  const candidateExpectation =
-    String(
-      candidate.expectationRaw ||
-      candidateResult.expectation ||
-      ""
-    ).trim();
-
-
-  if (!viewerExpectation) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6A FAILED — VIEWER EXPECTATION MISSING"
-    );
-
-    return;
-  }
-
-
-  if (!candidateExpectation) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6A FAILED — CANDIDATE EXPECTATION MISSING"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 4. VIEWER → CANDIDATE EXPECTATION
-  // ----------------------------------------------------------
-
-  let result = null;
-
-
-  try {
-
-    result =
-      calculateWeightedExpectationCompatibility(
-        viewerExpectation,
-        candidateExpectation
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6A FAILED — EXPECTATION ERROR"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 5. MINIMAL RESULT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — STEP 6A VIEWER → CANDIDATE EXPECTATION"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    JSON.stringify(
-      {
-
-        viewerId:
-          viewer.id ||
-          viewerResult.id,
-
-        candidateId:
-          candidate.id ||
-          candidateResult.id,
-
-        direction:
-          "VIEWER_TO_CANDIDATE_EXPECTATION",
-
-        applicable:
-          result &&
-          result.applicable === true,
-
-        score:
-          Number(
-            result &&
-            result.score
-          ) || 0,
-
-        maxScore:
-          Number(
-            result &&
-            result.maxScore
-          ) || 0,
-
-        percentage:
-          Number(
-            result &&
-            (
-              result.percentage ??
-              result.expectationCompatibilityPercentage
-            )
-          ) || 0,
-
-        matchedKeywords:
-          Array.isArray(
-            result &&
-            result.matchedKeywords
-          )
-            ? result.matchedKeywords
-            : []
-
-      },
-      null,
-      2
-    )
-  );
-
-}
-
-
-
-function testPhase2CandidateToViewerExpectation() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  // ----------------------------------------------------------
-  // 1. LOAD VIEWER
-  // ----------------------------------------------------------
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6B FAILED — VIEWER"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 2. LOAD CANDIDATE
-  // ----------------------------------------------------------
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6B FAILED — CANDIDATE"
-    );
-
-    return;
-  }
-
-
-  const viewer =
-    viewerResult.profile;
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ----------------------------------------------------------
-  // 3. GET EXPECTATIONS
-  // ----------------------------------------------------------
-
-  const candidateExpectation =
-    String(
-      candidate.expectationRaw ||
-      candidateResult.expectation ||
-      ""
-    ).trim();
-
-
-  const viewerExpectation =
-    String(
-      viewer.expectationRaw ||
-      viewerResult.expectation ||
-      ""
-    ).trim();
-
-
-  if (!candidateExpectation) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6B FAILED — CANDIDATE EXPECTATION MISSING"
-    );
-
-    return;
-  }
-
-
-  if (!viewerExpectation) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6B FAILED — VIEWER EXPECTATION MISSING"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 4. CANDIDATE → VIEWER EXPECTATION
-  // ----------------------------------------------------------
-
-  let result = null;
-
-
-  try {
-
-    result =
-      calculateWeightedExpectationCompatibility(
-        candidateExpectation,
-        viewerExpectation
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6B FAILED — EXPECTATION ERROR"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 5. MINIMAL RESULT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — STEP 6B CANDIDATE → VIEWER EXPECTATION"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    JSON.stringify(
-      {
-
-        candidateId:
-          candidate.id ||
-          candidateResult.id,
-
-        viewerId:
-          viewer.id ||
-          viewerResult.id,
-
-        direction:
-          "CANDIDATE_TO_VIEWER_EXPECTATION",
-
-        applicable:
-          result &&
-          result.applicable === true,
-
-        score:
-          Number(
-            result &&
-            result.score
-          ) || 0,
-
-        maxScore:
-          Number(
-            result &&
-            result.maxScore
-          ) || 0,
-
-        percentage:
-          Number(
-            result &&
-            (
-              result.percentage ??
-              result.expectationCompatibilityPercentage
-            )
-          ) || 0,
-
-        matchedKeywords:
-          Array.isArray(
-            result &&
-            result.matchedKeywords
-          )
-            ? result.matchedKeywords
-            : []
-
-      },
-      null,
-      2
-    )
-  );
-
-}
-
-
 function calculateMutualExpectationCompatibility(
   viewerExpectationResult,
   candidateExpectationResult
@@ -13679,38 +9345,72 @@ function calculateMutualExpectationCompatibility(
 
 
   // ----------------------------------------------------------
-  // MUTUAL APPLICABILITY
+  // IMPORTANT MUTUAL RULE
+  //
+  // Expectation compatibility is meaningful ONLY when
+  // BOTH directions have applicable expectation criteria.
+  //
+  // Generic expectation such as "अनुरूप" gives:
+  // applicable = false
+  // score = 0
+  // maxScore = 0
+  //
+  // Therefore:
+  //
+  // GENERIC + GENERIC   = NOT APPLICABLE
+  // GENERIC + SPECIFIC  = NOT APPLICABLE
+  // SPECIFIC + GENERIC  = NOT APPLICABLE
+  // SPECIFIC + SPECIFIC = CALCULATE MUTUAL SCORE
   // ----------------------------------------------------------
 
   const applicable =
-    viewerApplicable ||
+    viewerApplicable &&
     candidateApplicable;
 
 
   // ----------------------------------------------------------
   // MUTUAL SCORE
+  //
+  // Only calculate score when BOTH sides have meaningful
+  // expectation compatibility data.
   // ----------------------------------------------------------
 
-  const totalScore =
-    viewerScore +
-    candidateScore;
+  let totalScore =
+    0;
+
+  let totalMaxScore =
+    0;
+
+  let percentage =
+    0;
 
 
-  const totalMaxScore =
-    viewerMaxScore +
-    candidateMaxScore;
+  if (
+    applicable
+  ) {
+
+    totalScore =
+      viewerScore +
+      candidateScore;
 
 
-  const percentage =
-    totalMaxScore > 0
-      ? Number(
-          (
-            totalScore /
-            totalMaxScore *
-            100
-          ).toFixed(2)
-        )
-      : 0;
+    totalMaxScore =
+      viewerMaxScore +
+      candidateMaxScore;
+
+
+    percentage =
+      totalMaxScore > 0
+        ? Number(
+            (
+              totalScore /
+              totalMaxScore *
+              100
+            ).toFixed(2)
+          )
+        : 0;
+
+  }
 
 
   // ----------------------------------------------------------
@@ -13734,13 +9434,15 @@ function calculateMutualExpectationCompatibility(
 
 
   const matchedKeywords =
-    Array.from(
-      new Set(
-        viewerKeywords.concat(
-          candidateKeywords
+    applicable
+      ? Array.from(
+          new Set(
+            viewerKeywords.concat(
+              candidateKeywords
+            )
+          )
         )
-      )
-    );
+      : [];
 
 
   // ----------------------------------------------------------
@@ -13821,1309 +9523,6 @@ function calculateMutualExpectationCompatibility(
   };
 
 }
-
-
-function testPhase2MutualExpectationCompatibility() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  // ----------------------------------------------------------
-  // 1. LOAD VIEWER
-  // ----------------------------------------------------------
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6C FAILED — VIEWER"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 2. LOAD CANDIDATE
-  // ----------------------------------------------------------
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6C FAILED — CANDIDATE"
-    );
-
-    return;
-  }
-
-
-  const viewer =
-    viewerResult.profile;
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ----------------------------------------------------------
-  // 3. GET EXPECTATIONS
-  // ----------------------------------------------------------
-
-  const viewerExpectation =
-    String(
-      viewer.expectationRaw ||
-      viewerResult.expectation ||
-      ""
-    ).trim();
-
-
-  const candidateExpectation =
-    String(
-      candidate.expectationRaw ||
-      candidateResult.expectation ||
-      ""
-    ).trim();
-
-
-  if (!viewerExpectation) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6C FAILED — VIEWER EXPECTATION"
-    );
-
-    return;
-  }
-
-
-  if (!candidateExpectation) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6C FAILED — CANDIDATE EXPECTATION"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 4. VIEWER → CANDIDATE
-  // ----------------------------------------------------------
-
-  let viewerToCandidate = null;
-
-  try {
-
-    viewerToCandidate =
-      calculateWeightedExpectationCompatibility(
-        viewerExpectation,
-        candidateExpectation
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6C FAILED — VIEWER EXPECTATION"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 5. CANDIDATE → VIEWER
-  // ----------------------------------------------------------
-
-  let candidateToViewer = null;
-
-  try {
-
-    candidateToViewer =
-      calculateWeightedExpectationCompatibility(
-        candidateExpectation,
-        viewerExpectation
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 6C FAILED — CANDIDATE EXPECTATION"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 6. MUTUAL EXPECTATION
-  // ----------------------------------------------------------
-
-  const result =
-    calculateMutualExpectationCompatibility(
-      viewerToCandidate,
-      candidateToViewer
-    );
-
-
-  // ----------------------------------------------------------
-  // 7. MINIMAL RESULT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — STEP 6C MUTUAL EXPECTATION COMPATIBILITY"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-
-  console.log(
-    JSON.stringify(
-      {
-
-        viewerId:
-          viewer.id ||
-          viewerResult.id,
-
-        candidateId:
-          candidate.id ||
-          candidateResult.id,
-
-        direction:
-          "MUTUAL_EXPECTATION_COMPATIBILITY",
-
-        applicable:
-          result &&
-          result.applicable === true,
-
-        score:
-          Number(
-            result &&
-            result.score
-          ) || 0,
-
-        maxScore:
-          Number(
-            result &&
-            result.maxScore
-          ) || 0,
-
-        percentage:
-          Number(
-            result &&
-            result.percentage
-          ) || 0,
-
-        matchedKeywords:
-          Array.isArray(
-            result &&
-            result.matchedKeywords
-          )
-            ? result.matchedKeywords
-            : [],
-
-        viewerToCandidate:
-          result &&
-          result.viewerToCandidate
-            ? {
-                score:
-                  Number(
-                    result.viewerToCandidate.score
-                  ) || 0,
-
-                maxScore:
-                  Number(
-                    result.viewerToCandidate.maxScore
-                  ) || 0,
-
-                percentage:
-                  Number(
-                    result.viewerToCandidate.percentage
-                  ) || 0
-              }
-            : null,
-
-        candidateToViewer:
-          result &&
-          result.candidateToViewer
-            ? {
-                score:
-                  Number(
-                    result.candidateToViewer.score
-                  ) || 0,
-
-                maxScore:
-                  Number(
-                    result.candidateToViewer.maxScore
-                  ) || 0,
-
-                percentage:
-                  Number(
-                    result.candidateToViewer.percentage
-                  ) || 0
-              }
-            : null
-
-      },
-      null,
-      2
-    )
-  );
-
-}
-
-
-
-
-function testPhase2FinalMutualCompatibility() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  // ----------------------------------------------------------
-  // 1. LOAD VIEWER
-  // ----------------------------------------------------------
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 7 FAILED — VIEWER"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 2. LOAD CANDIDATE
-  // ----------------------------------------------------------
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ PHASE 2 STEP 7 FAILED — CANDIDATE"
-    );
-
-    return;
-  }
-
-
-  const viewer =
-    viewerResult.profile;
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ----------------------------------------------------------
-  // 3. EXPECTATIONS
-  // ----------------------------------------------------------
-
-  const viewerExpectation =
-    String(
-      viewer.expectationRaw ||
-      viewerResult.expectation ||
-      ""
-    ).trim();
-
-
-  const candidateExpectation =
-    String(
-      candidate.expectationRaw ||
-      candidateResult.expectation ||
-      ""
-    ).trim();
-
-
-  if (!viewerExpectation) {
-
-    console.log(
-      "❌ PHASE 2 STEP 7 FAILED — VIEWER EXPECTATION"
-    );
-
-    return;
-  }
-
-
-  if (!candidateExpectation) {
-
-    console.log(
-      "❌ PHASE 2 STEP 7 FAILED — CANDIDATE EXPECTATION"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 4. VIEWER → CANDIDATE HARD
-  // ----------------------------------------------------------
-
-  let viewerToCandidateHard = null;
-
-  try {
-
-    const viewerCriteria =
-      parseExpectationCriteria(
-        viewerExpectation
-      );
-
-
-    viewerToCandidateHard =
-      evaluateCandidateMatch(
-        candidate,
-        viewerCriteria
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 7 FAILED — VIEWER → CANDIDATE HARD"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 5. CANDIDATE → VIEWER HARD
-  // ----------------------------------------------------------
-
-  let candidateToViewerHard = null;
-
-  try {
-
-    const candidateCriteria =
-      parseExpectationCriteria(
-        candidateExpectation
-      );
-
-
-    candidateToViewerHard =
-      evaluateCandidateMatch(
-        viewer,
-        candidateCriteria
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 7 FAILED — CANDIDATE → VIEWER HARD"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 6. MUTUAL HARD
-  //
-  // NO_HARD_CRITERIA is neutral.
-  // Only an actual hard failure makes mutual hard false.
-  // ----------------------------------------------------------
-
-  const viewerHardFailed =
-    viewerToCandidateHard &&
-    viewerToCandidateHard.matchStatus !==
-      "HARD_MATCH" &&
-    viewerToCandidateHard.matchStatus !==
-      "NO_HARD_CRITERIA";
-
-
-  const candidateHardFailed =
-    candidateToViewerHard &&
-    candidateToViewerHard.matchStatus !==
-      "HARD_MATCH" &&
-    candidateToViewerHard.matchStatus !==
-      "NO_HARD_CRITERIA";
-
-
-  const mutualHardMatch =
-    !viewerHardFailed &&
-    !candidateHardFailed;
-
-
-  // ----------------------------------------------------------
-  // 7. MUTUAL PROFILE
-  // ----------------------------------------------------------
-
-  let mutualProfile = null;
-
-  try {
-
-    mutualProfile =
-      calculateMutualProfileCompatibility(
-        viewer,
-        candidate
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 7 FAILED — MUTUAL PROFILE"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 8. VIEWER → CANDIDATE EXPECTATION
-  // ----------------------------------------------------------
-
-  let viewerToCandidateExpectation = null;
-
-  try {
-
-    viewerToCandidateExpectation =
-      calculateWeightedExpectationCompatibility(
-        viewerExpectation,
-        candidateExpectation
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 7 FAILED — VIEWER → CANDIDATE EXPECTATION"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 9. CANDIDATE → VIEWER EXPECTATION
-  // ----------------------------------------------------------
-
-  let candidateToViewerExpectation = null;
-
-  try {
-
-    candidateToViewerExpectation =
-      calculateWeightedExpectationCompatibility(
-        candidateExpectation,
-        viewerExpectation
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 7 FAILED — CANDIDATE → VIEWER EXPECTATION"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 10. MUTUAL EXPECTATION
-  // ----------------------------------------------------------
-
-  let mutualExpectation = null;
-
-  try {
-
-    mutualExpectation =
-      calculateMutualExpectationCompatibility(
-        viewerToCandidateExpectation,
-        candidateToViewerExpectation
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 7 FAILED — MUTUAL EXPECTATION"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 11. FINAL MUTUAL SCORE
-  // ----------------------------------------------------------
-
-  let finalResult = null;
-
-  try {
-
-    finalResult =
-      calculateFinalMutualCompatibilityScore(
-        mutualHardMatch,
-        mutualExpectation,
-        mutualProfile
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ PHASE 2 STEP 7 FAILED — FINAL SCORE"
-    );
-
-    return;
-  }
-
-
-  // ----------------------------------------------------------
-  // 12. MINIMAL OUTPUT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — STEP 7 FINAL MUTUAL COMPATIBILITY"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-
-  console.log(
-    JSON.stringify(
-      {
-
-        viewerId:
-          viewer.id ||
-          viewerResult.id,
-
-        candidateId:
-          candidate.id ||
-          candidateResult.id,
-
-        mutualHardMatch:
-          mutualHardMatch,
-
-        mutualProfilePercentage:
-          Number(
-            mutualProfile &&
-            mutualProfile.percentage
-          ) || 0,
-
-        mutualExpectationPercentage:
-          Number(
-            mutualExpectation &&
-            mutualExpectation.percentage
-          ) || 0,
-
-        hardScore:
-          Number(
-            finalResult &&
-            finalResult.hardScore
-          ) || 0,
-
-        expectationScore:
-          Number(
-            finalResult &&
-            finalResult.expectationScore
-          ) || 0,
-
-        profileScore:
-          Number(
-            finalResult &&
-            finalResult.profileScore
-          ) || 0,
-
-        finalScore:
-          Number(
-            finalResult &&
-            finalResult.finalScore
-          ) || 0,
-
-        finalPercentage:
-          Number(
-            finalResult &&
-            finalResult.finalPercentage
-          ) || 0
-
-      },
-      null,
-      2
-    )
-  );
-
-}
-
-
-
-
-
-function testPhase2MutualProfileID001_ID801() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  // ----------------------------------------------------------
-  // 1. LOAD VIEWER
-  // ----------------------------------------------------------
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ VIEWER LOAD FAILED"
-    );
-
-    console.log(
-      JSON.stringify(
-        viewerResult,
-        null,
-        2
-      )
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 2. LOAD CANDIDATE
-  // ----------------------------------------------------------
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ CANDIDATE LOAD FAILED"
-    );
-
-    console.log(
-      JSON.stringify(
-        candidateResult,
-        null,
-        2
-      )
-    );
-
-    return;
-
-  }
-
-
-  const viewer =
-    viewerResult.profile;
-
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ----------------------------------------------------------
-  // 3. ACTUAL PROFILE CRITERIA
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — ID001 ↔ ID801 MUTUAL PROFILE DIAGNOSTIC"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-
-  console.log(
-    "🔵 VIEWER ACTUAL PROFILE CRITERIA:"
-  );
-
-  console.log(
-    JSON.stringify(
-      viewer.actualProfileCriteria || {},
-      null,
-      2
-    )
-  );
-
-
-  console.log(
-    "🔵 CANDIDATE ACTUAL PROFILE CRITERIA:"
-  );
-
-  console.log(
-    JSON.stringify(
-      candidate.actualProfileCriteria || {},
-      null,
-      2
-    )
-  );
-
-
-  // ----------------------------------------------------------
-  // 4. MUTUAL PROFILE CALCULATION
-  // ----------------------------------------------------------
-
-  let result = null;
-
-
-  try {
-
-    result =
-      calculateMutualProfileCompatibility(
-        viewer,
-        candidate
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ MUTUAL PROFILE CALCULATION ERROR"
-    );
-
-    console.log(
-      error.message || ""
-    );
-
-    return;
-
-  }
-
-
-  // ----------------------------------------------------------
-  // 5. VIEWER → CANDIDATE
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "🟢 ID001 → ID801"
-  );
-
-  console.log(
-    JSON.stringify(
-      result &&
-      result.viewerToCandidate
-        ? result.viewerToCandidate
-        : {},
-      null,
-      2
-    )
-  );
-
-
-  // ----------------------------------------------------------
-  // 6. CANDIDATE → VIEWER
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "🟢 ID801 → ID001"
-  );
-
-  console.log(
-    JSON.stringify(
-      result &&
-      result.candidateToViewer
-        ? result.candidateToViewer
-        : {},
-      null,
-      2
-    )
-  );
-
-
-  // ----------------------------------------------------------
-  // 7. MUTUAL RESULT
-  // ----------------------------------------------------------
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "🟢 MUTUAL PROFILE RESULT"
-  );
-
-  console.log(
-    JSON.stringify(
-      {
-
-        viewerId:
-          viewerId,
-
-        candidateId:
-          candidateId,
-
-        applicable:
-          result &&
-          result.applicable === true,
-
-        percentage:
-          Number(
-            result &&
-            result.percentage
-          ) || 0,
-
-        matched:
-          Number(
-            result &&
-            result.matched
-          ) || 0,
-
-        failed:
-          Number(
-            result &&
-            result.failed
-          ) || 0,
-
-        unknown:
-          Number(
-            result &&
-            result.unknown
-          ) || 0,
-
-        totalChecks:
-          Number(
-            result &&
-            result.totalChecks
-          ) || 0
-
-      },
-      null,
-      2
-    )
-  );
-
-
-  console.log(
-    "=============================================="
-  );
-
-}
-
-
-
-function testPhase2MutualProfileFieldDiagnostic() {
-
-  const viewerId = "ID001";
-  const viewerType = "groom";
-
-  const candidateId = "ID801";
-  const candidateType = "bride";
-
-
-  // ==========================================================
-  // 1. LOAD VIEWER
-  // ==========================================================
-
-  const viewerResult =
-    getMatchingViewerProfile(
-      viewerId,
-      viewerType
-    );
-
-
-  if (
-    !viewerResult ||
-    viewerResult.success !== true ||
-    !viewerResult.profile
-  ) {
-
-    console.log(
-      "❌ VIEWER LOAD FAILED"
-    );
-
-    return;
-  }
-
-
-  // ==========================================================
-  // 2. LOAD CANDIDATE
-  // ==========================================================
-
-  const candidateResult =
-    getMatchingViewerProfile(
-      candidateId,
-      candidateType
-    );
-
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true ||
-    !candidateResult.profile
-  ) {
-
-    console.log(
-      "❌ CANDIDATE LOAD FAILED"
-    );
-
-    return;
-  }
-
-
-  const viewer =
-    viewerResult.profile;
-
-  const candidate =
-    candidateResult.profile;
-
-
-  // ==========================================================
-  // 3. VIEWER → CANDIDATE
-  // ==========================================================
-
-  let viewerToCandidate = null;
-
-
-  try {
-
-    viewerToCandidate =
-      calculateActualProfileCompatibility(
-        viewer.actualProfileCriteria || {},
-        candidate
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ VIEWER → CANDIDATE ERROR:",
-      error.message || ""
-    );
-
-    return;
-  }
-
-
-  // ==========================================================
-  // 4. CANDIDATE → VIEWER
-  // ==========================================================
-
-  let candidateToViewer = null;
-
-
-  try {
-
-    candidateToViewer =
-      calculateActualProfileCompatibility(
-        candidate.actualProfileCriteria || {},
-        viewer
-      );
-
-  }
-  catch (error) {
-
-    console.log(
-      "❌ CANDIDATE → VIEWER ERROR:",
-      error.message || ""
-    );
-
-    return;
-  }
-
-
-  // ==========================================================
-  // 5. PRINT VIEWER → CANDIDATE
-  // ==========================================================
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "PHASE 2 — PROFILE FIELD DIAGNOSTIC"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "🟢 ID001 → ID801"
-  );
-
-  console.log(
-    JSON.stringify(
-      {
-
-        applicable:
-          viewerToCandidate &&
-          viewerToCandidate.applicable === true,
-
-        percentage:
-          Number(
-            viewerToCandidate &&
-            viewerToCandidate.percentage
-          ) || 0,
-
-        matched:
-          Number(
-            viewerToCandidate &&
-            viewerToCandidate.matched
-          ) || 0,
-
-        failed:
-          Number(
-            viewerToCandidate &&
-            viewerToCandidate.failed
-          ) || 0,
-
-        unknown:
-          Number(
-            viewerToCandidate &&
-            viewerToCandidate.unknown
-          ) || 0,
-
-        totalChecks:
-          Number(
-            viewerToCandidate &&
-            viewerToCandidate.totalChecks
-          ) || 0,
-
-        matchedCriteria:
-          Array.isArray(
-            viewerToCandidate &&
-            viewerToCandidate.matchedCriteria
-          )
-            ? viewerToCandidate.matchedCriteria
-            : [],
-
-        failedCriteria:
-          Array.isArray(
-            viewerToCandidate &&
-            viewerToCandidate.failedCriteria
-          )
-            ? viewerToCandidate.failedCriteria
-            : [],
-
-        unknownCriteria:
-          Array.isArray(
-            viewerToCandidate &&
-            viewerToCandidate.unknownCriteria
-          )
-            ? viewerToCandidate.unknownCriteria
-            : []
-
-      },
-      null,
-      2
-    )
-  );
-
-
-  // ==========================================================
-  // 6. PRINT CANDIDATE → VIEWER
-  // ==========================================================
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "🟢 ID801 → ID001"
-  );
-
-  console.log(
-    JSON.stringify(
-      {
-
-        applicable:
-          candidateToViewer &&
-          candidateToViewer.applicable === true,
-
-        percentage:
-          Number(
-            candidateToViewer &&
-            candidateToViewer.percentage
-          ) || 0,
-
-        matched:
-          Number(
-            candidateToViewer &&
-            candidateToViewer.matched
-          ) || 0,
-
-        failed:
-          Number(
-            candidateToViewer &&
-            candidateToViewer.failed
-          ) || 0,
-
-        unknown:
-          Number(
-            candidateToViewer &&
-            candidateToViewer.unknown
-          ) || 0,
-
-        totalChecks:
-          Number(
-            candidateToViewer &&
-            candidateToViewer.totalChecks
-          ) || 0,
-
-        matchedCriteria:
-          Array.isArray(
-            candidateToViewer &&
-            candidateToViewer.matchedCriteria
-          )
-            ? candidateToViewer.matchedCriteria
-            : [],
-
-        failedCriteria:
-          Array.isArray(
-            candidateToViewer &&
-            candidateToViewer.failedCriteria
-          )
-            ? candidateToViewer.failedCriteria
-            : [],
-
-        unknownCriteria:
-          Array.isArray(
-            candidateToViewer &&
-            candidateToViewer.unknownCriteria
-          )
-            ? candidateToViewer.unknownCriteria
-            : []
-
-      },
-      null,
-      2
-    )
-  );
-
-
-  // ==========================================================
-  // 7. CRITERIA SNAPSHOT
-  // ==========================================================
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "🔵 VIEWER ACTUAL PROFILE CRITERIA"
-  );
-
-  console.log(
-    JSON.stringify(
-      viewer.actualProfileCriteria || {},
-      null,
-      2
-    )
-  );
-
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "🔵 CANDIDATE ACTUAL PROFILE CRITERIA"
-  );
-
-  console.log(
-    JSON.stringify(
-      candidate.actualProfileCriteria || {},
-      null,
-      2
-    )
-  );
-
-
-  console.log(
-    "=============================================="
-  );
-
-}
-
-
-
-
 
 
 /**
@@ -15262,23 +9661,6 @@ function getActualProfileMatchesForUI(
 
   try {
 
-    /*
-     * ------------------------------------------------------
-     * IMPORTANT
-     *
-     * testActualBrideRankingV2() currently uses hard-coded:
-     *
-     *   ID001
-     *   groom
-     *
-     * Therefore we should NOT blindly call it here for every
-     * viewer, because that would return ID001's ranking.
-     *
-     * The actual reusable ranking engine will be connected
-     * in Step 4B.
-     * ------------------------------------------------------
-     */
-
 
     return {
 
@@ -15336,1558 +9718,5 @@ function getActualProfileMatchesForUI(
     };
 
   }
-
-}
-
-
-
-
-/**
- * ==========================================================
- * FUNCTION : calculateActualProfileRanking
- * MODULE   : Phase 2 - Reusable Ranking Engine
- *
- * PURPOSE
- *   Common ranking engine for all profile types.
- *
- * MATCHING RULE
- *
- *   bride -> groom
- *   groom -> bride
- *   other -> other
- *
- * IMPORTANT
- *   - No UI logic
- *   - No hard-coded viewer ID
- *   - Uses existing verified Phase 2 functions
- *   - Candidate loop is maintained from the working
- *     testActualBrideRankingV2() pipeline
- * ==========================================================
- */
-
-function calculateActualProfileRanking(
-  viewerId,
-  viewerType
-) {
-
-  // ==========================================================
-  // CONFIG
-  // ==========================================================
-
-  const safeViewerId =
-    String(
-      viewerId || ""
-    )
-    .trim();
-
-
-  const safeViewerType =
-    String(
-      viewerType || ""
-    )
-    .trim()
-    .toLowerCase();
-
-
-  // ==========================================================
-  // VALIDATION
-  // ==========================================================
-
-  if (
-    !safeViewerId
-  ) {
-
-    return {
-
-      success:
-        false,
-
-      message:
-        "Viewer ID is required.",
-
-      viewerId:
-        safeViewerId,
-
-      viewerType:
-        safeViewerType,
-
-      summary:
-        null,
-
-      top10:
-        [],
-
-      allResults:
-        []
-
-    };
-
-  }
-
-
-  if (
-    safeViewerType !== "bride" &&
-    safeViewerType !== "groom" &&
-    safeViewerType !== "other"
-  ) {
-
-    return {
-
-      success:
-        false,
-
-      message:
-        "Invalid viewer profile type.",
-
-      viewerId:
-        safeViewerId,
-
-      viewerType:
-        safeViewerType,
-
-      summary:
-        null,
-
-      top10:
-        [],
-
-      allResults:
-        []
-
-    };
-
-  }
-
-
-  // ==========================================================
-  // LOAD VIEWER
-  // ==========================================================
-
-  const viewer =
-    getMatchingViewerProfile(
-      safeViewerId,
-      safeViewerType
-    );
-
-
-  if (
-    !viewer ||
-    viewer.success !== true ||
-    !viewer.profile
-  ) {
-
-    return {
-
-      success:
-        false,
-
-      message:
-        "Unable to load viewer profile.",
-
-      viewerId:
-        safeViewerId,
-
-      viewerType:
-        safeViewerType,
-
-      summary:
-        null,
-
-      top10:
-        [],
-
-      allResults:
-        []
-
-    };
-
-  }
-
-
-  const viewerProfile =
-    viewer.profile;
-
-
-  // ==========================================================
-  // VIEWER EXPECTATION
-  // ==========================================================
-
-  const viewerExpectation =
-    String(
-      viewer.expectation ||
-      viewer.expectationRaw ||
-      viewerProfile.expectationRaw ||
-      ""
-    )
-    .trim();
-
-
-  if (
-    !viewerExpectation
-  ) {
-
-    return {
-
-      success:
-        false,
-
-      message:
-        "Viewer expectation is required.",
-
-      viewerId:
-        safeViewerId,
-
-      viewerType:
-        safeViewerType,
-
-      viewerName:
-        viewer.name || "",
-
-      summary:
-        null,
-
-      top10:
-        [],
-
-      allResults:
-        []
-
-    };
-
-  }
-
-
-  // ==========================================================
-  // VIEWER EXPECTATION CRITERIA
-  // ==========================================================
-
-  const expectationCriteria =
-    parseExpectationCriteria(
-      viewerExpectation
-    );
-
-
-  if (
-    !expectationCriteria ||
-    typeof expectationCriteria !== "object"
-  ) {
-
-    return {
-
-      success:
-        false,
-
-      message:
-        "Unable to parse expectation criteria.",
-
-      viewerId:
-        safeViewerId,
-
-      viewerType:
-        safeViewerType,
-
-      viewerName:
-        viewer.name || "",
-
-      summary:
-        null,
-
-      top10:
-        [],
-
-      allResults:
-        []
-
-    };
-
-  }
-
-
-  // ==========================================================
-  // VIEWER ACTUAL PROFILE CRITERIA
-  // ==========================================================
-
-  let actualProfileCriteria =
-    null;
-
-
-  if (
-    viewerProfile.actualProfileCriteria &&
-    typeof viewerProfile.actualProfileCriteria ===
-      "object"
-  ) {
-
-    actualProfileCriteria =
-      viewerProfile.actualProfileCriteria;
-
-  }
-
-
-  // ==========================================================
-  // FALLBACK
-  // ==========================================================
-
-  if (
-    !actualProfileCriteria
-  ) {
-
-    actualProfileCriteria = {
-
-      district:
-        viewerProfile.district &&
-        typeof viewerProfile.district === "object"
-          ? viewerProfile.district.raw || ""
-          : viewerProfile.district || "",
-
-
-      education:
-        viewerProfile.education &&
-        typeof viewerProfile.education === "object"
-          ? viewerProfile.education.raw || ""
-          : viewerProfile.education || "",
-
-
-      profession:
-        viewerProfile.profession &&
-        typeof viewerProfile.profession === "object"
-          ? viewerProfile.profession.raw || ""
-          : viewerProfile.profession || "",
-
-
-      employmentType:
-        viewerProfile.employmentType ||
-        (
-          viewerProfile.profession &&
-          viewerProfile.profession.employmentType
-        ) ||
-        "NOT_SPECIFIED",
-
-
-      caste:
-        viewerProfile.caste &&
-        typeof viewerProfile.caste === "object"
-          ? viewerProfile.caste.raw || ""
-          : viewerProfile.caste || "",
-
-
-      rashi:
-        viewerProfile.rashi &&
-        typeof viewerProfile.rashi === "object"
-          ? viewerProfile.rashi.raw || ""
-          : viewerProfile.rashi || "",
-
-
-      age:
-        viewerProfile.age &&
-        viewerProfile.age.decimalAge != null
-          ? viewerProfile.age.decimalAge
-          : null,
-
-
-      height:
-        viewerProfile.height &&
-        viewerProfile.height.totalInches != null
-          ? viewerProfile.height.totalInches
-          : null,
-
-
-      income:
-        viewerProfile.income &&
-        typeof viewerProfile.income === "object"
-
-          ? (
-              viewerProfile.income.min != null &&
-              viewerProfile.income.max != null
-
-                ? {
-                    min:
-                      viewerProfile.income.min,
-
-                    max:
-                      viewerProfile.income.max
-                  }
-
-                : viewerProfile.income.value != null
-
-                  ? viewerProfile.income.value
-
-                  : ""
-            )
-
-          : viewerProfile.income || ""
-
-    };
-
-  }
-
-
-  // ==========================================================
-  // LOAD CANDIDATES
-  // ==========================================================
-
-  const candidateType =
-    getOppositeMatchingProfileType(
-      safeViewerType
-    );
-
-
-  if (
-    !candidateType
-  ) {
-
-    return {
-
-      success:
-        false,
-
-      message:
-        "Unable to determine candidate profile type.",
-
-      viewerId:
-        safeViewerId,
-
-      viewerType:
-        safeViewerType,
-
-      candidateType:
-        "",
-
-      summary:
-        null,
-
-      top10:
-        [],
-
-      allResults:
-        []
-
-    };
-
-  }
-
-
-  const candidateResult =
-    getNormalizedMatchingCandidates(
-      candidateType
-    );
-
-
-  if (
-    !candidateResult ||
-    candidateResult.success !== true
-  ) {
-
-    return {
-
-      success:
-        false,
-
-      message:
-        "Unable to load candidate profiles.",
-
-      viewerId:
-        safeViewerId,
-
-      viewerType:
-        safeViewerType,
-
-      candidateType:
-        candidateType,
-
-      summary:
-        null,
-
-      top10:
-        [],
-
-      allResults:
-        []
-
-    };
-
-  }
-
-
-  const profiles =
-    Array.isArray(
-      candidateResult.profiles
-    )
-      ? candidateResult.profiles
-      : [];
-
-
-  if (
-    profiles.length === 0
-  ) {
-
-    return {
-
-      success:
-        false,
-
-      message:
-        "No candidate profiles found.",
-
-      viewerId:
-        safeViewerId,
-
-      viewerType:
-        safeViewerType,
-
-      candidateType:
-        candidateType,
-
-      summary:
-        null,
-
-      top10:
-        [],
-
-      allResults:
-        []
-
-    };
-
-  }
-
-
-  // ==========================================================
-  // RESULTS
-  // ==========================================================
-
-  const results = [];
-
-
-  let diagnostic = {
-
-    loaded:
-      profiles.length,
-
-    invalidProfile:
-      0,
-
-    mutualHardFail:
-      0,
-
-    profileGateFail:
-      0,
-
-    accepted:
-      0
-
-  };
-
-
-  // ==========================================================
-  // PROCESS EVERY CANDIDATE
-  // ==========================================================
-
-  profiles.forEach(
-    function(profile) {
-
-      try {
-
-        // ------------------------------------------------------
-        // BASIC VALIDATION
-        // ------------------------------------------------------
-
-        if (
-          !profile ||
-          !profile.id ||
-          !profile.name
-        ) {
-
-          diagnostic.invalidProfile++;
-
-          return;
-
-        }
-
-
-        // ------------------------------------------------------
-        // SKIP SAME PROFILE
-        // ------------------------------------------------------
-
-        if (
-          String(profile.id).trim() ===
-          String(safeViewerId).trim()
-        ) {
-
-          return;
-
-        }
-
-
-        // ------------------------------------------------------
-        // NORMALIZE CANDIDATE
-        // ------------------------------------------------------
-
-        const normalizedResult =
-          normalizeCandidateCriteria(
-            profile
-          );
-
-
-        if (
-          !normalizedResult ||
-          normalizedResult.success !== true ||
-          !normalizedResult.criteria
-        ) {
-
-          diagnostic.invalidProfile++;
-
-          return;
-
-        }
-
-
-        const compatibilityCandidate =
-          normalizedResult.criteria || {};
-
-
-        // ------------------------------------------------------
-        // PRESERVE ORIGINAL ACTUAL PROFILE CRITERIA
-        // ------------------------------------------------------
-
-        compatibilityCandidate.actualProfileCriteria =
-          (
-            profile &&
-            profile.actualProfileCriteria
-          )
-            ? profile.actualProfileCriteria
-            : {};
-
-
-        // ------------------------------------------------------
-        // CANDIDATE EXPECTATION
-        // ------------------------------------------------------
-
-        const candidateExpectation =
-          String(
-            compatibilityCandidate.expectationRaw ||
-            profile.expectationRaw ||
-            profile.expectation ||
-            ""
-          )
-          .trim();
-
-
-        const hasExpectation =
-          candidateExpectation.length > 0;
-
-
-        // ------------------------------------------------------
-        // MEANINGFUL EXPECTATION
-        // ------------------------------------------------------
-
-        let hasMeaningfulExpectation =
-          false;
-
-
-        if (
-          typeof hasMeaningfulMatchingExpectation ===
-          "function"
-        ) {
-
-          hasMeaningfulExpectation =
-            hasMeaningfulMatchingExpectation(
-              candidateExpectation
-            ) === true;
-
-        }
-
-        else {
-
-          hasMeaningfulExpectation =
-            hasExpectation;
-
-        }
-
-
-        // ======================================================
-        // PHASE 1 — VIEWER → CANDIDATE HARD
-        // ======================================================
-
-        let viewerToCandidateHard = {
-
-          hardMatch:
-            false,
-
-          matchStatus:
-            "NO_HARD_CRITERIA",
-
-          applicableCriteria:
-            0,
-
-          matchedCriteria:
-            0,
-
-          failedCriteria:
-            []
-
-        };
-
-
-        try {
-
-          if (
-            typeof evaluateCandidateMatch ===
-            "function"
-          ) {
-
-            viewerToCandidateHard =
-              evaluateCandidateMatch(
-                profile,
-                expectationCriteria
-              ) ||
-              viewerToCandidateHard;
-
-          }
-
-        }
-
-        catch (error) {
-
-          console.error(
-            "VIEWER → CANDIDATE HARD ERROR:",
-            error
-          );
-
-        }
-
-
-        // ======================================================
-        // VIEWER → CANDIDATE EXPECTATION
-        // ======================================================
-
-        let viewerToCandidateExpectation = {
-
-          applicable:
-            false,
-
-          score:
-            0,
-
-          maxScore:
-            0,
-
-          percentage:
-            0,
-
-          matchedKeywords:
-            []
-
-        };
-
-
-        if (
-          hasMeaningfulExpectation &&
-          typeof calculateWeightedExpectationCompatibility ===
-            "function"
-        ) {
-
-          try {
-
-            viewerToCandidateExpectation =
-              calculateWeightedExpectationCompatibility(
-                viewerExpectation,
-                candidateExpectation
-              ) ||
-              viewerToCandidateExpectation;
-
-          }
-
-          catch (error) {
-
-            console.error(
-              "VIEWER → CANDIDATE EXPECTATION ERROR:",
-              error
-            );
-
-          }
-
-        }
-
-
-        // ======================================================
-        // VIEWER → CANDIDATE PROFILE
-        // ======================================================
-
-        let viewerToCandidateProfile = {
-
-          applicable:
-            false,
-
-          percentage:
-            0,
-
-          matched:
-            0,
-
-          failed:
-            0,
-
-          unknown:
-            0,
-
-          totalChecks:
-            0,
-
-          matchedCriteria:
-            [],
-
-          failedCriteria:
-            [],
-
-          unknownCriteria:
-            []
-
-        };
-
-
-        if (
-          actualProfileCriteria &&
-          typeof calculateActualProfileCompatibility ===
-            "function"
-        ) {
-
-          try {
-
-            viewerToCandidateProfile =
-              calculateActualProfileCompatibility(
-                actualProfileCriteria,
-                compatibilityCandidate
-              ) ||
-              viewerToCandidateProfile;
-
-          }
-
-          catch (error) {
-
-            console.error(
-              "VIEWER → CANDIDATE PROFILE ERROR:",
-              error
-            );
-
-          }
-
-        }
-
-
-        // ======================================================
-        // PHASE 2 — CANDIDATE ACTUAL PROFILE CRITERIA
-        // ======================================================
-
-        const candidateActualProfileCriteria =
-          compatibilityCandidate.actualProfileCriteria &&
-          typeof compatibilityCandidate.actualProfileCriteria ===
-            "object"
-
-            ? compatibilityCandidate.actualProfileCriteria
-
-            : null;
-
-
-        // ======================================================
-        // PHASE 2 — CANDIDATE → VIEWER HARD
-        // ======================================================
-
-        let candidateToViewerHard = {
-
-          hardMatch:
-            false,
-
-          matchStatus:
-            "NO_HARD_CRITERIA",
-
-          applicableCriteria:
-            0,
-
-          matchedCriteria:
-            0,
-
-          failedCriteria:
-            []
-
-        };
-
-
-        if (
-          candidateActualProfileCriteria
-        ) {
-
-          try {
-
-            candidateToViewerHard =
-              evaluateCandidateMatch(
-                viewerProfile,
-                parseExpectationCriteria(
-                  candidateExpectation
-                )
-              ) ||
-              candidateToViewerHard;
-
-          }
-
-          catch (error) {
-
-            console.error(
-              "CANDIDATE → VIEWER HARD ERROR:",
-              error
-            );
-
-          }
-
-        }
-
-
-        // ======================================================
-        // PHASE 2 — MUTUAL HARD
-        // ======================================================
-
-        const viewerHardFailed =
-          viewerToCandidateHard &&
-          viewerToCandidateHard.matchStatus !==
-            "HARD_MATCH" &&
-          viewerToCandidateHard.matchStatus !==
-            "NO_HARD_CRITERIA";
-
-
-        const candidateHardFailed =
-          candidateToViewerHard &&
-          candidateToViewerHard.matchStatus !==
-            "HARD_MATCH" &&
-          candidateToViewerHard.matchStatus !==
-            "NO_HARD_CRITERIA";
-
-
-        const mutualHardMatch =
-          !viewerHardFailed &&
-          !candidateHardFailed;
-
-
-        // ======================================================
-        // PHASE 2 — MUTUAL PROFILE
-        // ======================================================
-
-        let mutualProfile = {
-
-          applicable:
-            false,
-
-          percentage:
-            0,
-
-          matched:
-            0,
-
-          failed:
-            0,
-
-          unknown:
-            0,
-
-          totalChecks:
-            0
-
-        };
-
-
-        try {
-
-          if (
-            typeof calculateMutualProfileCompatibility ===
-            "function"
-          ) {
-
-            mutualProfile =
-              calculateMutualProfileCompatibility(
-                viewerProfile,
-                compatibilityCandidate
-              ) ||
-              mutualProfile;
-
-          }
-
-        }
-
-        catch (error) {
-
-          console.error(
-            "MUTUAL PROFILE ERROR:",
-            error
-          );
-
-        }
-
-
-        // ======================================================
-        // PHASE 2 — MUTUAL EXPECTATION
-        // ======================================================
-
-        let mutualExpectation = {
-
-          applicable:
-            false,
-
-          score:
-            0,
-
-          maxScore:
-            0,
-
-          percentage:
-            0,
-
-          matchedKeywords:
-            []
-
-        };
-
-
-        try {
-
-          const candidateToViewerExpectation =
-            calculateWeightedExpectationCompatibility(
-              candidateExpectation,
-              viewerExpectation
-            );
-
-
-          mutualExpectation =
-            calculateMutualExpectationCompatibility(
-              viewerToCandidateExpectation,
-              candidateToViewerExpectation
-            ) ||
-            mutualExpectation;
-
-        }
-
-        catch (error) {
-
-          console.error(
-            "MUTUAL EXPECTATION ERROR:",
-            error
-          );
-
-        }
-
-
-        // ======================================================
-        // PHASE 2 — FINAL MUTUAL SCORE
-        // ======================================================
-
-        let finalMutual = {
-
-          finalScore:
-            0,
-
-          finalPercentage:
-            0,
-
-          hardScore:
-            0,
-
-          expectationScore:
-            0,
-
-          profileScore:
-            0
-
-        };
-
-
-        try {
-
-          finalMutual =
-            calculateFinalMutualCompatibilityScore(
-              mutualHardMatch,
-              mutualExpectation,
-              mutualProfile
-            ) ||
-            finalMutual;
-
-        }
-
-        catch (error) {
-
-          console.error(
-            "FINAL MUTUAL SCORE ERROR:",
-            error
-          );
-
-        }
-
-
-        // ======================================================
-        // PHASE 2 FINAL GATE
-        // ======================================================
-
-        if (
-          mutualHardMatch !== true
-        ) {
-
-          diagnostic.mutualHardFail++;
-
-          return;
-
-        }
-
-
-        // ======================================================
-        // SAVE RESULT
-        // ======================================================
-
-        diagnostic.accepted++;
-
-
-        results.push({
-
-          id:
-            profile.id,
-
-          name:
-            profile.name,
-
-          type:
-            profile.type,
-
-
-          hasExpectation:
-            hasExpectation,
-
-          hasMeaningfulExpectation:
-            hasMeaningfulExpectation,
-
-
-          // ----------------------------------------------------
-          // MUTUAL HARD
-          // ----------------------------------------------------
-
-          hardMatch:
-            mutualHardMatch,
-
-          matchStatus:
-            mutualHardMatch
-              ? "MUTUAL_HARD_MATCH"
-              : "MUTUAL_HARD_FAILURE",
-
-
-          // ----------------------------------------------------
-          // MUTUAL HARD SCORE
-          // ----------------------------------------------------
-
-          hardScore:
-            Number(
-              finalMutual.hardScore
-            ) || 0,
-
-
-          // ----------------------------------------------------
-          // MUTUAL EXPECTATION
-          // ----------------------------------------------------
-
-          expectationCompatibilityScore:
-            Number(
-              mutualExpectation.score
-            ) || 0,
-
-          expectationCompatibilityMaxScore:
-            Number(
-              mutualExpectation.maxScore
-            ) || 0,
-
-          expectationCompatibilityPercentage:
-            Number(
-              mutualExpectation.percentage
-            ) || 0,
-
-          matchedExpectationKeywords:
-            Array.isArray(
-              mutualExpectation.matchedKeywords
-            )
-              ? mutualExpectation.matchedKeywords
-              : [],
-
-
-          // ----------------------------------------------------
-          // MUTUAL PROFILE
-          // ----------------------------------------------------
-
-          profileCompatibilityApplicable:
-            mutualProfile.applicable === true,
-
-          profileCompatibilityPercentage:
-            Number(
-              mutualProfile.percentage
-            ) || 0,
-
-          profileMatched:
-            Number(
-              mutualProfile.matched
-            ) || 0,
-
-          profileFailed:
-            Number(
-              mutualProfile.failed
-            ) || 0,
-
-          profileUnknown:
-            Number(
-              mutualProfile.unknown
-            ) || 0,
-
-          profileTotalChecks:
-            Number(
-              mutualProfile.totalChecks
-            ) || 0,
-
-
-          // ----------------------------------------------------
-          // FINAL MUTUAL SCORE
-          // ----------------------------------------------------
-
-          finalScore:
-            Number(
-              finalMutual.finalScore
-            ) || 0,
-
-          finalPercentage:
-            Number(
-              finalMutual.finalPercentage
-            ) || 0,
-
-          rankingScore:
-            Number(
-              finalMutual.finalScore
-            ) || 0,
-
-          rankingPercentage:
-            Number(
-              finalMutual.finalPercentage
-            ) || 0,
-
-
-          rankingMode:
-            "FINAL_MUTUAL_COMPATIBILITY"
-
-        });
-
-      }
-
-      catch (error) {
-
-        if (
-          !profile ||
-          !profile.id ||
-          !profile.name
-        ) {
-
-          diagnostic.invalidProfile++;
-
-        }
-
-        console.error(
-          "CANDIDATE PROCESSING ERROR:",
-          error
-        );
-
-        // Never stop complete ranking because of
-        // one candidate.
-
-      }
-
-    }
-  );
-
-
-  // ==========================================================
-  // REMOVE DUPLICATES
-  // ==========================================================
-
-  const uniqueResultsMap =
-    new Map();
-
-
-  results.forEach(
-    function(item) {
-
-      const key =
-        String(
-          item.id || ""
-        )
-        .trim()
-        .toUpperCase();
-
-
-      if (
-        !key
-      ) {
-
-        return;
-
-      }
-
-
-      const existing =
-        uniqueResultsMap.get(
-          key
-        );
-
-
-      if (
-        !existing ||
-        item.rankingScore >
-        existing.rankingScore
-      ) {
-
-        uniqueResultsMap.set(
-          key,
-          item
-        );
-
-      }
-
-    }
-  );
-
-
-  const uniqueResults =
-    Array.from(
-      uniqueResultsMap.values()
-    );
-
-
-  // ==========================================================
-  // SORT — FINAL MUTUAL RANKING
-  // ==========================================================
-
-  uniqueResults.sort(
-    function(a, b) {
-
-      // ------------------------------------------------------
-      // 1. MUTUAL HARD MATCH
-      // ------------------------------------------------------
-
-      if (
-        a.hardMatch !==
-        b.hardMatch
-      ) {
-
-        return a.hardMatch
-          ? -1
-          : 1;
-
-      }
-
-
-      // ------------------------------------------------------
-      // 2. FINAL MUTUAL SCORE
-      // ------------------------------------------------------
-
-      if (
-        a.rankingScore !==
-        b.rankingScore
-      ) {
-
-        return (
-          b.rankingScore -
-          a.rankingScore
-        );
-
-      }
-
-
-      // ------------------------------------------------------
-      // 3. MUTUAL PROFILE
-      // ------------------------------------------------------
-
-      if (
-        a.profileCompatibilityPercentage !==
-        b.profileCompatibilityPercentage
-      ) {
-
-        return (
-          b.profileCompatibilityPercentage -
-          a.profileCompatibilityPercentage
-        );
-
-      }
-
-
-      // ------------------------------------------------------
-      // 4. MUTUAL EXPECTATION
-      // ------------------------------------------------------
-
-      if (
-        a.expectationCompatibilityPercentage !==
-        b.expectationCompatibilityPercentage
-      ) {
-
-        return (
-          b.expectationCompatibilityPercentage -
-          a.expectationCompatibilityPercentage
-        );
-
-      }
-
-
-      // ------------------------------------------------------
-      // 5. MATCHED KEYWORDS
-      // ------------------------------------------------------
-
-      if (
-        a.matchedExpectationKeywords.length !==
-        b.matchedExpectationKeywords.length
-      ) {
-
-        return (
-          b.matchedExpectationKeywords.length -
-          a.matchedExpectationKeywords.length
-        );
-
-      }
-
-
-      // ------------------------------------------------------
-      // 6. NAME
-      // ------------------------------------------------------
-
-      return String(
-        a.name || ""
-      ).localeCompare(
-        String(
-          b.name || ""
-        )
-      );
-
-    }
-  );
-
-
-  // ==========================================================
-  // RANK
-  // ==========================================================
-
-  uniqueResults.forEach(
-    function(candidate, index) {
-
-      candidate.rank =
-        index + 1;
-
-    }
-  );
-
-
-  // ==========================================================
-  // TOP 10
-  // ==========================================================
-
-  const top10 =
-    uniqueResults.slice(
-      0,
-      10
-    );
-
-
-  // ==========================================================
-  // SUMMARY
-  // ==========================================================
-
-  const summary = {
-
-    viewerId:
-      safeViewerId,
-
-    viewerType:
-      safeViewerType,
-
-    viewerName:
-      viewer.name || "",
-
-    candidateType:
-      candidateType,
-
-    rankingMode:
-      "FINAL_MUTUAL_COMPATIBILITY_RANKING",
-
-    totalCandidates:
-      uniqueResults.length,
-
-    mutualHardMatched:
-      uniqueResults.filter(
-        function(item) {
-
-          return (
-            item.hardMatch === true
-          );
-
-        }
-      ).length,
-
-    finalMutualCompatibilityCandidates:
-      uniqueResults.filter(
-        function(item) {
-
-          return (
-            item.rankingMode ===
-            "FINAL_MUTUAL_COMPATIBILITY"
-          );
-
-        }
-      ).length,
-
-    meaningfulExpectationCandidates:
-      uniqueResults.filter(
-        function(item) {
-
-          return (
-            item.hasMeaningfulExpectation ===
-            true
-          );
-
-        }
-      ).length,
-
-    topMatches:
-      top10.length
-
-  };
-
-
-  // ==========================================================
-  // RETURN
-  // ==========================================================
-
-  return {
-
-    success:
-      true,
-
-    viewerId:
-      safeViewerId,
-
-    viewerType:
-      safeViewerType,
-
-    viewerName:
-      viewer.name || "",
-
-    candidateType:
-      candidateType,
-
-    actualProfileCriteria:
-      actualProfileCriteria,
-
-    summary:
-      summary,
-
-    top10:
-      top10,
-
-    allResults:
-      uniqueResults
-
-  };
 
 }

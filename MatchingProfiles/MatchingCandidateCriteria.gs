@@ -69,15 +69,89 @@ function normalizeCandidateCriteria(
     );
 
 
-  // ----------------------------------------------------------
-  // EDUCATION
-  // ----------------------------------------------------------
+    // ==========================================================
+    // EDUCATION NORMALIZATION
+    // ==========================================================
 
-  const normalizedEducation =
-    normalizeCandidateEducation(
-      profile.education
-    );
+    let educationInput =
+      profile.education;
 
+
+    // If education is already a normalized object,
+    // keep existing functionality unchanged.
+
+    if (
+      educationInput &&
+      typeof educationInput === "object"
+    ) {
+
+      educationInput =
+        educationInput;
+
+    }
+
+    // If education is a raw string,
+    // build the normalized education object.
+
+    else {
+
+      const educationRawValue =
+        profile.educationRaw ||
+        profile.education ||
+        "";
+
+      const educationText =
+        String(
+          educationRawValue
+        ).trim();
+
+
+      let educationCategories = [];
+
+      let matchedKeywords = [];
+
+
+      if (
+        educationText
+      ) {
+
+        educationCategories =
+          parseExpectationEducation(
+            normalizeExpectationText(
+              educationText
+            )
+          );
+
+
+        matchedKeywords =
+          educationCategories.slice();
+
+      }
+
+
+      educationInput = {
+
+        hasEducationData:
+          educationText !== "",
+
+        raw:
+          educationText,
+
+        categories:
+          educationCategories,
+
+        matchedKeywords:
+          matchedKeywords
+
+      };
+
+    }
+
+
+    const normalizedEducation =
+      normalizeCandidateEducation(
+        educationInput
+      );
 
   // ----------------------------------------------------------
   // PROFESSION
@@ -759,58 +833,173 @@ function normalizeCandidateDistrict(
 
 
 
-// ============================================================
-// EDUCATION
-//
-// Uses existing MatchingEducationNormalizer output.
-// ============================================================
+    // ============================================================
+    // EDUCATION
+    //
+    // Uses existing MatchingEducationNormalizer output.
+    // ============================================================
 
-function normalizeCandidateEducation(
-  education
-) {
+    function normalizeCandidateEducation(
+      education
+    ) {
 
-  if (!education) {
+      // ==========================================================
+      // EMPTY
+      // ==========================================================
 
-    return {
+      if (
+        education === null ||
+        education === undefined ||
+        education === ""
+      ) {
 
-      enabled: false,
+        return {
 
-      raw: "",
+          enabled: false,
 
-      categories: [],
+          raw: "",
 
-      matchedKeywords: []
+          categories: [],
 
-    };
+          matchedKeywords: []
 
-  }
+        };
+
+      }
 
 
-  return {
+      // ==========================================================
+      // RAW STRING SUPPORT
+      // ==========================================================
 
-    enabled:
-      education.hasEducationData === true,
+      if (
+        typeof education === "string"
+      ) {
 
-    raw:
-      education.raw || "",
+        const raw =
+          education.trim();
 
-    categories:
-      Array.isArray(
-        education.categories
-      )
-        ? education.categories
-        : [],
 
-    matchedKeywords:
-      Array.isArray(
-        education.matchedKeywords
-      )
-        ? education.matchedKeywords
-        : []
+        if (!raw) {
 
-  };
+          return {
 
-}
+            enabled: false,
+
+            raw: "",
+
+            categories: [],
+
+            matchedKeywords: []
+
+          };
+
+        }
+
+
+        let categories = [];
+
+        try {
+
+          categories =
+            parseExpectationEducation(
+              normalizeExpectationText(
+                raw
+              )
+            );
+
+        }
+        catch (error) {
+
+          console.warn(
+            "Education category parsing failed:",
+            error
+          );
+
+          categories = [];
+
+        }
+
+
+        return {
+
+          enabled: true,
+
+          raw: raw,
+
+          categories:
+            Array.isArray(categories)
+              ? categories
+              : [],
+
+          matchedKeywords:
+            Array.isArray(categories)
+              ? categories.slice()
+              : []
+
+        };
+
+      }
+
+
+      // ==========================================================
+      // EXISTING NORMALIZED OBJECT
+      // ==========================================================
+
+      if (
+        typeof education === "object"
+      ) {
+
+        return {
+
+          enabled:
+            education.hasEducationData === true ||
+            (
+              education.raw &&
+              String(
+                education.raw
+              ).trim() !== ""
+            ),
+
+          raw:
+            education.raw || "",
+
+          categories:
+            Array.isArray(
+              education.categories
+            )
+              ? education.categories
+              : [],
+
+          matchedKeywords:
+            Array.isArray(
+              education.matchedKeywords
+            )
+              ? education.matchedKeywords
+              : []
+
+        };
+
+      }
+
+
+      // ==========================================================
+      // FALLBACK
+      // ==========================================================
+
+      return {
+
+        enabled: false,
+
+        raw: "",
+
+        categories: [],
+
+        matchedKeywords: []
+
+      };
+
+    }
 
 
 
