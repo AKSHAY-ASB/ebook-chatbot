@@ -6392,97 +6392,331 @@ function calculateFinalMutualCompatibilityScore(
   mutualProfileCompatibility
 ) {
 
-  mutualHardMatch =
+  // ==========================================================
+  // SAFE INPUT
+  // ==========================================================
+
+  const hardMatch =
     mutualHardMatch === true;
 
-  mutualExpectationCompatibility =
-    mutualExpectationCompatibility || {};
+  const expectation =
+    mutualExpectationCompatibility &&
+    typeof mutualExpectationCompatibility === "object"
 
-  mutualProfileCompatibility =
-    mutualProfileCompatibility || {};
+      ? mutualExpectationCompatibility
+
+      : {};
+
+  const profile =
+    mutualProfileCompatibility &&
+    typeof mutualProfileCompatibility === "object"
+
+      ? mutualProfileCompatibility
+
+      : {};
 
 
   // ==========================================================
-  // WEIGHTS
+  // FIXED WEIGHTS
+  //
+  // Total possible score = 100
+  //
+  // HARD MATCH       = 50
+  // EXPECTATION      = 30
+  // ACTUAL PROFILE   = 20
+  //
+  // IMPORTANT:
+  // These weights are ALWAYS fixed.
+  // We do NOT redistribute missing/N/A weight.
   // ==========================================================
 
-  const HARD_MATCH_WEIGHT = 50;
-  const EXPECTATION_WEIGHT = 30;
-  const PROFILE_WEIGHT = 20;
+  const HARD_MATCH_WEIGHT =
+    50;
+
+  const EXPECTATION_WEIGHT =
+    30;
+
+  const PROFILE_WEIGHT =
+    20;
 
 
   // ==========================================================
-  // HARD SCORE
+  // HARD MATCH SCORE
   // ==========================================================
 
   const hardScore =
-    mutualHardMatch
+    hardMatch
       ? HARD_MATCH_WEIGHT
       : 0;
 
 
   // ==========================================================
-  // MUTUAL EXPECTATION SCORE
+  // EXPECTATION APPLICABILITY
+  //
+  // applicable = false means:
+  // There is NO meaningful expectation evidence.
+  //
+  // Example:
+  // "अनुरूप"
+  //
+  // IMPORTANT:
+  // N/A is NOT treated as a mismatch.
+  // N/A simply gives NO expectation contribution.
   // ==========================================================
 
-  const expectationPercentage =
-    Number(
-      mutualExpectationCompatibility.percentage || 0
-    );
+  const expectationApplicable =
+    expectation.applicable === true;
 
+
+  // ==========================================================
+  // EXPECTATION PERCENTAGE
+  // ==========================================================
+
+  let expectationPercentage =
+    0;
+
+
+  if (
+    expectationApplicable
+  ) {
+
+    expectationPercentage =
+      Number(
+        expectation.percentage
+      ) || 0;
+
+    // Safety clamp
+    expectationPercentage =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          expectationPercentage
+        )
+      );
+
+  }
+
+
+  // ==========================================================
+  // EXPECTATION SCORE
+  //
+  // Applicable:
+  //     percentage contributes up to 30 points.
+  //
+  // Not applicable:
+  //     0 points.
+  //
+  // IMPORTANT:
+  // We DO NOT increase the final score by
+  // removing the 30-point expectation weight.
+  // ==========================================================
 
   const expectationScore =
-    expectationPercentage *
-    EXPECTATION_WEIGHT /
-    100;
+    expectationApplicable
+
+      ? (
+          expectationPercentage *
+          EXPECTATION_WEIGHT /
+          100
+        )
+
+      : 0;
 
 
   // ==========================================================
-  // MUTUAL PROFILE SCORE
+  // PROFILE APPLICABILITY
+  //
+  // Existing behaviour PRESERVED.
+  //
+  // Profile is considered applicable unless it explicitly
+  // returns applicable:false.
+  //
+  // DO NOT change this rule as part of the
+  // Expectation N/A fix.
   // ==========================================================
 
-  const profilePercentage =
-    Number(
-      mutualProfileCompatibility.percentage || 0
-    );
+  const profileApplicable =
+    profile.applicable !== false;
 
+
+  // ==========================================================
+  // PROFILE PERCENTAGE
+  // ==========================================================
+
+  let profilePercentage =
+    0;
+
+
+  if (
+    profileApplicable
+  ) {
+
+    profilePercentage =
+      Number(
+        profile.percentage
+      ) || 0;
+
+    // Safety clamp
+    profilePercentage =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          profilePercentage
+        )
+      );
+
+  }
+
+
+  // ==========================================================
+  // PROFILE SCORE
+  //
+  // Maximum = 20 points
+  // ==========================================================
 
   const profileScore =
-    profilePercentage *
-    PROFILE_WEIGHT /
-    100;
+    profileApplicable
+
+      ? (
+          profilePercentage *
+          PROFILE_WEIGHT /
+          100
+        )
+
+      : 0;
 
 
   // ==========================================================
-  // FINAL MUTUAL SCORE
+  // AVAILABLE WEIGHT
+  //
+  // IMPORTANT:
+  //
+  // Keep this property for backward compatibility /
+  // diagnostics.
+  //
+  // BUT:
+  // It is NO LONGER used to normalize finalScore.
+  //
+  // This prevents:
+  //
+  // Hard       = 50
+  // Expectation = N/A
+  // Profile     = 16.33
+  //
+  // 66.33 / 70 * 100
+  // = 94.76  ❌
+  //
+  // Instead:
+  //
+  // 50 + 0 + 16.33
+  // = 66.33 / 100
   // ==========================================================
 
-  const finalScore =
+  let availableWeight =
+    HARD_MATCH_WEIGHT;
+
+
+  if (
+    expectationApplicable
+  ) {
+
+    availableWeight +=
+      EXPECTATION_WEIGHT;
+
+  }
+
+
+  if (
+    profileApplicable
+  ) {
+
+    availableWeight +=
+      PROFILE_WEIGHT;
+
+  }
+
+
+  // ==========================================================
+  // RAW SCORE
+  //
+  // Always calculated against the fixed 100-point model.
+  // ==========================================================
+
+  const rawScore =
     hardScore +
     expectationScore +
     profileScore;
 
 
-  const finalPercentage =
-    Number(
+  // ==========================================================
+  // FINAL SCORE
+  //
+  // IMPORTANT TARGETED FIX:
+  //
+  // DO NOT normalize using availableWeight.
+  //
+  // Final score is always:
+  //
+  //     Hard Score
+  //   + Expectation Score
+  //   + Profile Score
+  //
+  // out of 100.
+  //
+  // Therefore:
+  //
+  // Expectation N/A
+  // does NOT inflate the remaining components.
+  // ==========================================================
+
+  let finalScore =
+    rawScore;
+
+
+  // ==========================================================
+  // SAFETY CLAMP
+  // ==========================================================
+
+  finalScore =
+    Math.max(
+      0,
       Math.min(
         100,
         finalScore
-      ).toFixed(2)
+      )
+    );
+
+
+  finalScore =
+    Number(
+      finalScore.toFixed(2)
     );
 
 
   // ==========================================================
   // RETURN
+  //
+  // Existing property names are preserved.
   // ==========================================================
 
   return {
 
+    // --------------------------------------------------------
+    // FINAL
+    // --------------------------------------------------------
+
     finalScore:
-      finalPercentage,
+      finalScore,
 
     finalPercentage:
-      finalPercentage,
+      finalScore,
+
+
+    // --------------------------------------------------------
+    // COMPONENT SCORES
+    // --------------------------------------------------------
 
     hardScore:
       Number(
@@ -6494,16 +6728,51 @@ function calculateFinalMutualCompatibilityScore(
         expectationScore.toFixed(2)
       ),
 
-    expectationPercentage:
-      expectationPercentage,
-
     profileScore:
       Number(
         profileScore.toFixed(2)
       ),
 
+
+    // --------------------------------------------------------
+    // COMPONENT PERCENTAGES
+    // --------------------------------------------------------
+
+    expectationPercentage:
+      expectationPercentage,
+
     profilePercentage:
-      profilePercentage
+      profilePercentage,
+
+
+    // --------------------------------------------------------
+    // APPLICABILITY
+    //
+    // Existing + diagnostic fields preserved.
+    // --------------------------------------------------------
+
+    expectationApplicable:
+      expectationApplicable,
+
+    profileApplicable:
+      profileApplicable,
+
+
+    // --------------------------------------------------------
+    // DIAGNOSTIC
+    //
+    // Kept for backward compatibility.
+    // IMPORTANT:
+    // availableWeight is NOT used for final normalization.
+    // --------------------------------------------------------
+
+    availableWeight:
+      availableWeight,
+
+    rawScore:
+      Number(
+        rawScore.toFixed(2)
+      )
 
   };
 
@@ -6535,11 +6804,6 @@ function calculateActualProfileCompatibility(
   actualProfileCriteria,
   compatibilityCandidate,
 ) {
-
-  console.log(
-    "🔥 calculateActualProfileCompatibility CALLED"
-  );
-
  
 
   const result = {
@@ -9100,7 +9364,7 @@ function calculateMutualExpectationCompatibility(
   // ----------------------------------------------------------
 
   const applicable =
-    viewerApplicable ||
+    viewerApplicable &&
     candidateApplicable;
 
 
@@ -9456,4 +9720,3 @@ function getActualProfileMatchesForUI(
   }
 
 }
-

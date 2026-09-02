@@ -4163,253 +4163,162 @@ function reactToProfile(
 
   google.script.run
 
-    .withSuccessHandler(
-      function(result) {
+        .withSuccessHandler(
+          function(result) {
 
-        // --------------------------------------
-        // RE-ENABLE BUTTON
-        // --------------------------------------
+              // ==========================================
+              // RE-ENABLE CLICKED BUTTON
+              // ==========================================
 
-        if (button) {
+              if (button) {
 
-          button.disabled =
-            false;
+                  button.disabled =
+                      false;
 
-        }
-
-
-        // --------------------------------------
-        // INVALID RESPONSE
-        // --------------------------------------
-
-        if (
-          !result ||
-          !result.success
-        ) {
-
-          console.error(
-            "SAVE REACTION FAILED:",
-            result
-          );
+              }
 
 
-          if (button) {
+              // ==========================================
+              // INVALID RESPONSE
+              // ==========================================
 
-            button.innerHTML =
-              originalText;
+              if (
+                  !result ||
+                  result.success !== true
+              ) {
+
+                  console.error(
+                      "SAVE REACTION FAILED:",
+                      result
+                  );
+
+
+                  if (button) {
+
+                      button.innerHTML =
+                          originalText;
+
+                  }
+
+
+                  botMessage(
+                      "⚠️ " +
+                      (
+                          result &&
+                          result.message
+                              ? result.message
+                              : "Reaction save झाली नाही."
+                      )
+                  );
+
+
+                  return;
+
+              }
+
+
+              // ==========================================
+              // SAVED REACTION
+              // ==========================================
+
+              const savedReaction =
+                  String(
+                      result.reaction ||
+                      reaction ||
+                      ""
+                  )
+                  .trim()
+                  .toUpperCase();
+
+
+              console.log(
+                  "PROFILE REACTION SAVED:",
+                  {
+                      type:
+                          type,
+
+                      profileId:
+                          profileId,
+
+                      reaction:
+                          savedReaction,
+
+                      relationship:
+                          result.relationship
+                  }
+              );
+
+
+              // ==================================================
+              // 1. SEARCH UI
+              //
+              // Existing Search functionality
+              // ==================================================
+
+              if (
+                  result.relationship
+              ) {
+
+                  updateReactionButtons(
+                      type,
+                      profileId,
+                      result.relationship
+                  );
+
+              }
+
+
+              // ==================================================
+              // 2. MATCHING UI
+              //
+              // ALWAYS TRY TO UPDATE MATCHING UI
+              //
+              // There is NO if/else between Search and Matching.
+              // ==================================================
+
+              updateMatchingReactionUI(
+                  type,
+                  profileId,
+                  savedReaction
+              );
+
+
+              // ==================================================
+              // 3. KEEP MATCHING LOCAL STATE IN SYNC
+              // ==================================================
+
+              const matchingKey =
+                  getMatchingReactionKey(
+                      type,
+                      profileId
+                  );
+
+
+              matchingReactionState[
+                  matchingKey
+              ] =
+                  savedReaction;
+
+
+              console.log(
+                  "REACTION UI SYNC COMPLETE:",
+                  {
+                      key:
+                          matchingKey,
+
+                      reaction:
+                          savedReaction,
+
+                      searchUI:
+                          true,
+
+                      matchingUI:
+                          true
+                  }
+              );
 
           }
-
-
-          botMessage(
-            "⚠️ " +
-            (
-              result &&
-              result.message
-                ? result.message
-                : "Reaction save झाली नाही."
-            )
-          );
-
-
-          return;
-
-        }
-
-
-        console.log(
-          "PROFILE REACTION SAVED:",
-          {
-            reaction:
-              result.reaction,
-
-            relationship:
-              result.relationship
-          }
-        );
-
-
-        // ======================================
-        // EXISTING SEARCH FUNCTIONALITY
-        //
-        // KEEP THIS EXACTLY AS BEFORE
-        // ======================================
-
-        // if (
-        //   result.reaction ===
-        //   "LIKE"
-        // ) {
-
-        //   updateReactionButtons(
-        //     type,
-        //     profileId,
-        //     result.relationship
-        //   );
-
-        // }
-
-
-        // else if (
-        //   result.reaction ===
-        //   "DISLIKE"
-        // ) {
-
-        //   updateReactionButtons(
-        //     type,
-        //     profileId,
-        //     result.relationship
-        //   );
-
-        // }
-
-
-
-
-        // ======================================
-        // CHECK WHETHER THIS IS A MATCHING CARD
-        // ======================================
-
-        const isMatching =
-          isMatchingProfileCard(
-            type,
-            profileId
-          );
-
-
-        // ======================================
-        // EXISTING SEARCH FUNCTIONALITY
-        //
-        // IMPORTANT:
-        // Only run for normal Search profiles.
-        //
-        // Matching profiles have their own
-        // update mechanism.
-        // ======================================
-
-        if (!isMatching) {
-
-          if (
-            result.reaction ===
-            "LIKE"
-          ) {
-
-            updateReactionButtons(
-              type,
-              profileId,
-              result.relationship
-            );
-
-          }
-
-          else if (
-            result.reaction ===
-            "DISLIKE"
-          ) {
-
-            updateReactionButtons(
-              type,
-              profileId,
-              result.relationship
-            );
-
-          }
-
-        }
-
-
-        // ======================================
-        // MATCHING PROFILE UI UPDATE
-        //
-        // Matching has separate UI handling.
-        // ======================================
-
-        if (isMatching) {
-
-          const key =
-            getMatchingReactionKey(
-              type,
-              profileId
-            );
-
-
-          const matchingReaction =
-            String(
-              result.reaction ||
-              reaction
-            )
-            .trim()
-            .toUpperCase();
-
-
-          matchingReactionState[
-            key
-          ] =
-            matchingReaction;
-
-
-          console.log(
-            "MATCHING REACTION STATE UPDATED:",
-            {
-              key:
-                key,
-
-              reaction:
-                matchingReaction
-            }
-          );
-
-
-          updateMatchingReactionUI(
-            type,
-            profileId,
-            matchingReaction
-          );
-
-        }
-
-        // ======================================
-        // MATCHING PROFILE UI UPDATE
-        //
-        // ADDITIONAL ONLY
-        //
-        // DOES NOT CHANGE EXISTING SEARCH UI
-        // ======================================
-
-        // ======================================
-        // MATCHING PROFILE UI UPDATE
-        //
-        // ADDITIONAL ONLY
-        // EXISTING SEARCH UI UNCHANGED
-        // ======================================
-
-       
-
-      }
-    )
-
-
-    .withFailureHandler(
-      function(error) {
-
-        console.error(
-          "Profile Reaction Error:",
-          error
-        );
-
-
-        if (button) {
-
-          button.disabled =
-            false;
-
-
-          button.innerHTML =
-            originalText;
-
-        }
-
-      }
-    )
+      )
 
 
     // ========================================
@@ -4457,13 +4366,62 @@ function updateProfileReactionState(
         return;
     }
 
+
+    // ==========================================
+    // STORE FULL RELATIONSHIP
+    // ==========================================
+
     profile.relationship =
         relationship;
 
-    profile.reaction =
-        relationship.canLike
-            ? ""
-            : "LIKE";
+
+    // ==========================================
+    // NORMALIZE STATUS
+    // ==========================================
+
+    const status =
+        String(
+            relationship.status ||
+            ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+    // ==========================================
+    // STORE CURRENT REACTION
+    //
+    // OUTGOING_LIKE / MUTUAL_LIKE
+    // both mean the viewer has already liked
+    // this profile.
+    // ==========================================
+
+    if (
+        status === "OUTGOING_LIKE" ||
+        status === "MUTUAL_LIKE"
+    ) {
+
+        profile.reaction =
+            "LIKE";
+
+    }
+
+    else if (
+        status === "OUTGOING_DISLIKE"
+    ) {
+
+        profile.reaction =
+            "DISLIKE";
+
+    }
+
+    else {
+
+        profile.reaction =
+            "";
+
+    }
+
 }
 
 

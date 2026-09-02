@@ -4,38 +4,74 @@
 // LIKE BUTTON
 // ==========================================
 
+// ==========================================
+// LIKE BUTTON
+// ==========================================
+
 function buildLikeButton(
     profile,
     relationship
 ) {
+
+    profile =
+        profile || {};
+
     relationship =
         relationship || {};
+
 
     const profileType =
         profile.viewerProfileType ||
         profile.type ||
         "";
 
+
     const profileId =
         profile.viewerProfileId ||
         profile.id ||
         "";
+
 
     const profileName =
         profile.viewerName ||
         profile.name ||
         "";
 
+
     const ownerMobile =
         profile.viewerMobile ||
         profile.ownerMobile ||
+        profile.mobile ||
         "";
+
+
+    const relationshipStatus =
+        String(
+            relationship.status ||
+            ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+    // ==========================================
+    // LIKE STATE
+    //
+    // OUTGOING_LIKE = User has liked profile
+    // MUTUAL_LIKE   = Both users have liked
+    // ==========================================
+
+    const isLiked =
+        relationshipStatus === "OUTGOING_LIKE" ||
+        relationshipStatus === "MUTUAL_LIKE";
+
 
     let className =
         "profile-reaction-btn";
 
+
     if (
-        relationship.status ===
+        relationshipStatus ===
         "MUTUAL_LIKE"
     ) {
 
@@ -45,16 +81,39 @@ function buildLikeButton(
     }
 
     else if (
-
-        relationship.status ===
+        relationshipStatus ===
         "OUTGOING_LIKE"
-
     ) {
 
         className +=
             " liked";
 
     }
+
+
+    // ==========================================
+    // BUTTON LABEL
+    // ==========================================
+
+    const likeLabel =
+        isLiked
+
+            ? "❤️ Liked"
+
+            : (
+                relationship.likeLabel ||
+                "♡ Like"
+            );
+
+
+    // ==========================================
+    // BUTTON DISABLED STATE
+    // ==========================================
+
+    const isDisabled =
+        relationship.canLike === false ||
+        isLiked;
+
 
     return `
 
@@ -63,32 +122,30 @@ function buildLikeButton(
 
             class="${className}"
 
-            ${relationship.canLike === false ? "disabled" : ""}
+            ${isDisabled ? "disabled" : ""}
 
-            onclick="reactToProfile(
-
-                '${escapeJsValue(profileType)}',
-
-                '${escapeJsValue(profileId)}',
-
-                '${escapeJsValue(profileName)}',
-
-                '${escapeJsValue(ownerMobile)}',
-
-                'LIKE',
-
-                this
-
-            )"
+            onclick="
+                ${
+                    isDisabled
+                        ? ""
+                        : `reactToProfile(
+                            '${escapeJsValue(profileType)}',
+                            '${escapeJsValue(profileId)}',
+                            '${escapeJsValue(profileName)}',
+                            '${escapeJsValue(ownerMobile)}',
+                            'LIKE',
+                            this
+                        )`
+                }
+            "
 
         >
 
-            ${relationship.likeLabel || "♡ Like"}
+            ${likeLabel}
 
         </button>
 
     `;
-
 }
 
 

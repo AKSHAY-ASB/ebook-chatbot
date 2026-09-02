@@ -1496,7 +1496,10 @@ function calculateActualProfileRanking(
           type:
             profile.type || "",
 
-
+          ownerMobile:
+            profile.mobile1 ||
+            profile.mobile2 ||
+            "",
           // ====================================================
           // PHOTO
           // ====================================================
@@ -2140,6 +2143,409 @@ function testCalculateActualProfileRanking() {
       null,
       2
     )
+  );
+
+}
+
+
+// testFinalMatchingPipeline
+
+
+function testFinalMatchingPipeline() {
+
+  // ==========================================================
+  // TEST USER
+  // ==========================================================
+
+  const viewerId =
+    "ID048";
+
+  const viewerType =
+    "bride";
+
+
+  console.log(
+    "=================================================="
+  );
+
+  console.log(
+    "FINAL MATCHING PIPELINE TEST"
+  );
+
+  console.log(
+    "Viewer:",
+    viewerId,
+    "| Type:",
+    viewerType
+  );
+
+  console.log(
+    "=================================================="
+  );
+
+
+  // ==========================================================
+  // EXISTING RANKING ENGINE
+  //
+  // DO NOT CHANGE THE RANKING FUNCTION
+  // ==========================================================
+
+  const result =
+    calculateActualProfileRanking(
+      viewerId,
+      viewerType
+    );
+
+
+  // ==========================================================
+  // RESULT VALIDATION
+  // ==========================================================
+
+  if (
+    !result ||
+    result.success !== true
+  ) {
+
+    console.log(
+      "❌ FINAL PIPELINE FAILED"
+    );
+
+    console.log(
+      "Message:",
+      result &&
+      result.message
+        ? result.message
+        : "Unknown error"
+    );
+
+    return;
+
+  }
+
+
+  // ==========================================================
+  // SUMMARY
+  // ==========================================================
+
+  const summary =
+    result.summary || {};
+
+
+  console.log(
+    "PIPELINE SUMMARY:",
+    {
+
+      totalCandidates:
+        summary.totalCandidates,
+
+      mutualHardMatched:
+        summary.mutualHardMatched,
+
+      finalMutualCompatibilityCandidates:
+        summary.finalMutualCompatibilityCandidates,
+
+      meaningfulExpectationCandidates:
+        summary.meaningfulExpectationCandidates,
+
+      topMatches:
+        summary.topMatches
+
+    }
+  );
+
+
+  // ==========================================================
+  // TOP 10
+  // ==========================================================
+
+  const topMatches =
+    Array.isArray(
+      result.top10
+    )
+      ? result.top10
+      : [];
+
+
+  console.log(
+    "--------------------------------------------------"
+  );
+
+  console.log(
+    "TOP MATCHES"
+  );
+
+  console.log(
+    "--------------------------------------------------"
+  );
+
+
+  topMatches.forEach(
+    function(candidate, index) {
+
+      if (!candidate) {
+        return;
+      }
+
+
+      const rank =
+        Number(
+          candidate.rank
+        ) || index + 1;
+
+
+      const hardScore =
+        Number(
+          candidate.hardScore
+        ) || 0;
+
+
+      const expectationPercentage =
+        Number(
+          candidate.expectationCompatibilityPercentage
+        ) || 0;
+
+
+      const expectationMaxScore =
+        Number(
+          candidate.expectationCompatibilityMaxScore
+        ) || 0;
+
+
+      const expectationScore =
+        Number(
+          candidate.expectationCompatibilityScore
+        ) || 0;
+
+
+      const profilePercentage =
+        Number(
+          candidate.profileCompatibilityPercentage
+        ) || 0;
+
+
+      const finalScore =
+        Number(
+          candidate.finalScore
+        ) || 0;
+
+
+      // ------------------------------------------------------
+      // PROFILE CONTRIBUTION
+      //
+      // Profile component has maximum weight = 20.
+      // ------------------------------------------------------
+
+      const profileScore =
+        (
+          profilePercentage *
+          20 /
+          100
+        );
+
+
+      console.log(
+        {
+
+          rank:
+            rank,
+
+          id:
+            candidate.id || "",
+
+          name:
+            candidate.name || "",
+
+          hardMatch:
+            candidate.hardMatch === true,
+
+          hardScore:
+            Number(
+              hardScore.toFixed(2)
+            ),
+
+          expectationPercentage:
+            Number(
+              expectationPercentage.toFixed(2)
+            ),
+
+          expectationScore:
+            Number(
+              expectationScore.toFixed(2)
+            ),
+
+          expectationMaxScore:
+            expectationMaxScore,
+
+          profilePercentage:
+            Number(
+              profilePercentage.toFixed(2)
+            ),
+
+          profileScore:
+            Number(
+              profileScore.toFixed(2)
+            ),
+
+          finalScore:
+            Number(
+              finalScore.toFixed(2)
+            )
+
+        }
+      );
+
+    }
+  );
+
+
+  // ==========================================================
+  // FINAL SCORE VALIDATION
+  // ==========================================================
+
+  console.log(
+    "--------------------------------------------------"
+  );
+
+  console.log(
+    "FINAL SCORE VALIDATION"
+  );
+
+  console.log(
+    "--------------------------------------------------"
+  );
+
+
+  let scoreValidationPassed =
+    true;
+
+
+  topMatches.forEach(
+    function(candidate, index) {
+
+      if (!candidate) {
+        return;
+      }
+
+
+      const finalScore =
+        Number(
+          candidate.finalScore
+        );
+
+
+      const valid =
+        !isNaN(finalScore) &&
+        finalScore >= 0 &&
+        finalScore <= 100;
+
+
+      if (!valid) {
+
+        scoreValidationPassed =
+          false;
+
+      }
+
+
+      console.log(
+        "#" +
+        (
+          candidate.rank ||
+          index + 1
+        ),
+
+        candidate.id || "",
+
+        "→",
+
+        isNaN(finalScore)
+          ? "INVALID"
+          : finalScore,
+
+        "/ 100",
+
+        valid
+          ? "✅"
+          : "❌"
+      );
+
+    }
+  );
+
+
+  // ==========================================================
+  // RANKING ORDER VALIDATION
+  // ==========================================================
+
+  let rankingCorrect =
+    true;
+
+
+  for (
+    let i = 1;
+    i < topMatches.length;
+    i++
+  ) {
+
+    const previousScore =
+      Number(
+        topMatches[i - 1].finalScore
+      );
+
+
+    const currentScore =
+      Number(
+        topMatches[i].finalScore
+      );
+
+
+    if (
+      isNaN(previousScore) ||
+      isNaN(currentScore) ||
+      currentScore > previousScore
+    ) {
+
+      rankingCorrect =
+        false;
+
+      break;
+
+    }
+
+  }
+
+
+  console.log(
+    "Ranking Order:",
+    rankingCorrect
+      ? "✅ CORRECT"
+      : "❌ INCORRECT"
+  );
+
+
+  // ==========================================================
+  // FINAL TEST RESULT
+  // ==========================================================
+
+  const pipelinePassed =
+    scoreValidationPassed &&
+    rankingCorrect;
+
+
+  console.log(
+    "=================================================="
+  );
+
+  console.log(
+    "FINAL PIPELINE TEST:",
+    pipelinePassed
+      ? "✅ PASSED"
+      : "⚠️ CHECK REQUIRED"
+  );
+
+  console.log(
+    "=================================================="
+
   );
 
 }
