@@ -414,6 +414,105 @@ function updateInterestStatus(
 
 
       // ======================================
+      // 8A. NOTIFICATION INTEGRATION
+      //
+      // IMPORTANT:
+      // Notification failure MUST NEVER
+      // affect Interest Accept / Decline.
+      //
+      // Sender = Notification Recipient
+      // Receiver = Notification Actor
+      // ======================================
+
+      try {
+
+        if (
+          typeof notifyAfterInterestResponse ===
+          "function"
+        ) {
+
+          const notificationResult =
+            notifyAfterInterestResponse({
+
+              // --------------------------------
+              // ORIGINAL INTEREST SENDER
+              // This user receives notification
+              // --------------------------------
+
+              senderMobile:
+                senderMobile,
+
+              senderName:
+                senderName,
+
+              senderType:
+                senderType,
+
+              senderProfileId:
+                senderId,
+
+
+              // --------------------------------
+              // INTEREST RECEIVER
+              // This user accepted / declined
+              // --------------------------------
+
+              receiverMobile:
+                receiverMobile,
+
+              receiverName:
+                receiverName,
+
+              receiverType:
+                receiverType,
+
+              receiverProfileId:
+                receiverId,
+
+
+              // --------------------------------
+              // NEW RESPONSE
+              // ACCEPTED / DECLINED
+              // --------------------------------
+
+              responseStatus:
+                newStatus
+
+            });
+
+
+          console.log(
+            "[Notification] Interest response result:",
+            notificationResult
+          );
+
+        }
+        else {
+
+          console.warn(
+            "[Notification] notifyAfterInterestResponse() not found."
+          );
+
+        }
+
+      }
+      catch (notificationError) {
+
+        // --------------------------------------
+        // CRITICAL:
+        // NEVER FAIL ORIGINAL INTEREST UPDATE
+        // --------------------------------------
+
+        console.error(
+          "[Notification] Interest response notification failed:",
+          notificationError
+        );
+
+      }
+
+
+
+      // ======================================
       // 9. ACTIVITY LOG
       // Only if logger already exists
       // ======================================

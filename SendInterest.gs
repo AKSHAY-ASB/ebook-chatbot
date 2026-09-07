@@ -8,201 +8,201 @@ function sendProfileInterest(
   receiverProfileId
 ) {
 
-  try {
+      try {
 
-    // ========================================
-    // 1. NORMALIZE INPUT
-    // ========================================
+        // ========================================
+        // 1. NORMALIZE INPUT
+        // ========================================
 
-    senderMobile =
-      String(senderMobile || "")
-        .replace(/\D/g, "")
-        .slice(-10);
-
-
-    receiverProfileType =
-      normalizeInterestProfileType(
-        receiverProfileType
-      );
+        senderMobile =
+          String(senderMobile || "")
+            .replace(/\D/g, "")
+            .slice(-10);
 
 
-    receiverProfileId =
-      String(
-        receiverProfileId || ""
-      ).trim();
+        receiverProfileType =
+          normalizeInterestProfileType(
+            receiverProfileType
+          );
 
 
-    // ========================================
-    // 2. VALIDATION
-    // ========================================
+        receiverProfileId =
+          String(
+            receiverProfileId || ""
+          ).trim();
 
-    if (!senderMobile) {
 
-      return {
+        // ========================================
+        // 2. VALIDATION
+        // ========================================
 
-        success: false,
+        if (!senderMobile) {
 
-        code:
-          "INVALID_SENDER",
+          return {
 
-        message:
-          "Sender mobile number is required."
+            success: false,
 
-      };
+            code:
+              "INVALID_SENDER",
+
+            message:
+              "Sender mobile number is required."
+
+          };
+
+        }
+
+
+        if (
+          !receiverProfileType ||
+          !receiverProfileId
+        ) {
+
+          return {
+
+            success: false,
+
+            code:
+              "INVALID_RECEIVER",
+
+            message:
+              "Receiver profile information is missing."
+
+          };
+
+        }
+
+
+        // ========================================
+        // 3. FIND SENDER PROFILE
+        // ========================================
+
+        const sender =
+          findInterestUserProfile(
+            senderMobile
+          );
+
+
+        if (
+          !sender ||
+          !sender.found
+        ) {
+
+          return {
+
+            success: false,
+
+            code:
+              "SENDER_NOT_FOUND",
+
+            message:
+              "Sender registered profile not found."
+
+          };
+
+        }
+
+
+        // ========================================
+        // 4. FIND RECEIVER PROFILE
+        // ========================================
+
+        const receiver =
+          findInterestTargetProfile(
+            receiverProfileType,
+            receiverProfileId
+          );
+
+          // ========================================
+          // CHECK EXISTING RELATIONSHIP
+          // BOTH DIRECTIONS
+          // ========================================
+
+          const relationship =
+            getInterestRelationship(
+              sender.mobile,
+              receiver.type,
+              receiver.id
+            );
+
+
+          if (
+            relationship &&
+            relationship.exists === true
+          ) {
+
+            let message =
+              "Interest relationship already exists.";
+
+
+            if (
+              relationship.status ===
+              "PENDING_SENT"
+            ) {
+
+              message =
+                "Interest Request already sent.";
+
+            }
+
+
+            else if (
+              relationship.status ===
+              "PENDING_RECEIVED"
+            ) {
+
+              message =
+                "This profile has already sent you an Interest Request.";
+
+            }
+
+
+            else if (
+              relationship.status ===
+              "ACCEPTED"
+            ) {
+
+              message =
+                "You are already matched with this profile.";
+
+            }
+
+
+            else if (
+              relationship.status ===
+              "DECLINED"
+            ) {
+
+              message =
+                "This Interest relationship is closed.";
+
+            }
+
+
+          return {
+
+            success: false,
+
+            duplicate: true,
+
+            code:
+              "INTEREST_RELATIONSHIP_EXISTS",
+
+            interestId:
+              relationship.interestId,
+
+            status:
+              relationship.status,
+
+            direction:
+              relationship.direction,
+
+            message:
+              message
+
+          };
 
     }
-
-
-    if (
-      !receiverProfileType ||
-      !receiverProfileId
-    ) {
-
-      return {
-
-        success: false,
-
-        code:
-          "INVALID_RECEIVER",
-
-        message:
-          "Receiver profile information is missing."
-
-      };
-
-    }
-
-
-    // ========================================
-    // 3. FIND SENDER PROFILE
-    // ========================================
-
-    const sender =
-      findInterestUserProfile(
-        senderMobile
-      );
-
-
-    if (
-      !sender ||
-      !sender.found
-    ) {
-
-      return {
-
-        success: false,
-
-        code:
-          "SENDER_NOT_FOUND",
-
-        message:
-          "Sender registered profile not found."
-
-      };
-
-    }
-
-
-    // ========================================
-    // 4. FIND RECEIVER PROFILE
-    // ========================================
-
-    const receiver =
-      findInterestTargetProfile(
-        receiverProfileType,
-        receiverProfileId
-      );
-
-      // ========================================
-// CHECK EXISTING RELATIONSHIP
-// BOTH DIRECTIONS
-// ========================================
-
-const relationship =
-  getInterestRelationship(
-    sender.mobile,
-    receiver.type,
-    receiver.id
-  );
-
-
-if (
-  relationship &&
-  relationship.exists === true
-) {
-
-  let message =
-    "Interest relationship already exists.";
-
-
-  if (
-    relationship.status ===
-    "PENDING_SENT"
-  ) {
-
-    message =
-      "Interest Request already sent.";
-
-  }
-
-
-  else if (
-    relationship.status ===
-    "PENDING_RECEIVED"
-  ) {
-
-    message =
-      "This profile has already sent you an Interest Request.";
-
-  }
-
-
-  else if (
-    relationship.status ===
-    "ACCEPTED"
-  ) {
-
-    message =
-      "You are already matched with this profile.";
-
-  }
-
-
-  else if (
-    relationship.status ===
-    "DECLINED"
-  ) {
-
-    message =
-      "This Interest relationship is closed.";
-
-  }
-
-
-  return {
-
-    success: false,
-
-    duplicate: true,
-
-    code:
-      "INTEREST_RELATIONSHIP_EXISTS",
-
-    interestId:
-      relationship.interestId,
-
-    status:
-      relationship.status,
-
-    direction:
-      relationship.direction,
-
-    message:
-      message
-
-  };
-
-}
 
 
     if (
@@ -484,6 +484,69 @@ if (
         );
 
       }
+
+
+
+    // ========================================
+    // 10.5 CREATE INTEREST SENT NOTIFICATION
+    // ========================================
+    // IMPORTANT:
+    // Notification failure must NEVER break
+    // the original Send Interest action.
+
+    try {
+
+      const notificationResult =
+        notifyAfterInterestSent({
+
+          // Actual sender data
+          senderMobile:
+            sender.mobile,
+
+          senderName:
+            sender.name,
+
+          senderType:
+            sender.type,
+
+          senderProfileId:
+            sender.id,
+
+
+          // Actual receiver data
+          receiverMobile:
+            receiver.mobile,
+
+          receiverName:
+            receiver.name,
+
+          receiverType:
+            receiver.type,
+
+          receiverProfileId:
+            receiver.id
+
+        });
+
+
+      console.log(
+        "[Notification] INTEREST_SENT result:",
+        notificationResult
+      );
+
+    }
+
+    catch (notificationError) {
+
+      console.error(
+        "[Notification] INTEREST_SENT failed:",
+        notificationError
+      );
+
+    }  
+
+
+
     // ========================================
     // 11. SUCCESS
     // ========================================
@@ -535,6 +598,7 @@ if (
         "Interest sent successfully."
 
     };
+    
 
   }
 

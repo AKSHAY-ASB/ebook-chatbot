@@ -1,0 +1,1972 @@
+<!--
+============================================================
+NOTIFICATION MODULE
+File: NotificationUI.html
+Purpose: Standalone notification UI
+============================================================
+-->
+
+<style>
+  /* ==========================================
+     NOTIFICATION MODULE
+     ========================================== */
+
+  .notification-module {
+    position: relative;
+    font-family: Arial, sans-serif;
+  }
+
+  /* ---------- Bell Badge ---------- */
+
+  .notification-badge {
+    position: absolute;
+    top: 1px;
+    right: 0;
+
+    min-width: 19px;
+    height: 19px;
+
+    padding: 0 5px;
+
+    border-radius: 20px;
+
+    background: #d93025;
+    color: #fff;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    line-height: 19px;
+    text-align: center;
+
+    box-sizing: border-box;
+    display: none;
+  }
+
+
+  /* ==========================================
+     NOTIFICATION PANEL
+     ========================================== */
+
+  .notification-panel {
+    position: absolute;
+
+    top: 50px;
+    right: 0;
+
+    width: 420px;
+    max-width: calc(100vw - 24px);
+
+    max-height: 620px;
+
+    background: #fff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.14);
+
+    overflow: hidden;
+
+    z-index: 9999;
+
+    display: none;
+  }
+
+  .notification-panel.open {
+    display: block;
+  }
+
+
+  /* ==========================================
+     HEADER
+     ========================================== */
+
+  .notification-header {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 14px 18px;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    background: #fff;
+  }
+
+  .notification-header-title {
+    margin: 0;
+
+    font-size: 30px;
+    font-weight: 700;
+
+    color: #1f2937;
+
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+  }
+
+
+  /* ---------- Header Count ---------- */
+
+  .notification-header-count {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-width: 40px;
+    height: 40px;
+
+    padding: 0 6px;
+
+    margin-left: 2px;
+
+    border-radius: 50%;
+
+    background: #076706;
+    color: #fff;
+
+    font-size: 30px;
+    font-weight: 700;
+
+    line-height: 1;
+  }
+
+
+  /* ---------- Close ---------- */
+
+  .notification-close-btn {
+    width: 50px;
+    height: 50px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: transparent;
+
+    cursor: pointer;
+
+    font-size: 30px;
+
+    line-height: 1;
+
+    color: #666;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .notification-close-btn:hover {
+    background: #f3f4f6;
+  }
+
+
+  /* ==========================================
+     NOTIFICATION LIST
+     ========================================== */
+
+  .notification-list {
+    max-height: 500px;
+
+    overflow-y: auto;
+
+    background: #f8fafc;
+  }
+
+
+  /* ==========================================
+     INDIVIDUAL NOTIFICATION
+     ========================================== */
+
+  .notification-item {
+    position: relative;
+
+    padding: 16px 18px;
+
+    background: #fff;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    transition:
+      background 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .notification-item:last-child {
+    border-bottom: none;
+  }
+
+
+  /* ---------- Unread ---------- */
+
+  .notification-item.unread {
+    background: #f8fbff;
+  }
+
+  .notification-item.unread::before {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    top: 0;
+    bottom: 0;
+
+    width: 3px;
+
+    background: #2563eb;
+  }
+
+
+  /* ---------- Hover ---------- */
+
+  .notification-item:hover {
+    background: #f1f5f9;
+
+    box-shadow:
+      inset 0 0 0 1px #e2e8f0;
+  }
+
+
+  /* ==========================================
+     CONTENT
+     ========================================== */
+
+  .notification-item-top {
+    display: flex;
+
+    gap: 12px;
+
+    align-items: flex-start;
+  }
+
+  .notification-content {
+    flex: 1;
+
+    min-width: 0;
+  }
+
+
+  /* ---------- Title ---------- */
+
+  .notification-title {
+    margin: 0 0 5px;
+
+    font-size: 30px;
+
+    line-height: 1.35;
+
+    font-weight: 700;
+
+    color: #1f2937;
+  }
+
+
+  /* ---------- Message ---------- */
+
+  .notification-message {
+    margin: 0;
+
+    font-size: 30px;
+
+    line-height: 1.55;
+
+    color: #4b5563;
+
+    word-break: break-word;
+  }
+
+
+  /* ---------- Time ---------- */
+
+  .notification-time {
+    margin-top: 7px;
+
+    font-size: 25px;
+
+    line-height: 1.3;
+
+    color: #9ca3af;
+  }
+
+
+  /* ==========================================
+     ACTION BUTTONS
+     ========================================== */
+
+  .notification-actions {
+    margin-top: 12px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    flex-wrap: wrap;
+  }
+
+
+  /* ---------- Profile Button ---------- */
+
+  .notification-profile-btn {
+    border: none;
+
+    border-radius: 8px;
+
+    padding: 8px 12px;
+
+    background: #eef2ff;
+
+    color: #3730a3;
+
+    cursor: pointer;
+
+    font-size: 30px;
+
+    font-weight: 600;
+
+    transition:
+      background 0.2s ease,
+      transform 0.15s ease;
+  }
+
+  .notification-profile-btn:hover {
+    background: #e0e7ff;
+  }
+
+  .notification-profile-btn:active {
+    transform: scale(0.97);
+  }
+
+
+  /* ---------- Mark Read ---------- */
+
+  .notification-mark-read-btn {
+    border: none;
+
+    background: transparent;
+
+    color: #6b7280;
+
+    cursor: pointer;
+
+    font-size: 30px;
+
+    font-weight: 600;
+
+    padding: 8px 10px;
+
+    border-radius: 7px;
+
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .notification-mark-read-btn:hover {
+    background: #f3f4f6;
+
+    color: #374151;
+  }
+
+
+  /* ==========================================
+     FOOTER
+     ========================================== */
+
+  .notification-footer {
+    padding: 11px 16px;
+
+    border-top: 1px solid #e5e7eb;
+
+    text-align: center;
+
+    background: #fafafa;
+  }
+
+  .notification-mark-all-btn {
+    border: none;
+
+    background: transparent;
+
+    color: #555;
+
+    cursor: pointer;
+
+    font-size: 30px;
+
+    font-weight: 600;
+  }
+
+  .notification-mark-all-btn:hover {
+    color: #111;
+  }
+
+
+  /* ==========================================
+     EMPTY STATE
+     ========================================== */
+
+  .notification-empty {
+    padding: 50px 20px;
+
+    text-align: center;
+
+    color: #777;
+
+    background: #fff;
+  }
+
+  .notification-empty-icon {
+    font-size: 38px;
+
+    margin-bottom: 10px;
+  }
+
+  .notification-empty-text {
+    font-size: 30px;
+
+    color: #6b7280;
+  }
+
+
+  /* ==========================================
+     LOADING
+     ========================================== */
+
+  .notification-loading {
+    padding: 40px 20px;
+
+    text-align: center;
+
+    color: #777;
+
+    font-size: 30px;
+  }
+
+
+  /* ==========================================
+     ERROR
+     ========================================== */
+
+  .notification-error {
+    padding: 30px 20px;
+
+    text-align: center;
+
+    color: #b42318;
+
+    font-size: 13px;
+  }
+
+
+  /* ==========================================
+     ALL READ STATUS
+     ========================================== */
+
+  .notification-all-read-status {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    color: #16a34a;
+
+    font-size: 30px;
+
+    font-weight: 700;
+
+    padding: 6px 10px;
+  }
+
+
+  /* ==========================================
+     CHATBOT EMBEDDED NOTIFICATION VIEW
+     ========================================== */
+
+  .notification-chat-wrapper {
+    width: 100%;
+
+    box-sizing: border-box;
+  }
+
+  .notification-panel.chat-embedded {
+    position: relative;
+
+    top: auto;
+    right: auto;
+    left: auto;
+
+    width: 100%;
+    max-width: 100%;
+
+    max-height: none;
+
+    margin: 0;
+
+    box-shadow: none;
+
+    border-radius: 12px;
+
+    display: block;
+  }
+
+
+  /* ==========================================
+     SCROLLBAR
+     ========================================== */
+
+  .notification-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .notification-list::-webkit-scrollbar-track {
+    background: #f8fafc;
+  }
+
+  .notification-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+
+    border-radius: 10px;
+  }
+
+  .notification-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+
+  /* ==========================================
+     MOBILE
+     ========================================== */
+
+  @media (max-width: 600px) {
+
+    .notification-panel {
+      position: fixed;
+
+      top: 64px;
+
+      left: 10px;
+      right: 10px;
+
+      width: auto;
+
+      max-width: none;
+
+      max-height: calc(100vh - 80px);
+
+      border-radius: 14px;
+    }
+
+    .notification-list {
+      max-height: calc(100vh - 170px);
+    }
+
+    .notification-header-title {
+      font-size: 30px;
+    }
+
+    .notification-item {
+      padding: 14px 15px;
+    }
+
+    .notification-title {
+      font-size: 30px;
+    }
+
+    .notification-message {
+      font-size: 30px;
+    }
+
+    .notification-actions {
+      margin-top: 10px;
+    }
+
+    .notification-profile-btn,
+    .notification-mark-read-btn {
+      font-size: 30px;
+    }
+  }
+</style>
+
+
+<div id="notificationModule" class="notification-module">
+
+  <!-- Notification Panel -->
+  <div id="notificationPanel" class="notification-panel" aria-hidden="true">
+
+    <div class="notification-header">
+
+      <h3 class="notification-header-title">
+        🔔 Notifications
+         <span id="notificationHeaderCount" class="notification-header-count">0</span>
+      </h3>
+
+      <button
+        type="button"
+        id="notificationCloseButton"
+        class="notification-close-btn"
+        aria-label="Close notifications"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div id="notificationList" class="notification-list">
+
+      <div class="notification-loading">
+        Notifications loading...
+      </div>
+
+    </div>
+
+
+    <div class="notification-footer">
+
+      <button
+        type="button"
+        id="notificationMarkAllButton"
+        class="notification-mark-all-btn"
+      >
+        Mark all as read
+      </button>
+
+      <span
+        id="notificationAllReadStatus"
+        class="notification-all-read-status"
+        style="display:none;"
+        aria-label="All notifications are read"
+      >
+        ✓ All read
+      </span>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+  (function () {
+
+  'use strict';
+
+
+  /*
+   * ==========================================================
+   * MODULE STATE
+   * ==========================================================
+   */
+
+  let notificationState = {
+    notifications: [],
+    unreadCount: 0,
+    isOpen: false,
+    isLoading: false,
+    chatWrapper: null
+  };
+
+
+  /*
+   * ==========================================================
+   * ELEMENT HELPERS
+   * ==========================================================
+   */
+
+  function getElement(id) {
+    return document.getElementById(id);
+  }
+
+
+  /*
+   * ==========================================================
+   * BADGE
+   * ==========================================================
+   */
+
+    function updateNotificationBadge(count) {
+
+      const safeCount = Number(count) || 0;
+
+      // Existing notification badge
+      const badge =
+        document.getElementById("notificationBadge");
+
+      if (badge) {
+        badge.textContent = safeCount > 99
+          ? "99+"
+          : String(safeCount);
+
+        badge.style.display =
+          safeCount > 0 ? "inline-flex" : "none";
+      }
+
+      // Notification header count
+      const headerCount =
+        document.getElementById(
+          "notificationHeaderCount"
+        );
+
+      if (headerCount) {
+        headerCount.textContent =
+          safeCount > 99
+            ? "99+"
+            : String(safeCount);
+
+        headerCount.style.display =
+          safeCount > 0
+            ? "inline-flex"
+            : "none";
+      }
+    }
+
+
+  /*
+   * ==========================================================
+   * EVENT ICON
+   * ==========================================================
+   */
+
+  function getNotificationIcon(eventType) {
+
+    switch (
+      String(eventType || '').toUpperCase()
+    ) {
+
+      case 'LIKE':
+        return '❤️';
+
+      case 'DISLIKE':
+        return '👎';
+
+      case 'INTEREST_SENT':
+        return '💌';
+
+      case 'INTEREST_ACCEPTED':
+        return '✅';
+
+      case 'INTEREST_DECLINED':
+        return '❌';
+
+      case 'MUTUAL_MATCH':
+        return '🤝';
+
+      default:
+        return '🔔';
+    }
+  }
+
+
+  /*
+   * ==========================================================
+   * DATE FORMAT
+   * ==========================================================
+   */
+
+  function formatNotificationTime(value) {
+
+    if (!value) {
+      return '';
+    }
+
+    const date =
+      value instanceof Date
+        ? value
+        : new Date(value);
+
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+
+    const now = new Date();
+
+    const difference =
+      now.getTime() - date.getTime();
+
+    const seconds =
+      Math.floor(difference / 1000);
+
+    if (seconds < 60) {
+      return 'Just now';
+    }
+
+    const minutes =
+      Math.floor(seconds / 60);
+
+    if (minutes < 60) {
+      return minutes === 1
+        ? '1 minute ago'
+        : minutes + ' minutes ago';
+    }
+
+    const hours =
+      Math.floor(minutes / 60);
+
+    if (hours < 24) {
+      return hours === 1
+        ? '1 hour ago'
+        : hours + ' hours ago';
+    }
+
+    const days =
+      Math.floor(hours / 24);
+
+    if (days < 7) {
+      return days === 1
+        ? 'Yesterday'
+        : days + ' days ago';
+    }
+
+    return date.toLocaleDateString(
+      'en-IN',
+      {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }
+    );
+  }
+
+
+  /*
+   * ==========================================================
+   * ESCAPE HTML
+   * ==========================================================
+   */
+
+  function escapeHtml(value) {
+
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+
+ 
+
+      /*
+ * ==========================================================
+ * RENDER LIST
+ * ==========================================================
+ *
+ * IMPORTANT:
+ * Read notifications are intentionally NOT displayed.
+ *
+ * - Unread  -> displayed
+ * - Read    -> hidden
+ *
+ * This keeps the notification panel focused only on
+ * notifications that still need user attention.
+ */
+
+function renderNotifications() {
+
+  const list =
+    getElement('notificationList');
+
+  if (!list) {
+    return;
+  }
+
+
+  // ==========================================
+  // ALL NOTIFICATIONS FROM STATE
+  // ==========================================
+
+  const allNotifications =
+    notificationState.notifications || [];
+
+
+  // ==========================================
+  // SHOW ONLY UNREAD NOTIFICATIONS
+  // ==========================================
+
+  const notifications =
+    allNotifications.filter(
+      function (notification) {
+
+        return (
+          notification &&
+          notification.isRead !== true
+        );
+
+      }
+    );
+
+
+  // ==========================================
+  // UPDATE UNREAD COUNT
+  // ==========================================
+
+  notificationState.unreadCount =
+    notifications.length;
+
+
+  updateNotificationBadge(
+    notificationState.unreadCount
+  );
+
+
+  // ==========================================
+  // UPDATE MARK ALL / ALL READ STATUS
+  // ==========================================
+
+  const markAllButton =
+    document.getElementById(
+      'notificationMarkAllButton'
+    );
+
+  const allReadStatus =
+    document.getElementById(
+      'notificationAllReadStatus'
+    );
+
+
+  if (notifications.length === 0) {
+
+    // ----------------------------------------
+    // No unread notifications
+    // ----------------------------------------
+
+    if (markAllButton) {
+
+      markAllButton.style.display =
+        'none';
+
+    }
+
+
+    if (allReadStatus) {
+
+      allReadStatus.style.display =
+        'inline-flex';
+
+    }
+
+
+    // ----------------------------------------
+    // Empty notification list
+    // ----------------------------------------
+
+    list.innerHTML = `
+      <div class="notification-empty">
+
+        <div class="notification-empty-icon">
+          🔕
+        </div>
+
+        <div class="notification-empty-text">
+          No new notifications.
+        </div>
+
+      </div>
+    `;
+
+    return;
+  }
+
+
+  // ==========================================
+  // UNREAD NOTIFICATIONS AVAILABLE
+  // ==========================================
+
+  if (markAllButton) {
+
+    markAllButton.style.display =
+      '';
+
+  }
+
+
+  if (allReadStatus) {
+
+    allReadStatus.style.display =
+      'none';
+
+  }
+
+
+  // ==========================================
+  // RENDER ONLY UNREAD NOTIFICATIONS
+  // ==========================================
+
+  list.innerHTML =
+    notifications
+      .map(
+        function (notification) {
+
+          const notificationId =
+            escapeHtml(
+              notification.notificationId
+            );
+
+
+          const eventType =
+            escapeHtml(
+              notification.eventType
+            );
+
+
+          const title =
+            escapeHtml(
+              notification.title
+            );
+
+
+          const message =
+            escapeHtml(
+              notification.message
+            );
+
+
+          const time =
+            escapeHtml(
+              formatNotificationTime(
+                notification.createdAt
+              )
+            );
+
+
+          return `
+            <div
+              class="notification-item unread"
+              data-notification-id="${notificationId}"
+            >
+
+              <div class="notification-item-top">
+
+                <div class="notification-content">
+
+                  <p class="notification-title">
+                    ${title}
+                  </p>
+
+
+                  <p class="notification-message">
+                    ${message}
+                  </p>
+
+
+                  <div class="notification-time">
+                    ${time}
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <div class="notification-actions">
+
+                <button
+                  type="button"
+                  class="notification-profile-btn"
+                  data-action="profile"
+                  data-notification-id="${notificationId}"
+                >
+                  👤 Profile पाहा
+                </button>
+
+
+                <button
+                  type="button"
+                  class="notification-mark-read-btn"
+                  data-action="read"
+                  data-notification-id="${notificationId}"
+                >
+                  Mark read
+                </button>
+
+              </div>
+
+            </div>
+          `;
+
+        }
+      )
+      .join('');
+}
+
+
+  /*
+   * ==========================================================
+   * LOAD NOTIFICATIONS
+   * ==========================================================
+   *
+   * NOTE:
+   * For standalone testing this uses the existing test mobile.
+   *
+   * Final integration will replace this with the authenticated
+   * server-side identity flow.
+   */
+
+  function loadNotifications() {
+
+      // ==========================================
+      // VERIFY GOOGLE SCRIPT CONNECTION
+      // ==========================================
+
+      if (
+        typeof google === 'undefined' ||
+        !google.script ||
+        !google.script.run
+      ) {
+
+        console.error(
+          '[NotificationUI] Google Apps Script connection unavailable.'
+        );
+
+        return;
+      }
+
+
+      // ==========================================
+      // AUTHENTICATED USER MOBILE
+      // ==========================================
+
+      const authenticatedMobile =
+        typeof profileUserMobile !== 'undefined'
+          ? String(profileUserMobile || '').trim()
+          : '';
+
+
+      if (!authenticatedMobile) {
+
+        console.error(
+          '[NotificationUI] Authenticated user mobile not available.'
+        );
+
+        botMessage(`
+          ⚠️ <b>Notifications unavailable</b>
+
+          <br><br>
+
+          User verification information
+          उपलब्ध नाही.
+        `);
+
+        return;
+      }
+
+
+      // ==========================================
+      // LOADING STATE
+      // ==========================================
+
+      notificationState.isLoading = true;
+
+
+      // ==========================================
+      // FETCH NOTIFICATIONS
+      // ==========================================
+
+      google.script.run
+
+        .withSuccessHandler(
+          function (result) {
+
+            notificationState.isLoading = false;
+
+
+            // --------------------------------------
+            // FAILURE RESPONSE
+            // --------------------------------------
+
+            if (
+              !result ||
+              result.success !== true
+            ) {
+
+              console.error(
+                '[NotificationUI] Unable to load notifications:',
+                result
+              );
+
+              botMessage(`
+                ⚠️ <b>Notifications</b>
+
+                <br><br>
+
+                ${
+                  result &&
+                  result.message
+                    ? escapeHtml(result.message)
+                    : 'Unable to load notifications.'
+                }
+              `);
+
+              return;
+            }
+
+
+            // --------------------------------------
+            // STORE DATA
+            // --------------------------------------
+
+            notificationState.notifications =
+              Array.isArray(
+                result.notifications
+              )
+                ? result.notifications
+                : [];
+
+
+            notificationState.unreadCount =
+              Number(
+                result.unreadCount || 0
+              );
+
+
+            // --------------------------------------
+            // UPDATE BADGE
+            // --------------------------------------
+
+            updateNotificationBadge(
+              notificationState.unreadCount
+            );
+
+
+            // --------------------------------------
+            // RENDER INSIDE CHATBOT
+            // --------------------------------------
+
+            renderNotifications();
+
+          }
+        )
+
+        .withFailureHandler(
+          function (error) {
+
+            notificationState.isLoading = false;
+
+            console.error(
+              '[NotificationUI] loadNotifications failed:',
+              error
+            );
+
+
+            botMessage(`
+              ⚠️ <b>Notifications</b>
+
+              <br><br>
+
+              Notifications load करता आले नाहीत.
+            `);
+
+          }
+        )
+
+        .getUserNotifications(
+          authenticatedMobile,
+          50
+        );
+
+  }
+
+
+  /*
+   * ==========================================================
+   * ERROR
+   * ==========================================================
+   */
+
+  function showNotificationError(message) {
+
+    const list =
+      getElement('notificationList');
+
+    if (!list) {
+      return;
+    }
+
+    list.innerHTML = `
+      <div class="notification-error">
+        ${escapeHtml(message)}
+      </div>
+    `;
+  }
+
+
+  /*
+   * ==========================================================
+   * OPEN PANEL
+   * ==========================================================
+   */
+
+function openNotificationPanel() {
+
+  // ==========================================
+  // OPEN INSIDE EXISTING CHATBOT
+  // ==========================================
+
+  const chat =
+    document.getElementById('chat');
+
+  const panel =
+    getElement('notificationPanel');
+
+
+  if (!chat) {
+
+    console.error(
+      '[NotificationUI] Chat container not found.'
+    );
+
+    return;
+  }
+
+
+  if (!panel) {
+
+    console.error(
+      '[NotificationUI] Notification panel not found.'
+    );
+
+    return;
+  }
+
+
+  // ==========================================
+  // PREVENT DUPLICATE CHAT MESSAGE
+  // ==========================================
+
+  if (notificationState.isOpen) {
+
+    scrollChat();
+
+    return;
+  }
+
+
+  // ==========================================
+  // CREATE CHATBOT MESSAGE WRAPPER
+  // ==========================================
+
+  const wrapper =
+    document.createElement('div');
+
+  wrapper.className =
+    'bot notification-chat-wrapper';
+
+  wrapper.id =
+    'notification-chat-' + Date.now();
+
+
+  // ==========================================
+  // MOVE EXISTING NOTIFICATION UI
+  // INTO THE CHATBOT MESSAGE
+  // ==========================================
+
+  chat.appendChild(wrapper);
+
+  wrapper.appendChild(panel);
+
+
+  panel.classList.add('chat-embedded');
+
+  panel.setAttribute(
+    'aria-hidden',
+    'false'
+  );
+
+
+  // ==========================================
+  // STORE OPEN STATE
+  // ==========================================
+
+  notificationState.isOpen = true;
+
+  notificationState.chatWrapper =
+    wrapper;
+
+
+  // ==========================================
+  // LOAD LATEST NOTIFICATIONS
+  // ==========================================
+
+  loadNotifications();
+
+
+  // ==========================================
+  // SCROLL CHAT TO NOTIFICATION MESSAGE
+  // ==========================================
+
+  setTimeout(function () {
+
+    if (typeof scrollChat === 'function') {
+      scrollChat();
+    }
+
+  }, 50);
+
+
+  console.log(
+    '[NotificationUI] Notifications opened inside chatbot.'
+  );
+
+}
+
+
+  /*
+   * ==========================================================
+   * CLOSE PANEL
+   * ==========================================================
+   */
+
+  function closeNotificationPanel() {
+
+    const panel =
+      getElement('notificationPanel');
+
+    const module =
+      getElement('notificationModule');
+
+    const wrapper =
+      notificationState.chatWrapper;
+
+
+    if (!panel) {
+      return;
+    }
+
+
+    notificationState.isOpen = false;
+
+
+    // ==========================================
+    // RETURN PANEL TO NOTIFICATION MODULE
+    // ==========================================
+
+    if (module) {
+      module.appendChild(panel);
+    }
+
+
+    panel.classList.remove(
+      'chat-embedded'
+    );
+
+    panel.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+
+    // ==========================================
+    // REMOVE CHATBOT MESSAGE WRAPPER
+    // ==========================================
+
+    if (wrapper && wrapper.parentNode) {
+      wrapper.parentNode.removeChild(wrapper);
+    }
+
+
+    notificationState.chatWrapper =
+      null;
+
+  }
+
+
+  /*
+   * ==========================================================
+   * MARK ONE AS READ
+   * ==========================================================
+   */
+
+        function markNotificationRead(
+          notificationId,
+          callback
+        ) {
+
+          if (!notificationId) {
+
+            if (typeof callback === 'function') {
+              callback({
+                success: false,
+                code: 'INVALID_NOTIFICATION_ID'
+              });
+            }
+
+            return;
+          }
+
+
+          // ==========================================
+          // VERIFIED USER MOBILE
+          // ==========================================
+
+          const authenticatedMobile =
+            typeof profileUserMobile !== 'undefined'
+              ? String(profileUserMobile || '').trim()
+              : '';
+
+
+          if (!authenticatedMobile) {
+
+            console.error(
+              '[NotificationUI] Authenticated mobile not available.'
+            );
+
+            if (typeof callback === 'function') {
+              callback({
+                success: false,
+                code: 'AUTHENTICATED_MOBILE_NOT_AVAILABLE'
+              });
+            }
+
+            return;
+          }
+
+
+          // ==========================================
+          // MARK NOTIFICATION AS READ
+          // ==========================================
+
+          google.script.run
+
+            .withSuccessHandler(function(result) {
+
+              console.log(
+                '[NotificationUI] Mark as read result:',
+                result
+              );
+
+
+              if (
+                result &&
+                result.success === true
+              ) {
+
+                const notification =
+                  notificationState.notifications.find(
+                    function(item) {
+
+                      return (
+                        item.notificationId ===
+                        notificationId
+                      );
+
+                    }
+                  );
+
+
+                if (notification) {
+
+                  notification.isRead =
+                    true;
+
+                  notification.readAt =
+                    result.readAt || null;
+
+                }
+
+
+                // ======================================
+                // UPDATE UNREAD COUNT
+                // ======================================
+
+                notificationState.unreadCount =
+                  notificationState.notifications
+                    .filter(function(item) {
+
+                      return (
+                        item &&
+                        item.isRead !== true
+                      );
+
+                    })
+                    .length;
+
+
+                updateNotificationBadge(
+                  notificationState.unreadCount
+                );
+
+
+                renderNotifications();
+
+              }
+
+
+              // ======================================
+              // IMPORTANT:
+              // ALWAYS CONTINUE CALLBACK
+              // ======================================
+
+              if (
+                typeof callback === 'function'
+              ) {
+
+                callback(result);
+
+              }
+
+            })
+
+
+            .withFailureHandler(function(error) {
+
+              console.error(
+                '[NotificationUI] Mark as read failed:',
+                error
+              );
+
+
+              // ======================================
+              // IMPORTANT:
+              // PROFILE SHOULD STILL OPEN
+              // EVEN IF READ UPDATE FAILS
+              // ======================================
+
+              if (
+                typeof callback === 'function'
+              ) {
+
+                callback({
+
+                  success: false,
+
+                  code:
+                    'MARK_READ_FAILED',
+
+                  error:
+                    error
+
+                });
+
+              }
+
+            })
+
+
+            .markNotificationAsReadFixed(
+              authenticatedMobile,
+              notificationId
+            );
+
+        }
+
+
+  /*
+   * ==========================================================
+   * MARK ALL AS READ
+   * ==========================================================
+   */
+
+  function markAllNotificationsRead() {
+
+    
+          google.script.run
+            .withSuccessHandler(function(result) {
+              console.log("[NotificationUI] Mark all as read result:", result);
+
+              if (result && result.success) {
+                const readAt = result.readAt || null;
+
+                notificationState.notifications.forEach(function(notification) {
+                  notification.isRead = true;
+                  notification.readAt = readAt;
+                });
+
+                renderNotifications();
+              }
+            })
+            .withFailureHandler(function(error) {
+              console.error("[NotificationUI] Mark all as read failed:", error);
+            })
+            .markAllNotificationsAsReadFixed(
+              profileUserMobile
+            );
+
+    
+  }
+
+
+  /*
+   * ==========================================================
+   * OPEN RELATED PROFILE
+   * ==========================================================
+   *
+   * IMPORTANT:
+   * We deliberately reuse the existing profile flow.
+   *
+   * No new profile viewer is created here.
+   */
+
+  function openNotificationProfile(
+    notificationId
+  ) {
+
+    const notification =
+      notificationState.notifications
+        .find(function (item) {
+
+          return (
+            item.notificationId ===
+            notificationId
+          );
+
+        });
+
+
+    if (!notification) {
+      return;
+    }
+
+
+    /*
+     * Mark notification read first.
+     */
+    markNotificationRead(
+      notificationId,
+      function () {
+
+        const targetType =
+          notification.targetType;
+
+        const targetProfileId =
+          notification.targetProfileId;
+
+
+        if (
+          !targetType ||
+          !targetProfileId
+        ) {
+
+          console.warn(
+            '[NotificationUI] Missing profile target.'
+          );
+
+          return;
+        }
+
+
+        /*
+         * Existing application function.
+         *
+         * We do NOT create or replace profile UI.
+         */
+        if (
+          typeof window.viewFullProfile ===
+          'function'
+        ) {
+
+          closeNotificationPanel();
+
+          window.viewFullProfile(
+            targetType,
+            targetProfileId
+          );
+
+          return;
+        }
+
+
+        /*
+         * If viewFullProfile is not yet available
+         * in standalone testing, keep the UI stable.
+         */
+        console.warn(
+          '[NotificationUI] Existing viewFullProfile() is not available in standalone mode.'
+        );
+
+      }
+    );
+  }
+
+
+  /*
+   * ==========================================================
+   * CLICK HANDLERS
+   * ==========================================================
+   */
+
+  function initializeNotificationUI() {
+
+    const bell =
+      getElement('notificationBellButton');
+
+    const close =
+      getElement('notificationCloseButton');
+
+    const markAll =
+      getElement('notificationMarkAllButton');
+
+    const list =
+      getElement('notificationList');
+
+
+    if (bell) {
+
+      bell.addEventListener(
+        'click',
+        function (event) {
+
+          event.stopPropagation();
+
+          if (
+            notificationState.isOpen
+          ) {
+
+            closeNotificationPanel();
+
+          } else {
+
+            openNotificationPanel();
+
+          }
+
+        }
+      );
+    }
+
+
+    if (close) {
+
+      close.addEventListener(
+        'click',
+        function () {
+
+          closeNotificationPanel();
+
+        }
+      );
+    }
+
+
+    if (markAll) {
+
+      markAll.addEventListener(
+        'click',
+        function () {
+
+          markAllNotificationsRead();
+
+        }
+      );
+    }
+
+
+    if (list) {
+
+      list.addEventListener(
+        'click',
+        function (event) {
+
+          const button =
+            event.target.closest(
+              'button[data-action]'
+            );
+
+
+          if (!button) {
+            return;
+          }
+
+
+          const action =
+            button.getAttribute(
+              'data-action'
+            );
+
+          const notificationId =
+            button.getAttribute(
+              'data-notification-id'
+            );
+
+
+          if (
+            action === 'profile'
+          ) {
+
+            openNotificationProfile(
+              notificationId
+            );
+
+          } else if (
+            action === 'read'
+          ) {
+
+            markNotificationRead(
+              notificationId
+            );
+
+          }
+
+        }
+      );
+    }
+
+
+
+    console.log(
+      '[NotificationUI] Initialized successfully.'
+    );
+  }
+
+
+  /*
+   * ==========================================================
+   * OPTIONAL PUBLIC API
+   * ==========================================================
+   *
+   * These functions are exposed only under a dedicated
+   * namespace so we do not pollute existing global functions.
+   */
+
+  window.NotificationUI = {
+
+    open:
+      openNotificationPanel,
+
+    close:
+      closeNotificationPanel,
+
+    refresh:
+      loadNotifications,
+
+    getState:
+      function () {
+        return notificationState;
+      }
+
+  };
+
+
+  /*
+   * ==========================================================
+   * INITIALIZE
+   * ==========================================================
+   */
+
+  if (
+    document.readyState === 'loading'
+  ) {
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      initializeNotificationUI
+    );
+
+  } else {
+
+    initializeNotificationUI();
+
+  }
+
+})();
+</script>

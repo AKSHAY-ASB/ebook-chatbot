@@ -253,6 +253,159 @@ function saveProfileReaction(
 
       );
 
+
+      // ==========================================
+      // NOTIFICATION INTEGRATION — DISLIKE ONLY
+      //
+      // IMPORTANT:
+      // Notification failure MUST NEVER
+      // affect the saved reaction.
+      // ==========================================
+
+      if (reaction === "DISLIKE") {
+
+        try {
+
+          if (
+            typeof notifyAfterProfileDislike ===
+            "function"
+          ) {
+
+            const notificationResult =
+              notifyAfterProfileDislike({
+
+                // User who performed DISLIKE
+                actorMobile:
+                  viewerMobile,
+
+                actorName:
+                  viewerName,
+
+                actorType:
+                  viewerProfileType,
+
+                actorProfileId:
+                  viewerProfileId,
+
+                // Owner of target profile
+                recipientMobile:
+                  targetMobile,
+
+                recipientName:
+                  targetProfileName,
+
+                recipientType:
+                  targetProfileType,
+
+                recipientProfileId:
+                  targetProfileId
+
+              });
+
+            console.log(
+              "[Notification] DISLIKE integration result:",
+              notificationResult
+            );
+
+          }
+          else {
+
+            console.warn(
+              "[Notification] notifyAfterProfileDislike() not found."
+            );
+
+          }
+
+        }
+        catch (notificationError) {
+
+          console.error(
+            "[Notification] DISLIKE notification failed:",
+            notificationError
+          );
+
+        }
+
+      }
+
+
+      // ==========================================
+      // MUTUAL MATCH NOTIFICATION
+      // ==========================================
+      //
+      // Notification failure MUST NEVER
+      // affect the original reaction action.
+      // ==========================================
+
+      if (
+        relationship &&
+        relationship.status ===
+          RELATIONSHIP_STATUS.MUTUAL_LIKE
+      ) {
+
+        try {
+
+          if (
+            typeof notifyAfterMutualMatch ===
+            "function"
+          ) {
+
+            const mutualMatchNotificationResult =
+              notifyAfterMutualMatch({
+
+                userAMobile:
+                  viewerMobile,
+
+                userAName:
+                  viewerName,
+
+                userAType:
+                  viewerProfileType,
+
+                userAProfileId:
+                  viewerProfileId,
+
+                userBMobile:
+                  targetMobile,
+
+                userBName:
+                  targetProfileName,
+
+                userBType:
+                  targetProfileType,
+
+                userBProfileId:
+                  targetProfileId
+
+              });
+
+            console.log(
+              "[Notification] MUTUAL_MATCH integration result:",
+              mutualMatchNotificationResult
+            );
+
+          }
+          else {
+
+            console.warn(
+              "[Notification] notifyAfterMutualMatch() not found."
+            );
+
+          }
+
+        }
+        catch (notificationError) {
+
+          console.error(
+            "[Notification] MUTUAL_MATCH notification failed:",
+            notificationError
+          );
+
+        }
+
+      }
+
+
       return {
 
             success: true,
@@ -330,6 +483,143 @@ function saveProfileReaction(
         targetMobile
 
     );
+
+
+
+        // ==========================================
+    // NOTIFICATION INTEGRATION — DISLIKE ONLY
+    // ==========================================
+
+    if (reaction === "DISLIKE") {
+
+      try {
+
+        if (
+          typeof notifyAfterProfileDislike ===
+          "function"
+        ) {
+
+          const notificationResult =
+            notifyAfterProfileDislike({
+
+              actorMobile:
+                viewerMobile,
+
+              actorName:
+                viewerName,
+
+              actorType:
+                viewerProfileType,
+
+              actorProfileId:
+                viewerProfileId,
+
+              recipientMobile:
+                targetMobile,
+
+              recipientName:
+                targetProfileName,
+
+              recipientType:
+                targetProfileType,
+
+              recipientProfileId:
+                targetProfileId
+
+            });
+
+          console.log(
+            "[Notification] DISLIKE integration result:",
+            notificationResult
+          );
+
+        }
+
+      }
+      catch (notificationError) {
+
+        console.error(
+          "[Notification] DISLIKE notification failed:",
+          notificationError
+        );
+
+      }
+
+    }
+
+
+
+    // ==========================================
+    // MUTUAL MATCH NOTIFICATION
+    // ==========================================
+
+    if (
+      relationship &&
+      relationship.status ===
+        RELATIONSHIP_STATUS.MUTUAL_LIKE
+    ) {
+
+      try {
+
+        if (
+          typeof notifyAfterMutualMatch ===
+          "function"
+        ) {
+
+          const mutualMatchNotificationResult =
+            notifyAfterMutualMatch({
+
+              userAMobile:
+                viewerMobile,
+
+              userAName:
+                viewerName,
+
+              userAType:
+                viewerProfileType,
+
+              userAProfileId:
+                viewerProfileId,
+
+              userBMobile:
+                targetMobile,
+
+              userBName:
+                targetProfileName,
+
+              userBType:
+                targetProfileType,
+
+              userBProfileId:
+                targetProfileId
+
+            });
+
+          console.log(
+            "[Notification] MUTUAL_MATCH integration result:",
+            mutualMatchNotificationResult
+          );
+
+        }
+        else {
+
+          console.warn(
+            "[Notification] notifyAfterMutualMatch() not found."
+          );
+
+        }
+
+      }
+      catch (notificationError) {
+
+        console.error(
+          "[Notification] MUTUAL_MATCH notification failed:",
+          notificationError
+        );
+
+      }
+
+    }
 
 
     return {
