@@ -1,0 +1,700 @@
+<script>
+
+/* =========================================================
+   AI SEARCH INTENT GATE
+   =========================================================
+ *
+ * Purpose:
+ * - Detect whether a user message is a matrimonial
+ *   profile-search request.
+ *
+ * - Return TRUE  -> AI Search may handle the query.
+ * - Return FALSE -> Existing FAQ / askBot() must handle it.
+ *
+ * IMPORTANT:
+ * - No Google Sheet access.
+ * - No FAQ modification.
+ * - No profile search modification.
+ * - No state modification.
+ * ========================================================= */
+
+
+/* =========================================================
+   NORMALIZE USER QUERY
+   ========================================================= */
+
+function normalizeAISearchIntentText(text) {
+
+  return String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+
+}
+
+
+/* =========================================================
+   EXPLICIT FAQ / GENERAL CHAT DETECTION
+   =========================================================
+ *
+ * These should remain with the existing FAQ system.
+ */
+
+function isExplicitFAQQuery(text) {
+
+  const query =
+    normalizeAISearchIntentText(text);
+
+  if (!query) {
+    return false;
+  }
+
+
+  const faqPatterns = [
+
+    // E-book
+    /\be[\s-]?book\b/i,
+    /ebook/i,
+    /ई[\s-]?बुक/i,
+    /ईबुक/i,
+
+    // Registration
+    /registration/i,
+    /register/i,
+    /नोंदणी/i,
+    /रजिस्ट्रेशन/i,
+    /नोंदणी\s*कर/i,
+
+    // Links
+    /\blink\b/i,
+    /\blinks\b/i,
+    /लिंक/i,
+    /लिंक्स/i,
+
+    // Contact
+    /contact/i,
+    /संपर्क/i,
+    /फोन\s*नंबर/i,
+    /मोबाईल\s*नंबर/i,
+
+    // WhatsApp
+    /whatsapp/i,
+    /व्हॉट्स?अॅप/i,
+
+    // General greetings
+    /^hello$/i,
+    /^hi$/i,
+    /^hey$/i,
+    /^नमस्कार$/i,
+    /^हॅलो$/i,
+    /^हाय$/i
+
+  ];
+
+
+  return faqPatterns.some(
+    function(pattern) {
+
+      return pattern.test(query);
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   MATRIMONIAL PROFILE SEARCH SIGNALS
+   ========================================================= */
+
+function hasAISearchProfileTypeSignal(text) {
+
+  const query =
+    normalizeAISearchIntentText(text);
+
+
+  return (
+
+    // Bride
+    /मुलगी/.test(query) ||
+    /वधू/.test(query) ||
+    /bride/.test(query) ||
+
+    // Groom
+    /मुलगा/.test(query) ||
+    /वर/.test(query) ||
+    /groom/.test(query) ||
+
+    // Other profile
+    /वधूवर/.test(query) ||
+    /profile/.test(query) ||
+    /प्रोफाइल/.test(query)
+
+  );
+
+}
+
+
+/* =========================================================
+   LOCATION SIGNAL
+   ========================================================= */
+
+function hasAISearchLocationSignal(text) {
+
+  const query =
+    normalizeAISearchIntentText(text);
+
+
+  const locations = [
+
+    "पुणे",
+    "मुंबई",
+    "ठाणे",
+    "नागपूर",
+    "नाशिक",
+    "कोल्हापूर",
+    "सांगली",
+    "सातारा",
+    "सोलापूर",
+    "अहमदनगर",
+    "अहिल्यानगर",
+    "औरंगाबाद",
+    "छत्रपती संभाजीनगर",
+    "जळगाव",
+    "रत्नागिरी",
+    "नांदेड",
+
+    "pune",
+    "mumbai",
+    "thane",
+    "nagpur",
+    "nashik",
+    "kolhapur",
+    "sangli",
+    "satara",
+    "solapur",
+    "ahmednagar",
+    "ahilyanagar",
+    "aurangabad",
+    "chhatrapati sambhajinagar",
+    "jalgaon",
+    "ratnagiri",
+    "nanded"
+
+  ];
+
+
+  return locations.some(
+    function(location) {
+
+      return query.includes(location);
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   EDUCATION / PROFESSION SIGNAL
+   ========================================================= */
+
+function hasAISearchEducationOrProfessionSignal(text) {
+
+  const query =
+    normalizeAISearchIntentText(text);
+
+
+  const signals = [
+
+    // Engineering / IT
+    "engineering",
+    "engineer",
+    "इंजिनिअर",
+    "इंजिनियर",
+    "अभियांत्रिकी",
+    "software",
+    "software engineer",
+    "developer",
+    "developer",
+    "it field",
+    "आयटी",
+    "it",
+
+    // Medical
+    "doctor",
+    "डॉक्टर",
+    "medical",
+    "मेडिकल",
+    "mbbs",
+    "md",
+
+    // Commerce
+    "commerce",
+    "कॉमर्स",
+    "ca",
+    "accountant",
+    "अकाउंटंट",
+
+    // Arts
+    "arts",
+    "कला",
+
+    // Science
+    "science",
+    "सायन्स",
+
+    // Management
+    "management",
+    "mba",
+    "व्यवस्थापन",
+
+    // Law
+    "lawyer",
+    "law",
+    "वकील",
+    "कायदा",
+
+    // Education
+    "teacher",
+    "शिक्षक",
+    "शिक्षिका",
+    "education",
+    "शिक्षण"
+
+  ];
+
+
+  return signals.some(
+    function(signal) {
+
+      return query.includes(signal);
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   AGE SIGNAL
+   ========================================================= */
+
+function hasAISearchAgeSignal(text) {
+
+  const query =
+    normalizeAISearchIntentText(text);
+
+
+  return (
+
+    /age/.test(query) ||
+    /वय/.test(query) ||
+    /वर्ष/.test(query) ||
+
+    /\b\d{1,2}\s*(?:to|-)\s*\d{1,2}\b/.test(query) ||
+
+    /२५/.test(query) ||
+    /२६/.test(query) ||
+    /२७/.test(query) ||
+    /२८/.test(query) ||
+    /२९/.test(query) ||
+    /३०/.test(query)
+
+  );
+
+}
+
+
+/* =========================================================
+   SEARCH-INTENT LANGUAGE SIGNAL
+   ========================================================= */
+
+function hasAISearchRequestSignal(text) {
+
+  const query =
+    normalizeAISearchIntentText(text);
+
+
+  const requestPatterns = [
+
+    /पाहिजे/,
+    /हवी/,
+    /हवा/,
+    /हवे/,
+    /शोधा/,
+    /शोधायची/,
+    /शोधायचा/,
+    /दाखवा/,
+    /दाखव/,
+    /मिळेल/,
+    /हवी आहे/,
+    /हवा आहे/,
+    /हवे आहे/,
+
+    /looking for/i,
+    /want/i,
+    /need/i,
+    /search/i,
+    /find/i,
+    /show me/i,
+    /looking/i
+
+  ];
+
+
+  return requestPatterns.some(
+    function(pattern) {
+
+      return pattern.test(query);
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   MAIN AI SEARCH INTENT FUNCTION
+   ========================================================= */
+
+function isAISearchIntent(text) {
+
+  const query =
+    normalizeAISearchIntentText(text);
+
+
+  /*
+   * Empty message
+   */
+  if (!query) {
+    return false;
+  }
+
+
+  /*
+   * FAQ / general chat gets priority.
+   *
+   * This is extremely important because
+   * existing FAQ functionality must not break.
+   */
+  if (
+    isExplicitFAQQuery(query)
+  ) {
+
+    return false;
+
+  }
+
+
+  /*
+   * Strong matrimonial profile signal.
+   */
+  const profileSignal =
+    hasAISearchProfileTypeSignal(query);
+
+
+  /*
+   * Supporting search criteria.
+   */
+  const locationSignal =
+    hasAISearchLocationSignal(query);
+
+  const educationSignal =
+    hasAISearchEducationOrProfessionSignal(query);
+
+  const ageSignal =
+    hasAISearchAgeSignal(query);
+
+  const requestSignal =
+    hasAISearchRequestSignal(query);
+
+
+  /*
+   * RULE 1
+   *
+   * Explicit matrimonial profile type
+   * + search language
+   */
+  if (
+    profileSignal &&
+    requestSignal
+  ) {
+
+    return true;
+
+  }
+
+
+  /*
+   * RULE 2
+   *
+   * Location + profile type
+   */
+  if (
+    locationSignal &&
+    profileSignal
+  ) {
+
+    return true;
+
+  }
+
+
+  /*
+   * RULE 3
+   *
+   * Education/profession + profile type
+   */
+  if (
+    educationSignal &&
+    profileSignal
+  ) {
+
+    return true;
+
+  }
+
+
+  /*
+   * RULE 4
+   *
+   * Age + profile type
+   */
+  if (
+    ageSignal &&
+    profileSignal
+  ) {
+
+    return true;
+
+  }
+
+
+  /*
+   * RULE 5
+   *
+   * Strong search request + matrimonial
+   * supporting criterion.
+   *
+   * Example:
+   * "पुण्यातील इंजिनिअर मुलगी पाहिजे"
+   */
+  if (
+    requestSignal &&
+    (
+      locationSignal ||
+      educationSignal ||
+      ageSignal
+    )
+  ) {
+
+    return true;
+
+  }
+
+
+  /*
+   * Otherwise:
+   *
+   * Let existing FAQ / askBot()
+   * handle the message.
+   */
+  return false;
+
+}
+
+
+/* =========================================================
+   TEST
+   ========================================================= */
+
+function testAISearchIntentGate() {
+
+  const tests = [
+
+    {
+      query:
+        "पुण्यातील इंजिनिअर मुलगी पाहिजे",
+      expected: true
+    },
+
+    {
+      query:
+        "मला पुण्यातील मुलगी हवी आहे",
+      expected: true
+    },
+
+    {
+      query:
+        "२५ ते ३० वर्षांची मुलगी पाहिजे",
+      expected: true
+    },
+
+    {
+      query:
+        "Kolhapur मधली software engineer मुलगी हवी आहे",
+      expected: true
+    },
+
+    {
+      query:
+        "e-book",
+      expected: false
+    },
+
+    {
+      query:
+        "ebook download",
+      expected: false
+    },
+
+    {
+      query:
+        "registration",
+      expected: false
+    },
+
+    {
+      query:
+        "registration link",
+      expected: false
+    },
+
+    {
+      query:
+        "link द्या",
+      expected: false
+    },
+
+    {
+      query:
+        "contact",
+      expected: false
+    },
+
+    {
+      query:
+        "whatsapp",
+      expected: false
+    },
+
+    {
+      query:
+        "नमस्कार",
+      expected: false
+    },
+
+    {
+      query:
+        "hello",
+      expected: false
+    }
+
+  ];
+
+
+  let passed = 0;
+  let failed = 0;
+
+  const results = [];
+
+
+  tests.forEach(
+    function(test, index) {
+
+      let actual = false;
+
+      try {
+
+        actual =
+          isAISearchIntent(
+            test.query
+          );
+
+      } catch (error) {
+
+        actual = false;
+
+        console.error(
+          "[AISearchIntentGate] Test error:",
+          index + 1,
+          error
+        );
+
+      }
+
+
+      const pass =
+        actual === test.expected;
+
+
+      if (pass) {
+        passed++;
+      } else {
+        failed++;
+      }
+
+
+      results.push({
+
+        test:
+          index + 1,
+
+        query:
+          test.query,
+
+        expected:
+          test.expected,
+
+        actual:
+          actual,
+
+        status:
+          pass
+            ? "PASS"
+            : "FAIL"
+
+      });
+
+    }
+  );
+
+
+  const result = {
+
+    success:
+      failed === 0,
+
+    module:
+      "AISearchIntentGate",
+
+    version:
+      "1.0.0",
+
+    totalChecks:
+      tests.length,
+
+    passedChecks:
+      passed,
+
+    failedChecks:
+      failed,
+
+    checks:
+      results
+
+  };
+
+
+  console.log(
+    "[AISearchIntentGate] TEST RESULT:",
+    result
+  );
+
+
+  return result;
+
+}
+
+</script>

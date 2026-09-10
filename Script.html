@@ -163,6 +163,60 @@ if (
 }
 
 
+    /*
+   * ===================================
+   * AI NATURAL LANGUAGE PROFILE SEARCH
+   * ===================================
+   */
+
+  // if (
+  //   typeof window.handleAISearchChatbotMessage === "function"
+  // ) {
+
+  //   const aiHandled =
+  //     window.handleAISearchChatbotMessage(
+  //       text,
+  //       "text"
+  //     );
+
+  //   if (aiHandled === true) {
+  //     return;
+  //   }
+
+  // }
+
+
+        /*
+      * ===================================
+      * AI NATURAL LANGUAGE PROFILE SEARCH
+      * ===================================
+      *
+      * IMPORTANT:
+      * AI Search फक्त matrimonial search intent
+      * असल्यासच execute होईल.
+      *
+      * अन्यथा existing FAQ / askBot() flow
+      * exactly पुढे चालेल.
+      */
+
+      if (
+        typeof window.isAISearchIntent === "function" &&
+        window.isAISearchIntent(text) === true &&
+        typeof window.handleAISearchChatbotMessage === "function"
+      ) {
+        const aiHandled =
+          window.handleAISearchChatbotMessage(
+            text,
+            "text"
+          );
+
+        if (aiHandled === true) {
+          return;
+        }
+      }
+
+
+
   /*
    * ===================================
    * NORMAL FAQ / AI CHAT
@@ -170,6 +224,36 @@ if (
    */
 
   showTyping();
+
+
+    /*
+   * ===================================
+   * AI MATRIMONIAL SEARCH
+   * ===================================
+   *
+   * IMPORTANT:
+   * - Runs only after ebook/profile verification branches.
+   * - Existing FAQ flow remains untouched.
+   * - If AI handler is unavailable, normal chatbot continues.
+   */
+
+  if (
+    typeof window.handleAISearchChatbotMessage ===
+    "function"
+  ) {
+
+    const aiHandled =
+      window.handleAISearchChatbotMessage(
+        text,
+        "text"
+      );
+
+    if (
+      aiHandled === true
+    ) {
+      return;
+    }
+  }
 
 
   google.script.run
@@ -1196,6 +1280,10 @@ function requestProfileSearchAccess(type) {
     }
 
 
+
+    
+
+
     // ------------------------------------------
     // WAIT FOR MOBILE VERIFICATION
     // ------------------------------------------
@@ -1690,6 +1778,52 @@ function verifyProfileMobile(mobile) {
 
 
           // ==========================================
+          // AI SEARCH AFTER VERIFICATION
+          // ==========================================
+
+          if (
+            pendingProfileCategory ===
+            "aiSearch"
+          ) {
+
+            pendingProfileCategory =
+              "";
+
+            chatbotState =
+              "normal";
+
+            if (
+              window.resumePendingAISearch &&
+              typeof window.resumePendingAISearch ===
+                "function"
+            ) {
+
+              console.log(
+                "[AI Search] Resuming pending AI search after verification."
+              );
+
+              window.resumePendingAISearch();
+
+              return;
+            }
+
+            console.error(
+              "[AI Search] resumePendingAISearch() is not available."
+            );
+
+            botMessage(`
+              ⚠️ <b>AI Profile Search सुरू करता आली नाही.</b>
+
+              <br><br>
+
+              कृपया पुन्हा search करा.
+            `);
+
+            return;
+          }
+
+
+          // ==========================================
           // USER CAME FROM LIKED PROFILES
           // ==========================================
 
@@ -1800,6 +1934,36 @@ function verifyProfileMobile(mobile) {
             openNotificationsFromMenu();
 
             return;
+          }
+
+
+          // ==========================================
+          // AI SEARCH AFTER VERIFICATION
+          // ==========================================
+
+          if (
+            pendingProfileCategory ===
+            "aiSearch"
+          ) {
+
+            if (
+              typeof window.resumePendingAISearch ===
+              "function"
+            ) {
+
+              const resumed =
+                window.resumePendingAISearch();
+
+              if (
+                resumed
+              ) {
+
+                return;
+
+              }
+
+            }
+
           }
 
 
