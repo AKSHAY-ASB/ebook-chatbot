@@ -1,0 +1,1330 @@
+<script>
+/* =========================================================
+   AI SEARCH CHATBOT INTEGRATION
+   File: AISearchChatbotIntegration.html
+
+   PURPOSE:
+   User message
+      ↓
+   Existing chatbot state verification
+      ↓
+   AI Parser
+      ↓
+   AI Validator
+      ↓
+   AI Advanced Filter
+      ↓
+   Existing Profile Cards
+
+   IMPORTANT:
+   - Existing searchProfiles() untouched
+   - Existing FAQ flow untouched
+   - Existing profile pagination untouched
+   - Existing likes/interests/reactions untouched
+   - Existing notification flow untouched
+   - AI pagination uses separate state
+   ========================================================= */
+
+
+/* =========================================================
+   AI SEARCH STATE
+   ========================================================= */
+
+window.aiSearchState = {
+
+  active: false,
+
+  query: "",
+
+  source: "text",
+
+  criteria: null,
+
+  currentPage: 1,
+
+  pageSize: 10,
+
+  totalCount: 0,
+
+  totalPages: 0,
+
+  hasNext: false,
+
+  hasPrevious: false,
+
+  lastResult: null
+
+};
+
+
+/* =========================================================
+   RESET AI SEARCH STATE
+   ========================================================= */
+
+function resetAISearchState() {
+
+  window.aiSearchState = {
+
+    active: false,
+
+    query: "",
+
+    source: "text",
+
+    criteria: null,
+
+    currentPage: 1,
+
+    pageSize: 10,
+
+    totalCount: 0,
+
+    totalPages: 0,
+
+    hasNext: false,
+
+    hasPrevious: false,
+
+    lastResult: null
+
+  };
+
+}
+
+
+/* =========================================================
+   NORMALIZE AI SOURCE
+   ========================================================= */
+
+function normalizeAISearchChatSource(source) {
+
+  const value =
+    String(source || "text")
+      .trim()
+      .toLowerCase();
+
+  if (value === "voice") {
+    return "voice";
+  }
+
+  return "text";
+}
+
+
+/* =========================================================
+   AI CHAT MESSAGE ENTRY POINT
+   ========================================================= */
+
+window.handleAISearchChatbotMessage =
+  function(text, source) {
+
+    const query =
+      String(text || "").trim();
+
+    /*
+     * Empty query
+     */
+    if (!query) {
+      return false;
+    }
+
+
+    /*
+     * ==========================================
+     * DEFENSIVE AI SEARCH INTENT CHECK
+     * ==========================================
+     *
+     * जर Intent Gate उपलब्ध नसेल किंवा query
+     * matrimonial search नसल्यास AI Search
+     * execute करू नये.
+     *
+     * त्यामुळे existing FAQ flow सुरक्षित राहतो.
+     */
+
+    if (
+      typeof window.isAISearchIntent !== "function"
+    ) {
+
+      console.warn(
+        "[AISearchChatbot] Intent Gate not available. " +
+        "Returning control to normal chatbot."
+      );
+
+      return false;
+    }
+
+
+    if (
+      window.isAISearchIntent(query) !== true
+    ) {
+
+      console.log(
+        "[AISearchChatbot] Non-AI query. " +
+        "Returning control to normal chatbot:",
+        query
+      );
+
+      return false;
+    }
+
+
+    /*
+     * ==========================================
+     * AI SEARCH PROCESSING
+     * ==========================================
+     */
+
+    processAISearchChatbotMessage(
+      query,
+      normalizeAISearchChatSource(source)
+    );
+
+
+    /*
+     * TRUE means:
+     * AI Search has taken ownership of this query.
+     */
+
+    return true;
+  };
+
+
+/* =========================================================
+   MAIN AI PROCESSING
+   ========================================================= */
+
+function processAISearchChatbotMessage(
+  query,
+  source
+) {
+
+  /*
+   * -----------------------------------------------
+   * USER MUST BE VERIFIED
+   * -----------------------------------------------
+   */
+
+  if (
+    !profileAccessVerified ||
+    !profileUserMobile
+  ) {
+
+    window.aiSearchState.query = query;
+
+    window.aiSearchState.source = source;
+
+    window.aiSearchState.active = true;
+
+    /*
+     * Existing verification state is reused.
+     */
+
+    pendingProfileCategory =
+      "aiSearch";
+
+    chatbotState =
+      "profile_mobile_verification";
+
+
+    botMessage(`
+
+      🔐 <b>Profile Search साठी Verification Required</b>
+
+      <br><br>
+
+      तुमचा registered mobile number verify करा.
+
+      <br><br>
+
+      कृपया तुमचा
+      <b>10 अंकी Registered Mobile Number</b>
+      टाका.
+
+      <br><br>
+
+      उदाहरण:
+      <b>9876543210</b>
+
+    `);
+
+
+    const input =
+      document.getElementById("message");
+
+    if (input) {
+
+      input.value = "";
+
+      input.placeholder =
+        "Enter registered mobile number...";
+
+      input.focus();
+
+    }
+
+    return;
+
+  }
+
+
+  /*
+   * -----------------------------------------------
+   * VERIFIED USER
+   * -----------------------------------------------
+   */
+
+  runAISearchPipeline(
+    query,
+    source
+  );
+
+}
+
+
+/* =========================================================
+   AI SEARCH PIPELINE
+   ========================================================= */
+
+function runAISearchPipeline(
+  query,
+  source
+) {
+
+  window.aiSearchState.query = query;
+
+  window.aiSearchState.source = source;
+
+  window.aiSearchState.active = true;
+
+  window.aiSearchState.currentPage = 1;
+
+
+  showTyping();
+
+
+  /*
+   * -----------------------------------------------
+   * STEP 1
+   * AI PARSER
+   * -----------------------------------------------
+   */
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(parseResult) {
+
+        try {
+
+          console.log(
+            "[AISearchChatbot] Parser result:",
+            parseResult
+          );
+
+
+          if (
+            !parseResult
+          ) {
+
+            hideTyping();
+
+            showAISearchError(
+              "AI Search parser कडून response मिळाला नाही."
+            );
+
+            return;
+
+          }
+
+
+          /*
+           * UNSUPPORTED QUERY
+           *
+           * Existing FAQ flow should continue.
+           */
+
+          if (
+            parseResult.status ===
+              "UNSUPPORTED_QUERY"
+          ) {
+
+            hideTyping();
+
+            returnAISearchToNormalChat(
+              query
+            );
+
+            return;
+
+          }
+
+
+          /*
+           * CLARIFICATION REQUIRED
+           */
+
+          if (
+            parseResult.status ===
+              "CLARIFICATION_REQUIRED"
+          ) {
+
+            hideTyping();
+
+            showAIClarification(
+              parseResult
+            );
+
+            return;
+
+          }
+
+
+          /*
+           * INVALID QUERY
+           */
+
+          if (
+            parseResult.status ===
+              "INVALID_QUERY"
+          ) {
+
+            hideTyping();
+
+            showAISearchError(
+              parseResult.message ||
+              "तुमचा search query योग्य प्रकारे समजला नाही."
+            );
+
+            return;
+
+          }
+
+
+          const criteria =
+            parseResult.criteria ||
+            parseResult;
+
+
+          /*
+           * -----------------------------------------------
+           * STEP 2
+           * VALIDATION
+           * -----------------------------------------------
+           */
+
+          google.script.run
+
+            .withSuccessHandler(
+              function(validationResult) {
+
+                console.log(
+                  "[AISearchChatbot] Validator result:",
+                  validationResult
+                );
+
+
+                if (
+                  !validationResult
+                ) {
+
+                  hideTyping();
+
+                  showAISearchError(
+                    "Search validation response मिळाला नाही."
+                  );
+
+                  return;
+
+                }
+
+
+                if (
+                  validationResult.success !== true
+                ) {
+
+                  hideTyping();
+
+                  showAISearchValidationError(
+                    validationResult
+                  );
+
+                  return;
+
+                }
+
+
+                const validatedCriteria =
+                  validationResult.criteria ||
+                  criteria;
+
+
+                /*
+                 * -----------------------------------------------
+                 * STEP 3
+                 * ADVANCED SEARCH
+                 * -----------------------------------------------
+                 */
+
+                executeAISearchPage(
+                  validatedCriteria,
+                  1
+                );
+
+              }
+            )
+
+            .withFailureHandler(
+              function(error) {
+
+                hideTyping();
+
+                console.error(
+                  "[AISearchChatbot] Validator error:",
+                  error
+                );
+
+                showAISearchError(
+                  "Search validation करताना समस्या आली."
+                );
+
+              }
+            )
+
+            .validateAISearchCriteria(
+              criteria
+            );
+
+        }
+        catch (error) {
+
+          hideTyping();
+
+          console.error(
+            "[AISearchChatbot] Parser processing error:",
+            error
+          );
+
+          showAISearchError(
+            "AI Search प्रक्रिया पूर्ण करता आली नाही."
+          );
+
+        }
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+        console.error(
+          "[AISearchChatbot] Parser error:",
+          error
+        );
+
+        showAISearchError(
+          "AI Search सुरू करता आली नाही."
+        );
+
+      }
+    )
+
+    .parseAISearchQuery(
+      query,
+      source
+    );
+
+}
+
+
+/* =========================================================
+   EXECUTE AI SEARCH PAGE
+   ========================================================= */
+
+function executeAISearchPage(
+  criteria,
+  page
+) {
+
+  window.aiSearchState.criteria =
+    criteria;
+
+  window.aiSearchState.currentPage =
+    Number(page || 1);
+
+
+  /*
+   * showTyping() is already active for first page.
+   * For subsequent pages this function starts it.
+   */
+
+  if (
+    Number(page || 1) > 1
+  ) {
+
+    showTyping();
+
+  }
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        hideTyping();
+
+
+        console.log(
+          "[AISearchChatbot] Advanced search result:",
+          result
+        );
+
+
+        if (
+          !result ||
+          result.success !== true
+        ) {
+
+          showAISearchError(
+            result &&
+            result.message
+              ? result.message
+              : "AI Profile Search करता आला नाही."
+          );
+
+          return;
+
+        }
+
+
+        window.aiSearchState.active =
+          true;
+
+        window.aiSearchState.criteria =
+          criteria;
+
+        window.aiSearchState.currentPage =
+          Number(
+            result.page ||
+            page ||
+            1
+          );
+
+        window.aiSearchState.pageSize =
+          Number(
+            result.pageSize ||
+            10
+          );
+
+        window.aiSearchState.totalCount =
+          Number(
+            result.totalCount ||
+            0
+          );
+
+        window.aiSearchState.totalPages =
+          Number(
+            result.totalPages ||
+            1
+          );
+
+        window.aiSearchState.hasNext =
+          result.hasNext === true;
+
+        window.aiSearchState.hasPrevious =
+          result.hasPrevious === true;
+
+        window.aiSearchState.lastResult =
+          result;
+
+
+        /*
+         * -----------------------------------------------
+         * NO RESULTS
+         * -----------------------------------------------
+         */
+
+        if (
+          !result.profiles ||
+          result.profiles.length === 0
+        ) {
+
+          showAINoResults(
+            criteria,
+            result
+          );
+
+          return;
+
+        }
+
+
+        /*
+         * -----------------------------------------------
+         * EXISTING PROFILE CARD RENDERER
+         * -----------------------------------------------
+         *
+         * displayProfileResults() internally uses
+         * profileSearchType while preparing profile data.
+         *
+         * Therefore temporarily map AI type.
+         */
+
+        const oldProfileSearchType =
+          profileSearchType;
+
+
+        profileSearchType =
+          mapAITypeToExistingProfileType(
+            criteria.profileType
+          );
+
+
+        try {
+
+          displayProfileResults(
+            result.profiles,
+            result.page || page || 1,
+            result.pageSize || 10
+          );
+
+        }
+        finally {
+
+          /*
+           * Restore existing normal-search state.
+           */
+
+          profileSearchType =
+            oldProfileSearchType;
+
+        }
+
+
+        /*
+         * AI-specific pagination.
+         */
+
+        showAISearchPagination(
+          result
+        );
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        hideTyping();
+
+        console.error(
+          "[AISearchChatbot] Advanced search error:",
+          error
+        );
+
+        showAISearchError(
+          "Profile Search करताना समस्या आली."
+        );
+
+      }
+    )
+
+    .executeAISearchAdvancedFilter(
+      criteria,
+      profileUserMobile,
+      Number(page || 1)
+    );
+
+}
+
+
+/* =========================================================
+   AI PROFILE TYPE MAPPING
+   ========================================================= */
+
+function mapAITypeToExistingProfileType(
+  aiType
+) {
+
+  const type =
+    String(aiType || "")
+      .trim()
+      .toLowerCase();
+
+
+  if (
+    type === "bride" ||
+    type === "वधू"
+  ) {
+
+    return "bride";
+
+  }
+
+
+  if (
+    type === "groom" ||
+    type === "वर"
+  ) {
+
+    return "groom";
+
+  }
+
+
+  return "other";
+
+}
+
+
+/* =========================================================
+   AI PAGINATION UI
+   ========================================================= */
+
+function showAISearchPagination(
+  result
+) {
+
+  const page =
+    Number(
+      result.page ||
+      window.aiSearchState.currentPage ||
+      1
+    );
+
+  const totalPages =
+    Number(
+      result.totalPages ||
+      window.aiSearchState.totalPages ||
+      1
+    );
+
+
+  if (
+    totalPages <= 1
+  ) {
+
+    return;
+
+  }
+
+
+  let html = `
+
+    <div
+      class="ai-search-pagination"
+      style="
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        gap:10px;
+        margin:15px 0;
+        flex-wrap:wrap;
+      "
+    >
+
+  `;
+
+
+  if (
+    result.hasPrevious === true
+  ) {
+
+    html += `
+
+      <button
+        type="button"
+        onclick="previousAISearchPage()"
+        style="font-size:35px";
+      >
+        ◀ Previous
+      </button>
+
+    `;
+
+  }
+
+
+  html += `
+
+    <span
+      style="
+        font-weight:600;
+        padding:6px 10px;
+      "
+    >
+      Page ${page} of ${totalPages}
+    </span>
+
+  `;
+
+
+  if (
+    result.hasNext === true
+  ) {
+
+    html += `
+
+      <button
+        type="button"
+        onclick="nextAISearchPage()"
+        style="font-size:35px";
+      >
+        Next ▶
+      </button>
+
+    `;
+
+  }
+
+
+  html += `
+
+    </div>
+
+  `;
+
+
+  botMessage(html);
+
+}
+
+
+/* =========================================================
+   NEXT AI SEARCH PAGE
+   ========================================================= */
+
+function nextAISearchPage() {
+
+  if (
+    !window.aiSearchState.active
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    !window.aiSearchState.hasNext
+  ) {
+
+    return;
+
+  }
+
+
+  const nextPage =
+    Number(
+      window.aiSearchState.currentPage ||
+      1
+    ) + 1;
+
+
+  executeAISearchPage(
+    window.aiSearchState.criteria,
+    nextPage
+  );
+
+}
+
+
+/* =========================================================
+   PREVIOUS AI SEARCH PAGE
+   ========================================================= */
+
+function previousAISearchPage() {
+
+  if (
+    !window.aiSearchState.active
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    !window.aiSearchState.hasPrevious
+  ) {
+
+    return;
+
+  }
+
+
+  const previousPage =
+    Math.max(
+      1,
+      Number(
+        window.aiSearchState.currentPage ||
+        1
+      ) - 1
+    );
+
+
+  executeAISearchPage(
+    window.aiSearchState.criteria,
+    previousPage
+  );
+
+}
+
+
+/* =========================================================
+   RESUME PENDING AI SEARCH
+   ========================================================= */
+
+window.resumePendingAISearch =
+  function() {
+
+    if (
+      pendingProfileCategory !==
+      "aiSearch"
+    ) {
+
+      return false;
+
+    }
+
+
+    const query =
+      String(
+        window.aiSearchState.query ||
+        ""
+      ).trim();
+
+
+    const source =
+      normalizeAISearchChatSource(
+        window.aiSearchState.source
+      );
+
+
+    if (
+      !query
+    ) {
+
+      pendingProfileCategory =
+        "";
+
+      return false;
+
+    }
+
+
+    /*
+     * User has already been verified
+     * because this function is called
+     * after verifyProfileMobile() success.
+     */
+
+    pendingProfileCategory =
+      "";
+
+
+    chatbotState =
+      "normal";
+
+
+    botMessage(`
+
+      🔎 <b>तुमचा AI Profile Search सुरू करत आहे...</b>
+
+    `);
+
+
+    runAISearchPipeline(
+      query,
+      source
+    );
+
+
+    return true;
+
+  };
+
+
+/* =========================================================
+   AI CLARIFICATION
+   ========================================================= */
+
+function showAIClarification(
+  parseResult
+) {
+
+  const message =
+    parseResult.clarificationMessage ||
+    parseResult.message ||
+    "कृपया तुमच्या search बद्दल थोडी अधिक माहिती द्या.";
+
+
+  botMessage(`
+
+    ❓ <b>थोडी अधिक माहिती आवश्यक आहे</b>
+
+    <br><br>
+
+    ${escapeHtml(
+      String(message)
+    )}
+
+  `);
+
+}
+
+
+/* =========================================================
+   AI VALIDATION ERROR
+   ========================================================= */
+
+function showAISearchValidationError(
+  validationResult
+) {
+
+  const message =
+    validationResult.message ||
+    "तुमच्या search criteria मध्ये काही समस्या आहे.";
+
+
+  botMessage(`
+
+    ⚠️ <b>Search Criteria तपासता आले नाही</b>
+
+    <br><br>
+
+    ${escapeHtml(
+      String(message)
+    )}
+
+  `);
+
+}
+
+
+/* =========================================================
+   AI SEARCH ERROR
+   ========================================================= */
+
+function showAISearchError(
+  message
+) {
+
+  botMessage(`
+
+    ⚠️ <b>AI Profile Search</b>
+
+    <br><br>
+
+    ${escapeHtml(
+      String(
+        message ||
+        "Search करताना काहीतरी समस्या आली."
+      )
+    )}
+
+  `);
+
+}
+
+
+/* =========================================================
+   AI NO RESULTS
+   ========================================================= */
+
+function showAINoResults(
+  criteria,
+  result
+) {
+
+  const count =
+    Number(
+      result &&
+      result.totalCount
+        ? result.totalCount
+        : 0
+    );
+
+
+  botMessage(`
+
+    🔎 <b>Profile Search Result</b>
+
+    <br><br>
+
+    तुमच्या दिलेल्या criteria नुसार
+    <b>${count}</b> profile सापडले.
+
+    <br><br>
+
+    सध्या दाखवण्यासाठी profile उपलब्ध नाही.
+
+    <br><br>
+
+    तुम्ही criteria थोडे बदलून पुन्हा search करू शकता.
+
+  `);
+
+}
+
+
+/* =========================================================
+   RETURN TO EXISTING NORMAL CHAT
+   ========================================================= */
+
+function returnAISearchToNormalChat(
+  query
+) {
+
+  /*
+   * AI ने query matrimonial-search म्हणून
+   * support केली नाही.
+   *
+   * त्यामुळे existing askBot() ला
+   * exactly same query दिली जाते.
+   */
+
+  console.log(
+    "[AISearchChatbot] Falling back to existing askBot():",
+    query
+  );
+
+
+  chatbotState =
+    "normal";
+
+
+  /*
+   * Existing normal chatbot path.
+   */
+
+  if (
+    typeof askBot === "function"
+  ) {
+
+    askBot(query);
+
+    return;
+
+  }
+
+
+  /*
+   * Defensive fallback.
+   */
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        if (
+          result &&
+          result.found
+        ) {
+
+          botMessage(
+            result.answer
+          );
+
+
+          if (
+            result.action &&
+            result.action !== "none"
+          ) {
+
+            handleAction(
+              result.action
+            );
+
+          }
+
+        }
+        else {
+
+          showMenu();
+
+        }
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "[AISearchChatbot] Normal chatbot fallback error:",
+          error
+        );
+
+        botMessage(
+          "⚠️ Something went wrong. Please try again."
+        );
+
+      }
+    )
+
+    .askBot(query);
+
+}
+
+
+/* =========================================================
+   START NEW AI SEARCH
+   ========================================================= */
+
+window.startNewAISearch =
+  function() {
+
+    resetAISearchState();
+
+    chatbotState =
+      "normal";
+
+
+    botMessage(`
+
+      🔎 <b>नवीन Profile Search</b>
+
+      <br><br>
+
+      तुम्हाला कोणत्या प्रकारचा profile हवा आहे
+      ते नैसर्गिक भाषेत लिहा.
+
+      <br><br>
+
+      उदाहरण:
+
+      <br>
+
+      <i>
+      पुण्यातील २५ ते ३० वर्षांची इंजिनिअर मुलगी पाहिजे
+      </i>
+
+    `);
+
+  };
+
+
+/* =========================================================
+   OPTIONAL VOICE ENTRY POINT
+   ========================================================= */
+
+window.handleAISearchVoiceMessage =
+  function(text) {
+
+    return window.handleAISearchChatbotMessage(
+      text,
+      "voice"
+    );
+
+  };
+
+
+console.log(
+  "[AISearchChatbotIntegration] Loaded successfully."
+);
+
+</script>

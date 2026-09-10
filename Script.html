@@ -163,6 +163,60 @@ if (
 }
 
 
+    /*
+   * ===================================
+   * AI NATURAL LANGUAGE PROFILE SEARCH
+   * ===================================
+   */
+
+  // if (
+  //   typeof window.handleAISearchChatbotMessage === "function"
+  // ) {
+
+  //   const aiHandled =
+  //     window.handleAISearchChatbotMessage(
+  //       text,
+  //       "text"
+  //     );
+
+  //   if (aiHandled === true) {
+  //     return;
+  //   }
+
+  // }
+
+
+        /*
+      * ===================================
+      * AI NATURAL LANGUAGE PROFILE SEARCH
+      * ===================================
+      *
+      * IMPORTANT:
+      * AI Search फक्त matrimonial search intent
+      * असल्यासच execute होईल.
+      *
+      * अन्यथा existing FAQ / askBot() flow
+      * exactly पुढे चालेल.
+      */
+
+      if (
+        typeof window.isAISearchIntent === "function" &&
+        window.isAISearchIntent(text) === true &&
+        typeof window.handleAISearchChatbotMessage === "function"
+      ) {
+        const aiHandled =
+          window.handleAISearchChatbotMessage(
+            text,
+            "text"
+          );
+
+        if (aiHandled === true) {
+          return;
+        }
+      }
+
+
+
   /*
    * ===================================
    * NORMAL FAQ / AI CHAT
@@ -170,6 +224,36 @@ if (
    */
 
   showTyping();
+
+
+    /*
+   * ===================================
+   * AI MATRIMONIAL SEARCH
+   * ===================================
+   *
+   * IMPORTANT:
+   * - Runs only after ebook/profile verification branches.
+   * - Existing FAQ flow remains untouched.
+   * - If AI handler is unavailable, normal chatbot continues.
+   */
+
+  if (
+    typeof window.handleAISearchChatbotMessage ===
+    "function"
+  ) {
+
+    const aiHandled =
+      window.handleAISearchChatbotMessage(
+        text,
+        "text"
+      );
+
+    if (
+      aiHandled === true
+    ) {
+      return;
+    }
+  }
 
 
   google.script.run
@@ -503,6 +587,14 @@ function showMenu() {
       </button>
 
       <button
+        type="button"
+        class="option-btn"
+        onclick="openNotificationsFromMenu()"
+      >
+        🔔 Notifications
+      </button>
+
+      <button
         class="option-btn"
         onclick="showLikedProfiles()"
       >
@@ -566,6 +658,137 @@ function showMenu() {
         
 
 }
+
+
+    /* =========================================
+      NOTIFICATION MENU
+    ========================================= */
+
+    function openNotificationsFromMenu() {
+
+      if (!profileAccessVerified || !profileUserMobile) {
+
+        botMessage(`
+          🔐 <b>Verification Required</b>
+
+          <br><br>
+
+          Notifications पाहण्यासाठी प्रथम
+          <b>Registered Mobile Number Verify</b> करा.
+        `);
+
+        pendingProfileCategory = "notifications";
+        chatbotState = "profile_mobile_verification";
+
+        const input =
+          document.getElementById("message");
+
+        if (input) {
+          input.placeholder =
+            "Enter registered mobile number...";
+          input.focus();
+        }
+
+        return;
+      }
+
+      if (
+        window.NotificationUI &&
+        typeof window.NotificationUI.open === "function"
+      ) {
+
+        window.NotificationUI.open();
+
+        return;
+      }
+
+      console.error(
+        "NotificationUI is not loaded."
+      );
+
+      botMessage(
+        "⚠️ Notifications currently unavailable."
+      );
+    }
+
+
+
+        function openNotificationsFromMenu() {
+
+      // ==========================================
+      // USER NOT VERIFIED
+      // ==========================================
+
+      if (
+        !profileAccessVerified ||
+        !profileUserMobile
+      ) {
+
+        // Remember that user wants Notifications
+        pendingProfileCategory =
+          "notifications";
+
+
+        botMessage(`
+          🔐 <b>Verification Required</b>
+
+          <br><br>
+
+          Notifications पाहण्यासाठी
+          प्रथम Registered Mobile Number Verify करा.
+        `);
+
+
+        chatbotState =
+          "profile_mobile_verification";
+
+
+        const input =
+          document.getElementById("message");
+
+
+        if (input) {
+
+          input.placeholder =
+            "Enter registered mobile number...";
+
+          input.focus();
+
+        }
+
+        return;
+      }
+
+
+      // ==========================================
+      // USER ALREADY VERIFIED
+      // ==========================================
+
+      if (
+        window.NotificationUI &&
+        typeof window.NotificationUI.open === "function"
+      ) {
+
+        window.NotificationUI.open();
+
+        return;
+      }
+
+
+      // ==========================================
+      // NOTIFICATION UI NOT LOADED
+      // ==========================================
+
+      console.error(
+        "❌ NotificationUI is not loaded."
+      );
+
+      botMessage(
+        "⚠️ Notifications currently unavailable."
+      );
+
+    }
+
 
 
     function showLikesReceived() {
@@ -1055,6 +1278,10 @@ function requestProfileSearchAccess(type) {
       return;
 
     }
+
+
+
+    
 
 
     // ------------------------------------------
@@ -1551,6 +1778,52 @@ function verifyProfileMobile(mobile) {
 
 
           // ==========================================
+          // AI SEARCH AFTER VERIFICATION
+          // ==========================================
+
+          if (
+            pendingProfileCategory ===
+            "aiSearch"
+          ) {
+
+            pendingProfileCategory =
+              "";
+
+            chatbotState =
+              "normal";
+
+            if (
+              window.resumePendingAISearch &&
+              typeof window.resumePendingAISearch ===
+                "function"
+            ) {
+
+              console.log(
+                "[AI Search] Resuming pending AI search after verification."
+              );
+
+              window.resumePendingAISearch();
+
+              return;
+            }
+
+            console.error(
+              "[AI Search] resumePendingAISearch() is not available."
+            );
+
+            botMessage(`
+              ⚠️ <b>AI Profile Search सुरू करता आली नाही.</b>
+
+              <br><br>
+
+              कृपया पुन्हा search करा.
+            `);
+
+            return;
+          }
+
+
+          // ==========================================
           // USER CAME FROM LIKED PROFILES
           // ==========================================
 
@@ -1641,6 +1914,55 @@ function verifyProfileMobile(mobile) {
             showLikesReceived();
 
             return;
+
+          }
+
+
+
+          // ==========================================
+          // NOTIFICATIONS AFTER VERIFICATION
+          // ==========================================
+
+          if (
+            pendingProfileCategory ===
+            "notifications"
+          ) {
+
+            pendingProfileCategory =
+              "";
+
+            openNotificationsFromMenu();
+
+            return;
+          }
+
+
+          // ==========================================
+          // AI SEARCH AFTER VERIFICATION
+          // ==========================================
+
+          if (
+            pendingProfileCategory ===
+            "aiSearch"
+          ) {
+
+            if (
+              typeof window.resumePendingAISearch ===
+              "function"
+            ) {
+
+              const resumed =
+                window.resumePendingAISearch();
+
+              if (
+                resumed
+              ) {
+
+                return;
+
+              }
+
+            }
 
           }
 
@@ -4166,6 +4488,45 @@ function reactToProfile(
         .withSuccessHandler(
           function(result) {
 
+            console.log(
+              "========== PROFILE MATCH STATUS =========="
+            );
+
+            console.log(
+              "Profile:",
+              {
+                type: type,
+                profileId: profileId,
+                reaction: result.reaction,
+                relationship: result.relationship
+              }
+            );
+
+
+            if (
+              result.relationship &&
+              result.relationship.status === "MUTUAL_LIKE"
+            ) {
+
+              console.log(
+                "❤️ MATCHED — BOTH USERS LIKED EACH OTHER"
+              );
+
+            }
+            else {
+
+              console.log(
+                "ℹ️ NOT MATCHED",
+                {
+                  status:
+                    result.relationship
+                      ? result.relationship.status
+                      : "NO_RELATIONSHIP"
+                }
+              );
+
+            }
+
               // ==========================================
               // RE-ENABLE CLICKED BUTTON
               // ==========================================
@@ -4231,6 +4592,86 @@ function reactToProfile(
                   .toUpperCase();
 
 
+
+              // ==================================================
+              // NOTIFICATION INTEGRATION
+              // ==================================================
+              //
+              // IMPORTANT:
+              // This is intentionally isolated from the
+              // existing reaction result.
+              //
+              // Notification failure must NEVER affect
+              // the successful Like action.
+              //
+
+              if (
+                savedReaction === "LIKE"
+              ) {
+
+                google.script.run
+
+                  .withSuccessHandler(
+                    function(notificationResult) {
+
+                      console.log(
+                        "[Notification] Real LIKE notification result:",
+                        notificationResult
+                      );
+
+                    }
+                  )
+
+                  .withFailureHandler(
+                    function(notificationError) {
+
+                      console.error(
+                        "[Notification] LIKE notification failed:",
+                        notificationError
+                      );
+
+                    }
+                  )
+
+                  .notifyAfterProfileReaction({
+
+                    // ACTUAL VERIFIED USER
+                    actorMobile:
+                      profileUserMobile,
+
+                    actorName:
+                      profileUserName,
+
+                    actorType:
+                      profileUserType,
+
+                    actorProfileId:
+                      profileUserId,
+
+
+                    // ACTUAL TARGET PROFILE OWNER
+                    recipientMobile:
+                      ownerMobile,
+
+                    recipientName:
+                      profileName,
+
+                    recipientType:
+                      type,
+
+                    recipientProfileId:
+                      profileId,
+
+
+                    // ACTUAL REACTION
+                    reaction:
+                      savedReaction
+
+                  });
+
+              }             
+
+
               console.log(
                   "PROFILE REACTION SAVED:",
                   {
@@ -4262,6 +4703,7 @@ function reactToProfile(
                   updateReactionButtons(
                       type,
                       profileId,
+                      result.reaction,
                       result.relationship
                   );
 
@@ -4432,6 +4874,7 @@ function updateProfileReactionState(
 function updateReactionButtons(
     type,
     profileId,
+    reaction,
     relationship
 ) {
 
@@ -4474,6 +4917,79 @@ function updateReactionButtons(
               key
           );
 
+          return;
+
+      }
+
+
+
+      // ======================================================
+      // MATCHING PROFILE GUARD
+      // ======================================================
+      // Matching Profiles use the same data-actions key
+      // for compatibility with the existing reaction flow.
+      //
+      // IMPORTANT:
+      // Do NOT rebuild the complete Matching action container.
+      // Otherwise Send Interest gets removed.
+      //
+      // Only Matching Like / Dislike UI should be updated.
+      // ======================================================
+
+      const matchingContainers =
+          Array.from(containers)
+              .filter(function(container) {
+
+                  return (
+                      container.closest(
+                          ".matching-profile-card"
+                      ) !== null
+                  );
+
+              });
+
+
+      if (
+          matchingContainers.length > 0 &&
+          typeof updateMatchingReactionUI === "function"
+      ) {
+
+          const relationshipStatus =
+              String(
+                  relationship.status || ""
+              )
+              .trim()
+              .toUpperCase();
+
+
+          const matchingReaction =
+              relationshipStatus === "DISLIKED"
+                  ? "DISLIKE"
+                  : "LIKE";
+
+
+          updateMatchingReactionUI(
+              type,
+              profileId,
+              matchingReaction,
+              relationship
+          );
+
+
+          console.log(
+              "MATCHING PROFILE REACTION ROUTED:",
+              {
+                  type: type,
+                  profileId: profileId,
+                  reaction: matchingReaction,
+                  relationship: relationship
+              }
+          );
+
+
+          // IMPORTANT:
+          // Do NOT continue to buildProfileActionButtons()
+          // for Matching Profile.
           return;
 
       }

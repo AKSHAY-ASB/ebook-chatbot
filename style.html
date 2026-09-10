@@ -775,47 +775,375 @@ color:white;
     font-weight: 600;
 }
 
-/* .profile-reaction-btn.liked{
-    background:#1976d2;
-    color:#fff;
-    border-color:#1976d2;
-} */
+/* ==========================================================
+   MATCHING PAGINATION BUTTONS
+   STYLE ONLY
+   ========================================================== */
 
-/* .profile-reaction-btn.mutual{
-    background:#28a745;
-    color:#fff;
-    border-color:#28a745;
-    font-weight:bold;
-} */
 
-/* .liked-active{
+/* ----------------------------------------------------------
+   VIEW MORE
+   ---------------------------------------------------------- */
 
-    background:#1976d2;
+.matching-view-more-btn {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
 
-    color:#fff;
+    margin: 10px 0 0 0;
+    padding: 30px 10px;
 
-} */
+    background: #ffffff;
+    color: #111111;
 
-/* .matched-active{
+    border: 1px solid #6aa8ff;
+    border-radius: 2px;
 
-    background:#2e7d32;
+    font-family: Arial, sans-serif;
+    font-size: 35px;
+    font-weight: 500;
 
-    color:#fff;
+    line-height: 20px;
+    text-align: center;
 
-    font-weight:600;
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+
+/* ----------------------------------------------------------
+   VIEW MORE - HOVER
+   ---------------------------------------------------------- */
+
+.matching-view-more-btn:hover {
+    background: #f5f9ff;
+    border-color: #4285f4;
+}
+
+
+/* ----------------------------------------------------------
+   VIEW MORE - ACTIVE
+   ---------------------------------------------------------- */
+
+.matching-view-more-btn:active {
+    background: #eef5ff;
+}
+
+
+/* ----------------------------------------------------------
+   MAIN MENU
+   ---------------------------------------------------------- */
+
+.matching-main-menu-btn {
+ 
+    box-sizing: border-box;
+
+    margin-bottom: 10px;
+    font-size: 35px;
+    margin-top: 10px;
+    padding: 30px 10px;
+    display: block;
+    width: 100%;
+
+
+    line-height: 20px;
+    text-align: center;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+
+/* ----------------------------------------------------------
+   MAIN MENU - HOVER
+   ---------------------------------------------------------- */
+
+.matching-main-menu-btn:hover {
+    background: #f5f9ff !important;
+    border-color: #4285f4 !important;
+}
+
+
+/* ----------------------------------------------------------
+   MAIN MENU - ACTIVE
+   ---------------------------------------------------------- */
+
+.matching-main-menu-btn:active {
+    background: #eef5ff !important;
+}
+
+
+
+/* ==========================================================
+   MATCHING LOADING TYPEWRITER
+   ========================================================== */
+
+/* ==========================================================
+   MATCHING LOADING MESSAGE
+   ========================================================== */
+
+.matching-chat-loading {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+
+/* ----------------------------------------------------------
+   TYPEWRITER TEXT
+   ---------------------------------------------------------- */
+
+.matching-chat-loading-message {
+    display: block;
+
+    width: 100%;
+    max-width: 100%;
+
+    box-sizing: border-box;
+
+    white-space: normal;
+
+    overflow: visible;
+
+    word-break: normal;
+
+    overflow-wrap: break-word;
+
+    line-height: 1.6;
+
+    margin-top: 6px;
+}
+
+
+/* ----------------------------------------------------------
+   SUB MESSAGE
+   ---------------------------------------------------------- */
+
+.matching-chat-loading-submessage {
+    margin-top: 8px;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+    opacity: 0.75;
+
+    white-space: normal;
+
+    overflow-wrap: break-word;
+}
+
+
+/* ----------------------------------------------------------
+   MOBILE
+   ---------------------------------------------------------- */
+
+@media (max-width: 600px) {
+
+    .matching-chat-loading {
+        width: 100%;
+        max-width: 100%;
+    }
+
+
+    .matching-chat-loading-message {
+        width: 100%;
+        max-width: 100%;
+
+        white-space: normal;
+
+        word-break: normal;
+
+        overflow-wrap: break-word;
+
+        line-height: 1.6;
+    }
+
+
+    .matching-chat-loading-submessage {
+        width: 100%;
+        max-width: 100%;
+
+        white-space: normal;
+
+        line-height: 1.5;
+    }
 
 }
 
-.disliked-active{
 
-    background:#d32f2f;
+/* ----------------------------------------------------------
+   SLOW TYPEWRITING
+   ---------------------------------------------------------- */
 
-    color:#fff;
+@keyframes matchingTyping {
 
-    border-color:#d32f2f;
+    from {
+        width: 0;
+    }
 
-    font-weight:600;
+    to {
+        width: 100%;
+    }
 
-} */
+}
+
+
+/* ----------------------------------------------------------
+   CURSOR
+   ---------------------------------------------------------- */
+
+@keyframes matchingBlinkCursor {
+
+    0%,
+    100% {
+        border-color: transparent;
+    }
+
+    50% {
+        border-color: currentColor;
+    }
+
+}
+
+
+/* ----------------------------------------------------------
+   SUB MESSAGE
+   ---------------------------------------------------------- */
+
+.matching-chat-loading-submessage {
+
+    margin-top: 8px;
+
+    font-size: 13px;
+
+    opacity: 0.75;
+
+}
+
+
+/* ----------------------------------------------------------
+   RESPONSIVE
+   ---------------------------------------------------------- */
+
+@media (max-width: 600px) {
+
+    .matching-typewriter-text {
+
+        white-space: normal;
+
+        width: auto;
+
+        max-width: 100%;
+
+        overflow: visible;
+
+        border-right: none;
+
+        animation: none;
+
+        line-height: 1.6;
+
+    }
+
+}
+
+
+
+/* ==========================================================
+   VIEW MORE LOADING
+   ========================================================== */
+
+.matching-view-more-btn:disabled,
+.matching-view-more-loading {
+
+    opacity: 0.65;
+
+    cursor: not-allowed !important;
+
+    pointer-events: none;
+
+}
+
+
+/* Prevent text selection while loading */
+
+.matching-view-more-loading {
+    user-select: none;
+}
+
+/* ==========================================================
+   WHY THIS MATCH
+   ========================================================== */
+
+.matching-why-match {
+    margin-top: 10px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.matching-why-match-summary {
+    cursor: pointer;
+    padding: 10px 12px;
+    font-weight: 600;
+    user-select: none;
+}
+
+.matching-why-match-summary:hover {
+    opacity: 0.85;
+}
+
+.matching-why-match-content {
+    padding: 10px 12px 12px;
+    border-top: 1px solid #eee;
+}
+
+.matching-why-match-title {
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.matching-why-match-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.matching-why-match-row span {
+    flex: 1;
+}
+
+.matching-why-match-row strong {
+    text-align: right;
+}
+
+.matching-why-match-keywords,
+.matching-why-match-formula {
+    padding-top: 10px;
+}
+
+.matching-why-match-label {
+    font-weight: 600;
+    margin-right: 5px;
+}
+
+.matching-why-match-note {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
 
 </style>
