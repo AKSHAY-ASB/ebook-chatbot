@@ -1,0 +1,213 @@
+<!--
+==========================================
+FILE : ProfilePhotoIdentityStyle.html
+MODULE : Profile Components
+PURPOSE : Uniform Identity-Style Profile Photos
+
+RESPONSIBILITY
+- Make all profile photos uniform
+- 3:4 identity-style frame
+- Crop different photo dimensions
+- Prioritize upper/face area
+- Chrome + Safari safe
+- No backend changes
+- No photo URL changes
+
+IMPORTANT
+- Does NOT modify full-profile photos
+- Does NOT modify Google Drive URLs
+==========================================
+-->
+
+<style>
+
+/* ==========================================
+   IDENTITY STYLE PHOTO CONTAINER
+========================================== */
+
+.profile-photo-container {
+
+    width: 100%;
+
+    max-width: 220px;
+
+    aspect-ratio: 3 / 4;
+
+    height: auto;
+
+    margin: 0 auto 15px auto;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    border: 1px solid #e5e7eb;
+
+    background: #f8f9fa;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    position: relative;
+
+}
+
+
+/* ==========================================
+   IDENTITY STYLE PROFILE PHOTO
+========================================== */
+
+.profile-photo-container .profile-photo {
+
+    width: 100%;
+
+    height: 100%;
+
+    /*
+     * Important:
+     * Cover forces every photo to fill
+     * the same identity-style frame.
+     */
+    object-fit: cover;
+
+    /*
+     * Keep face / upper body area
+     * toward the visible area.
+     *
+     * 20% is intentional.
+     */
+    object-position: center 20%;
+
+    display: block;
+
+    max-width: none;
+
+    max-height: none;
+
+}
+
+
+/* ==========================================
+   PHOTO PLACEHOLDER
+========================================== */
+
+.profile-photo-container
+.profile-photo-placeholder {
+
+    width: 100%;
+
+    height: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 45px;
+
+    background: #f3f4f6;
+
+}
+
+
+/* ==========================================
+   SAFARI / CHROME IMAGE SAFETY
+========================================== */
+
+.profile-photo-container img {
+
+    -webkit-object-fit: cover;
+
+    object-fit: cover;
+
+}
+
+
+/* ==========================================
+   SMALL SCREEN
+========================================== */
+
+@media (max-width: 480px) {
+
+    .profile-photo-container {
+
+        max-width: 190px;
+
+        aspect-ratio: 3 / 4;
+
+    }
+
+}
+
+
+/* ==========================================
+   LARGE SCREEN
+========================================== */
+
+@media (min-width: 768px) {
+
+    .profile-photo-container {
+
+        max-width: 220px;
+
+        aspect-ratio: 3 / 4;
+
+    }
+
+}
+
+
+/* ==========================================
+   IMPORTANT
+   FULL PROFILE PHOTO MUST NOT BE CROPPED
+========================================== */
+
+.full-profile-photo img {
+
+    object-fit: contain !important;
+
+    object-position: center !important;
+
+    width: 100%;
+
+    height: auto;
+
+    max-width: 350px;
+
+    max-height: 500px;
+
+}
+
+
+/* ==========================================
+   MATCHING PROFILE SAFETY
+========================================== */
+
+.matching-profile
+.profile-photo-container .profile-photo {
+
+    object-fit: cover;
+
+    object-position: center 20%;
+
+}
+
+
+/* ==========================================
+   AI SEARCH PROFILE SAFETY
+========================================== */
+
+.ai-search-profile
+.profile-photo-container .profile-photo {
+
+    object-fit: cover;
+
+    object-position: center 20%;
+
+}
+
+</style>

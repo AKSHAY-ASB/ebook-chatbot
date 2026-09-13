@@ -1,0 +1,1277 @@
+<!--
+=============================================================
+FILE : MatchingPhotoBatchOptimizer.html
+MODULE : Profile Photo Optimization
+VERSION : 4.0.0
+PURPOSE :
+- Matching photos: strict batches of 10
+- Search photos: process new/unprocessed photos in batches of 10
+- Re-apply cached face crop whenever a new IMG element is created
+- Never depend on old IMG element state
+- Keep Search and Matching queues isolated
+- Full profile photos are excluded
+
+IMPORTANT:
+- Does NOT modify MatchingScript
+- Does NOT modify searchProfiles()
+- Uses existing MediaPipe helpers from ProfilePhotoFaceDetectionV2
+- Uses existing Apps Script getProfilePhotoDataUrls()
+=============================================================
+-->
+
+<script>
+(function () {
+    "use strict";
+
+    /* =========================================================
+       CONFIG
+       ========================================================= */
+    const CONFIG = {
+        batchSize: 10,
+        observerDelay: 180,
+        retryDelay: 350,
+        maxRetries: 3,
+
+        matchingSelector:
+            ".matching-profile-card .profile-photo-container .profile-photo",
+
+        normalSelector:
+            ".profile-photo-container .profile-photo"
+    };
+
+
+    /* =========================================================
+       GLOBAL STATE
+       ========================================================= */
+    const state = window.MatchingPhotoBatchState =
+        window.MatchingPhotoBatchState || {
+            active: true,
+            running: false,
+            scheduled: false,
+            generation: 0,
+            matchingBatchNumber: 0,
+            searchBatchNumber: 0,
+            observer: null,
+            initialized: false,
+            serverCache: new Map(),
+            faceCache: new Map(),
+            failedUrls: new Map()
+        };
+
+    /* Keep caches if an older copy of this file already created them. */
+    state.serverCache = state.serverCache instanceof Map
+        ? state.serverCache
+        : new Map();
+
+    state.faceCache = state.faceCache instanceof Map
+        ? state.faceCache
+        : new Map();
+
+    state.failedUrls = state.failedUrls instanceof Map
+        ? state.failedUrls
+        : new Map();
+
+    window.MatchingPhotoBatchCache =
+        window.MatchingPhotoBatchCache || state.faceCache;
+
+
+    /* =========================================================
+       BASIC HELPERS
+       ========================================================= */
+    function isFullProfilePhoto(img) {
+        return !!(
+            img &&
+            img.closest(".full-profile-photo")
+        );
+    }
+
+
+    function isMatchingPhoto(img) {
+        return !!(
+            img &&
+            img.closest(".matching-profile-card")
+        );
+    }
+
+
+    function getOriginalPhotoUrl(img) {
+        if (!img) return "";
+
+        const stored =
+            img.dataset.originalPhotoUrl ||
+            img.dataset.optimizerOriginalUrl ||
+            "";
+
+        if (stored) {
+            return stored;
+        }
+
+        const src = String(img.getAttribute("src") || img.src || "");
+
+        if (!src || src.indexOf("data:image/") === 0) {
+            return "";
+        }
+
+        return src;
+    }
+
+
+    function rememberOriginalUrl(img, url) {
+        if (!img || !url) return;
+
+        img.dataset.optimizerOriginalUrl = url;
+
+        if (!img.dataset.originalPhotoUrl) {
+            img.dataset.originalPhotoUrl = url;
+        }
+    }
+
+
+    function isUsableImage(img) {
+        return !!(
+            img &&
+            !isFullProfilePhoto(img) &&
+            img.isConnected
+        );
+    }
+
+
+    function getAllMatchingPhotos() {
+        return Array.from(
+            document.querySelectorAll(CONFIG.matchingSelector)
+        ).filter(isUsableImage);
+    }
+
+
+    function getAllNormalPhotos() {
+        return Array.from(
+            document.querySelectorAll(CONFIG.normalSelector)
+        ).filter(function (img) {
+            return (
+                isUsableImage(img) &&
+                !isMatchingPhoto(img)
+            );
+        });
+    }
+
+
+    /* =========================================================
+       CACHE KEY
+       ========================================================= */
+    function getCacheKey(img) {
+        return getOriginalPhotoUrl(img);
+    }
+
+
+    /* =========================================================
+       WAIT FOR IMAGE
+       ========================================================= */
+    function waitForImage(img) {
+        if (!img) {
+            return Promise.resolve(false);
+        }
+
+        if (img.complete && img.naturalWidth > 0) {
+            return Promise.resolve(true);
+        }
+
+        return new Promise(function (resolve) {
+            let finished = false;
+
+            function done(ok) {
+                if (finished) return;
+                finished = true;
+                resolve(ok);
+            }
+
+            img.addEventListener(
+                "load",
+                function () { done(true); },
+                { once: true }
+            );
+
+            img.addEventListener(
+                "error",
+                function () { done(false); },
+                { once: true }
+            );
+
+            setTimeout(function () {
+                done(!!img.naturalWidth);
+            }, 5000);
+        });
+    }
+
+
+    /* =========================================================
+       APPLY FALLBACK
+       ========================================================= */
+    function applyBatchFallback(img) {
+        if (!img || !img.isConnected) return;
+
+        img.style.position = "absolute";
+        img.style.left = "0";
+        img.style.top = "0";
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.objectFit = "cover";
+        img.style.objectPosition = "50% 20%";
+        img.style.transform = "none";
+        img.style.transformOrigin = "initial";
+
+        img.classList.remove("face-detected");
+        img.classList.add("face-fallback");
+
+        img.dataset.photoOptimizerState = "fallback";
+    }
+
+
+    /* =========================================================
+       APPLY FACE CROP
+
+       IMPORTANT:
+       We cache FACE coordinates, not old IMG geometry.
+       Every newly created IMG gets fresh geometry based on
+       its own current container size.
+       ========================================================= */
+    function applyCachedFaceCrop(img, face, source) {
+        if (!img || !face || !img.isConnected) {
+            return false;
+        }
+
+        if (!img.naturalWidth || !img.naturalHeight) {
+            return false;
+        }
+
+        const container =
+            img.closest(".profile-photo-container");
+
+        if (!container) {
+            return false;
+        }
+
+        const containerWidth =
+            container.clientWidth || 220;
+
+        const containerHeight =
+            container.clientHeight ||
+            Math.round(containerWidth * (4 / 3));
+
+        let crop = null;
+
+        /* Use the already-tested V3 geometry function. */
+        if (
+            typeof window.calculateFaceCenteredIdentityPositionV2 ===
+            "function"
+        ) {
+            crop =
+                window.calculateFaceCenteredIdentityPositionV2(
+                    face,
+                    img.naturalWidth,
+                    img.naturalHeight,
+                    containerWidth,
+                    containerHeight
+                );
+        }
+
+        if (!crop) {
+            console.warn(
+                "[MatchingPhotoBatch] Crop calculator unavailable."
+            );
+            return false;
+        }
+
+        /* Clear any previous crop state. */
+        img.style.objectFit = "fill";
+        img.style.objectPosition = "initial";
+        img.style.transform = "none";
+        img.style.transformOrigin = "initial";
+        img.style.position = "absolute";
+
+        /* Apply exact V3 geometry. */
+        img.style.width = crop.width + "px";
+        img.style.height = crop.height + "px";
+        img.style.left = crop.left + "px";
+        img.style.top = crop.top + "px";
+
+        /* Store geometry for diagnostics. */
+        img.dataset.identityZoom =
+            Number(crop.identityZoom).toFixed(2);
+
+        img.dataset.coverScale =
+            Number(crop.coverScale).toFixed(4);
+
+        img.dataset.cropScale =
+            Number(crop.scale).toFixed(4);
+
+        img.dataset.cropLeft =
+            Number(crop.left).toFixed(2);
+
+        img.dataset.cropTop =
+            Number(crop.top).toFixed(2);
+
+        img.dataset.faceX =
+            String(Math.round(face.x + face.width / 2));
+
+        img.dataset.faceY =
+            String(Math.round(face.y + face.height / 2));
+
+        img.dataset.faceDetection = "detected";
+        img.dataset.photoOptimizerState = "cropped";
+        img.dataset.photoOptimizerSource = source || "cache";
+
+        img.classList.remove("face-fallback");
+        img.classList.add("face-detected");
+
+        console.log(
+            "[MatchingPhotoBatch] CACHED CROP APPLIED:",
+            {
+                source: source || "cache",
+                faceX: img.dataset.faceX,
+                faceY: img.dataset.faceY,
+                left: img.dataset.cropLeft,
+                top: img.dataset.cropTop,
+                width: Number(crop.width).toFixed(2),
+                height: Number(crop.height).toFixed(2)
+            }
+        );
+
+        return true;
+    }
+
+
+    /* =========================================================
+       IMMEDIATELY RE-APPLY CACHE TO NEW IMG ELEMENTS
+
+       This is the key second-search fix.
+       Old IMG state is NOT required.
+       ========================================================= */
+    function reapplyCachedCrops(images, mode) {
+        if (!images || !images.length) return;
+
+        images.forEach(function (img) {
+            const url = getCacheKey(img);
+            if (!url) return;
+
+            const face = state.faceCache.get(url);
+            if (!face) return;
+
+            rememberOriginalUrl(img, url);
+
+            if (img.naturalWidth > 0) {
+                applyCachedFaceCrop(
+                    img,
+                    face,
+                    mode + "-CACHE"
+                );
+                return;
+            }
+
+            if (img.dataset.cacheCropWaiting === "true") {
+                return;
+            }
+
+            img.dataset.cacheCropWaiting = "true";
+
+            img.addEventListener(
+                "load",
+                function () {
+                    delete img.dataset.cacheCropWaiting;
+
+                    const latestFace =
+                        state.faceCache.get(url);
+
+                    if (latestFace) {
+                        applyCachedFaceCrop(
+                            img,
+                            latestFace,
+                            mode + "-CACHE-LOAD"
+                        );
+                    }
+                },
+                { once: true }
+            );
+        });
+    }
+
+
+    /* =========================================================
+       SERVER DATA URL CACHE
+       ========================================================= */
+    function getServerDataUrlBatch(urls) {
+        const uniqueUrls = Array.from(
+            new Set(
+                urls.filter(Boolean)
+            )
+        );
+
+        const missing = uniqueUrls.filter(function (url) {
+            return !state.serverCache.has(url);
+        });
+
+        if (!missing.length) {
+            return Promise.resolve();
+        }
+
+        if (
+            typeof google === "undefined" ||
+            !google.script ||
+            !google.script.run
+        ) {
+            return Promise.reject(
+                new Error("google.script.run unavailable")
+            );
+        }
+
+        console.log(
+            "[MatchingPhotoBatch] SERVER DATA REQUEST:",
+            missing.length
+        );
+
+        return new Promise(function (resolve, reject) {
+            google.script.run
+                .withSuccessHandler(function (response) {
+                    if (!response || !response.results) {
+                        reject(
+                            new Error(
+                                "Invalid getProfilePhotoDataUrls response"
+                            )
+                        );
+                        return;
+                    }
+
+                    response.results.forEach(function (item) {
+                        const url = String(
+                            item.sourceUrl || ""
+                        );
+
+                        const result =
+                            item.result || {};
+
+                        if (
+                            url &&
+                            result.success &&
+                            result.dataUrl
+                        ) {
+                            state.serverCache.set(
+                                url,
+                                result.dataUrl
+                            );
+                        }
+                    });
+
+                    resolve();
+                })
+                .withFailureHandler(function (error) {
+                    reject(error);
+                })
+                .getProfilePhotoDataUrls(missing);
+        });
+    }
+
+
+    /* =========================================================
+       SET SERVER DATA URL ON IMG
+       ========================================================= */
+    async function prepareImageFromServer(img, url) {
+        if (!img || !url) return false;
+
+        let dataUrl = state.serverCache.get(url);
+
+        if (!dataUrl) {
+            return false;
+        }
+
+        rememberOriginalUrl(img, url);
+
+        /* Already using the correct data URL. */
+        if (img.src !== dataUrl) {
+            img.dataset.faceServerReady = "true";
+            img.dataset.faceDetectionSource = "server-data-url";
+
+            const loaded = waitForImageSource(img, dataUrl);
+            await loaded;
+
+            if (!img.naturalWidth) {
+                return false;
+            }
+        }
+
+        img.dataset.faceServerReady = "true";
+        img.dataset.faceDetectionSource = "server-data-url";
+
+        return true;
+    }
+
+
+    function waitForImageSource(img, dataUrl) {
+        return new Promise(function (resolve) {
+            let finished = false;
+
+            function done(ok) {
+                if (finished) return;
+                finished = true;
+                resolve(ok);
+            }
+
+            img.addEventListener(
+                "load",
+                function () { done(true); },
+                { once: true }
+            );
+
+            img.addEventListener(
+                "error",
+                function () { done(false); },
+                { once: true }
+            );
+
+            img.src = dataUrl;
+
+            if (img.complete && img.naturalWidth) {
+                done(true);
+            }
+
+            setTimeout(function () {
+                done(!!img.naturalWidth);
+            }, 5000);
+        });
+    }
+
+
+    /* =========================================================
+       PROCESS ONE PHOTO
+       ========================================================= */
+    async function processOnePhoto(img, mode, index, total) {
+        if (!isUsableImage(img)) {
+            return;
+        }
+
+        const url = getCacheKey(img);
+
+        if (!url) {
+            console.warn(
+                "[MatchingPhotoBatch] Missing original photo URL."
+            );
+            return;
+        }
+
+        rememberOriginalUrl(img, url);
+
+        /* -----------------------------------------------------
+           SECOND-RENDER FAST PATH
+           ----------------------------------------------------- */
+        const cachedFace =
+            state.faceCache.get(url);
+
+        if (cachedFace) {
+            if (!img.naturalWidth) {
+                await waitForImage(img);
+            }
+
+            if (
+                img.naturalWidth &&
+                isUsableImage(img)
+            ) {
+                applyCachedFaceCrop(
+                    img,
+                    cachedFace,
+                    mode + "-CACHE"
+                );
+            }
+
+            return;
+        }
+
+        console.log(
+            "[MatchingPhotoBatch] PROCESS:",
+            mode,
+            (index + 1) + "/" + total
+        );
+
+        /* -----------------------------------------------------
+           SERVER DATA URL
+           ----------------------------------------------------- */
+        const prepared =
+            await prepareImageFromServer(img, url);
+
+        if (!prepared) {
+            console.warn(
+                "[MatchingPhotoBatch] Server image unavailable:",
+                url
+            );
+            applyBatchFallback(img);
+            return;
+        }
+
+        if (!img.naturalWidth) {
+            const loaded = await waitForImage(img);
+            if (!loaded) {
+                applyBatchFallback(img);
+                return;
+            }
+        }
+
+        /* -----------------------------------------------------
+           FACE DETECTION
+           ----------------------------------------------------- */
+        if (
+            typeof window.detectFaceV2 !==
+            "function"
+        ) {
+            console.error(
+                "[MatchingPhotoBatch] detectFaceV2() unavailable."
+            );
+            applyBatchFallback(img);
+            return;
+        }
+
+        const face =
+            await window.detectFaceV2(img);
+
+        if (!face) {
+            console.log(
+                "[MatchingPhotoBatch] NO FACE:",
+                mode,
+                index + 1
+            );
+
+            state.faceCache.set(url, null);
+            applyBatchFallback(img);
+            return;
+        }
+
+        /* -----------------------------------------------------
+           CACHE ONLY NUMERIC FACE DATA
+           ----------------------------------------------------- */
+        const cachedFaceResult = {
+            x: Number(face.x),
+            y: Number(face.y),
+            width: Number(face.width),
+            height: Number(face.height)
+        };
+
+        state.faceCache.set(
+            url,
+            cachedFaceResult
+        );
+
+        window.MatchingPhotoBatchCache.set(
+            url,
+            cachedFaceResult
+        );
+
+        /* -----------------------------------------------------
+           APPLY CURRENT IMG CROP
+           ----------------------------------------------------- */
+        applyCachedFaceCrop(
+            img,
+            cachedFaceResult,
+            mode + "-DETECTED"
+        );
+    }
+
+
+    /* =========================================================
+       PROCESS A STRICT BATCH OF 10
+       ========================================================= */
+    async function processPhotoBatch(images, batchNumber, mode) {
+        if (!images.length) return;
+
+        console.log(
+            "===================================="
+        );
+
+        console.log(
+            "[MatchingPhotoBatch] BATCH " +
+            batchNumber +
+            " START"
+        );
+
+        console.log(
+            "[MatchingPhotoBatch] MODE:",
+            mode
+        );
+
+        console.log(
+            "[MatchingPhotoBatch] COUNT:",
+            images.length
+        );
+
+        /* Request server Base64 for the complete batch first. */
+        const urls = images
+            .map(getCacheKey)
+            .filter(Boolean)
+            .filter(function (url) {
+                return !state.faceCache.has(url);
+            });
+
+        try {
+            await getServerDataUrlBatch(urls);
+        }
+        catch (error) {
+            console.error(
+                "[MatchingPhotoBatch] Server batch failed:",
+                error
+            );
+        }
+
+        /* Sequential MediaPipe processing prevents CPU spikes. */
+        for (let i = 0; i < images.length; i++) {
+            const img = images[i];
+
+            if (!isUsableImage(img)) {
+                continue;
+            }
+
+            try {
+                await processOnePhoto(
+                    img,
+                    mode,
+                    i,
+                    images.length
+                );
+            }
+            catch (error) {
+                console.error(
+                    "[MatchingPhotoBatch] Photo failed:",
+                    error
+                );
+                applyBatchFallback(img);
+            }
+        }
+
+        console.log(
+            "[MatchingPhotoBatch] BATCH " +
+            batchNumber +
+            " COMPLETE"
+        );
+
+        console.log(
+            "===================================="
+        );
+    }
+
+
+    /* =========================================================
+       PENDING MATCHING PHOTOS
+       ========================================================= */
+    function getCurrentMatchingBatch() {
+        const all = getAllMatchingPhotos();
+
+        /* Always re-apply cache to newly-created matching IMG. */
+        reapplyCachedCrops(
+            all,
+            "MATCHING"
+        );
+
+        const pending = all.filter(function (img) {
+            const url = getCacheKey(img);
+
+            if (!url) return false;
+
+            /* Face cache means this URL already has a face result. */
+            if (state.faceCache.has(url)) {
+                return false;
+            }
+
+            if (
+                img.dataset.photoOptimizerState ===
+                "processing"
+            ) {
+                return false;
+            }
+
+            return true;
+        });
+
+        return pending.slice(
+            0,
+            CONFIG.batchSize
+        );
+    }
+
+
+    /* =========================================================
+       PENDING SEARCH PHOTOS
+       ========================================================= */
+    function getCurrentSearchBatch() {
+        const all = getAllNormalPhotos();
+
+        /* This is the critical second-search fix. */
+        reapplyCachedCrops(
+            all,
+            "SEARCH"
+        );
+
+        const pending = all.filter(function (img) {
+            const url = getCacheKey(img);
+
+            if (!url) return false;
+
+            if (state.faceCache.has(url)) {
+                return false;
+            }
+
+            if (
+                img.dataset.photoOptimizerState ===
+                "processing"
+            ) {
+                return false;
+            }
+
+            return true;
+        });
+
+        return pending.slice(
+            0,
+            CONFIG.batchSize
+        );
+    }
+
+
+    /* =========================================================
+       MATCHING QUEUE
+       ========================================================= */
+    async function runMatchingPhotoQueue() {
+        if (state.running) return;
+
+        const batch =
+            getCurrentMatchingBatch();
+
+        if (!batch.length) {
+            return;
+        }
+
+        state.running = true;
+
+        try {
+            state.matchingBatchNumber++;
+
+            batch.forEach(function (img) {
+                img.dataset.photoOptimizerState =
+                    "processing";
+            });
+
+            await processPhotoBatch(
+                batch,
+                state.matchingBatchNumber,
+                "MATCHING"
+            );
+        }
+        finally {
+            batch.forEach(function (img) {
+                if (
+                    img.dataset.photoOptimizerState ===
+                    "processing"
+                ) {
+                    delete img.dataset.photoOptimizerState;
+                }
+            });
+
+            state.running = false;
+        }
+    }
+
+
+    /* =========================================================
+       SEARCH QUEUE
+       ========================================================= */
+    async function runNormalPhotoQueue() {
+        if (state.running) {
+            return;
+        }
+
+        const batch =
+            getCurrentSearchBatch();
+
+        if (!batch.length) {
+            console.log(
+                "[MatchingPhotoBatch] SEARCH: No pending photos."
+            );
+            return;
+        }
+
+        state.running = true;
+
+        try {
+            state.searchBatchNumber++;
+
+            console.log(
+                "===================================="
+            );
+
+            console.log(
+                "[MatchingPhotoBatch] SEARCH BATCH START"
+            );
+
+            console.log(
+                "[MatchingPhotoBatch] SEARCH PHOTO COUNT:",
+                batch.length
+            );
+
+            batch.forEach(function (img) {
+                img.dataset.photoOptimizerState =
+                    "processing";
+            });
+
+            await processPhotoBatch(
+                batch,
+                state.searchBatchNumber,
+                "SEARCH"
+            );
+
+            console.log(
+                "[MatchingPhotoBatch] SEARCH BATCH COMPLETE"
+            );
+
+            console.log(
+                "===================================="
+            );
+        }
+        finally {
+            batch.forEach(function (img) {
+                if (
+                    img.dataset.photoOptimizerState ===
+                    "processing"
+                ) {
+                    delete img.dataset.photoOptimizerState;
+                }
+            });
+
+            state.running = false;
+        }
+    }
+
+
+    /* =========================================================
+       COMBINED QUEUE
+       ========================================================= */
+    function runOptimizedPhotoQueue() {
+        if (!state.active || state.scheduled) {
+            return;
+        }
+
+        state.scheduled = true;
+
+        setTimeout(async function () {
+            state.scheduled = false;
+
+            if (!state.active || state.running) {
+                return;
+            }
+
+            /* Always repair cached images first. */
+            reapplyCachedCrops(
+                getAllMatchingPhotos(),
+                "MATCHING"
+            );
+
+            reapplyCachedCrops(
+                getAllNormalPhotos(),
+                "SEARCH"
+            );
+
+            /* Matching gets priority. */
+            const matchingBatch =
+                getCurrentMatchingBatch();
+
+            if (
+                matchingBatch.length &&
+                !state.running
+            ) {
+                await runMatchingPhotoQueue();
+            }
+
+            if (state.running) {
+                return;
+            }
+
+            const searchBatch =
+                getCurrentSearchBatch();
+
+            if (
+                searchBatch.length &&
+                !state.running
+            ) {
+                await runNormalPhotoQueue();
+            }
+        }, CONFIG.observerDelay);
+    }
+
+
+    /* =========================================================
+       MUTATION OBSERVER
+       ========================================================= */
+    function startOptimizedObserver() {
+        /* Stop the original V2 observer so both systems do not
+           process the same newly-created IMG independently. */
+        if (
+            window.profilePhotoFaceDetectionV2Observer &&
+            typeof window
+                .profilePhotoFaceDetectionV2Observer
+                .disconnect === "function"
+        ) {
+            window.profilePhotoFaceDetectionV2Observer.disconnect();
+
+            console.log(
+                "[MatchingPhotoBatch] Original V2 observer disconnected."
+            );
+        }
+
+        if (state.observer) {
+            state.observer.disconnect();
+        }
+
+        if (
+            typeof MutationObserver !==
+            "function"
+        ) {
+            console.warn(
+                "[MatchingPhotoBatch] MutationObserver unavailable."
+            );
+            return;
+        }
+
+        state.observer =
+            new MutationObserver(function (mutations) {
+                let photoAdded = false;
+
+                mutations.forEach(function (mutation) {
+                    if (!mutation.addedNodes || !mutation.addedNodes.length) {
+                        return;
+                    }
+
+                    mutation.addedNodes.forEach(function (node) {
+                        if (photoAdded) return;
+
+                        if (node.nodeType !== 1) {
+                            return;
+                        }
+
+                        if (
+                            node.matches &&
+                            (
+                                node.matches(
+                                    ".profile-photo-container"
+                                ) ||
+                                node.matches(
+                                    ".profile-photo"
+                                ) ||
+                                node.matches(
+                                    ".matching-profile-card"
+                                )
+                            )
+                        ) {
+                            photoAdded = true;
+                            return;
+                        }
+
+                        if (
+                            node.querySelector &&
+                            node.querySelector(
+                                ".profile-photo-container .profile-photo"
+                            )
+                        ) {
+                            photoAdded = true;
+                        }
+                    });
+                });
+
+                if (photoAdded) {
+                    runOptimizedPhotoQueue();
+                }
+            });
+
+        state.observer.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+
+        console.log(
+            "[MatchingPhotoBatch] Optimized observer READY."
+        );
+    }
+
+
+    /* =========================================================
+       DEBUG
+       ========================================================= */
+    window.debugMatchingPhotoBatch = function () {
+        const matching =
+            getAllMatchingPhotos();
+
+        const search =
+            getAllNormalPhotos();
+
+        console.log(
+            "===================================="
+        );
+
+        console.log(
+            "[MatchingPhotoBatch] DEBUG"
+        );
+
+        console.log(
+            "MATCHING PHOTOS:",
+            matching.length
+        );
+
+        console.log(
+            "SEARCH PHOTOS:",
+            search.length
+        );
+
+        console.log(
+            "FACE CACHE SIZE:",
+            state.faceCache.size
+        );
+
+        console.log(
+            "SERVER CACHE SIZE:",
+            state.serverCache.size
+        );
+
+        console.log(
+            "MATCHING BATCH:",
+            getCurrentMatchingBatch().length
+        );
+
+        console.log(
+            "SEARCH BATCH:",
+            getCurrentSearchBatch().length
+        );
+
+        console.log(
+            "MATCHING DETAILS:",
+            matching.map(function (img, index) {
+                const url = getCacheKey(img);
+                const face = url
+                    ? state.faceCache.get(url)
+                    : null;
+
+                return {
+                    index: index + 1,
+                    cached: !!face,
+                    state:
+                        img.dataset.photoOptimizerState || "",
+                    detection:
+                        img.dataset.faceDetection || "",
+                    cropLeft:
+                        img.dataset.cropLeft || "",
+                    cropTop:
+                        img.dataset.cropTop || ""
+                };
+            })
+        );
+
+        console.log(
+            "SEARCH DETAILS:",
+            search.map(function (img, index) {
+                const url = getCacheKey(img);
+                const face = url
+                    ? state.faceCache.get(url)
+                    : null;
+
+                return {
+                    index: index + 1,
+                    cached: !!face,
+                    state:
+                        img.dataset.photoOptimizerState || "",
+                    detection:
+                        img.dataset.faceDetection || "",
+                    cropLeft:
+                        img.dataset.cropLeft || "",
+                    cropTop:
+                        img.dataset.cropTop || ""
+                };
+            })
+        );
+
+        console.log(
+            "===================================="
+        );
+    };
+
+
+    /* =========================================================
+       RESET CACHE
+       ========================================================= */
+    window.resetMatchingPhotoBatchCache = function () {
+        state.serverCache.clear();
+        state.faceCache.clear();
+        state.failedUrls.clear();
+
+        window.MatchingPhotoBatchCache.clear();
+
+        document
+            .querySelectorAll(
+                ".profile-photo-container .profile-photo"
+            )
+            .forEach(function (img) {
+                delete img.dataset.faceDetection;
+                delete img.dataset.photoOptimizerState;
+                delete img.dataset.faceServerReady;
+                delete img.dataset.faceDetectionSource;
+                delete img.dataset.identityZoom;
+                delete img.dataset.coverScale;
+                delete img.dataset.cropScale;
+                delete img.dataset.cropLeft;
+                delete img.dataset.cropTop;
+                delete img.dataset.faceX;
+                delete img.dataset.faceY;
+
+                applyBatchFallback(img);
+            });
+
+        state.matchingBatchNumber = 0;
+        state.searchBatchNumber = 0;
+
+        console.log(
+            "[MatchingPhotoBatch] Cache RESET."
+        );
+
+        runOptimizedPhotoQueue();
+    };
+
+
+    /* =========================================================
+       MANUAL START
+       ========================================================= */
+    window.startMatchingPhotoBatchOptimizer = function () {
+        if (state.initialized) {
+            runOptimizedPhotoQueue();
+            return;
+        }
+
+        state.initialized = true;
+        state.active = true;
+
+        startOptimizedObserver();
+        runOptimizedPhotoQueue();
+
+        console.log(
+            "[MatchingPhotoBatch] OPTIMIZER READY v4.0.0"
+        );
+    };
+
+
+    /* =========================================================
+       START
+       ========================================================= */
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            window.startMatchingPhotoBatchOptimizer,
+            { once: true }
+        );
+    }
+    else {
+        window.startMatchingPhotoBatchOptimizer();
+    }
+
+})();
+</script>

@@ -1,0 +1,722 @@
+<!--
+==========================================
+FILE : ProfilePhotoSmartCrop.html
+MODULE : Profile Components
+PURPOSE : Smart Identity-Style Photo Crop
+
+VERSION : 1.0.0
+STATUS : NEW / ADDITIVE
+
+RESPONSIBILITY
+- Uniform 3:4 identity-style profile photo
+- Smart face positioning when browser supports it
+- Safe upper-center fallback
+- Works with dynamically inserted profile cards
+- Does NOT modify backend
+- Does NOT modify Google Drive URLs
+- Does NOT modify full-profile photos
+
+IMPORTANT
+- Original image is never modified.
+- Only the displayed profile-card image is cropped.
+==========================================
+-->
+
+<style>
+
+/* ==========================================
+   SMART IDENTITY PHOTO FRAME
+========================================== */
+
+.profile-photo-container {
+
+    width: 100%;
+
+    max-width: 220px;
+
+    aspect-ratio: 3 / 4;
+
+    height: auto;
+
+    margin: 0 auto 15px auto;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    border: 1px solid #e5e7eb;
+
+    background: #f8f9fa;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    position: relative;
+
+}
+
+
+/* ==========================================
+   PROFILE PHOTO
+========================================== */
+
+.profile-photo-container .profile-photo {
+
+    width: 100%;
+
+    height: 100%;
+
+    display: block;
+
+    max-width: none;
+
+    max-height: none;
+
+    object-fit: cover;
+
+    /*
+     * Default safe position.
+     *
+     * Smart JS may update this
+     * when face detection is available.
+     */
+    object-position: center 20%;
+
+    /*
+     * Prevent browser-specific
+     * image rendering surprises.
+     */
+    -webkit-object-fit: cover;
+
+    -webkit-backface-visibility: hidden;
+
+    backface-visibility: hidden;
+
+}
+
+
+/* ==========================================
+   PLACEHOLDER
+========================================== */
+
+.profile-photo-container
+.profile-photo-placeholder {
+
+    width: 100%;
+
+    height: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 45px;
+
+    background: #f3f4f6;
+
+}
+
+
+/* ==========================================
+   FULL PROFILE MUST REMAIN ORIGINAL
+========================================== */
+
+.full-profile-photo img {
+
+    object-fit: contain !important;
+
+    object-position: center !important;
+
+    width: 100%;
+
+    height: auto;
+
+}
+
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width: 480px) {
+
+    .profile-photo-container {
+
+        max-width: 190px;
+
+        aspect-ratio: 3 / 4;
+
+    }
+
+}
+
+
+/* ==========================================
+   DESKTOP
+========================================== */
+
+@media (min-width: 768px) {
+
+    .profile-photo-container {
+
+        max-width: 220px;
+
+        aspect-ratio: 3 / 4;
+
+    }
+
+}
+
+</style>
+
+
+<script>
+
+/* ==========================================
+   SMART PHOTO CONFIG
+========================================== */
+
+window.ProfilePhotoSmartCropConfig = {
+
+    enabled: true,
+
+    /*
+     * Default fallback.
+     *
+     * Used when browser does not provide
+     * native face detection.
+     */
+    fallbackX: 50,
+
+    fallbackY: 20,
+
+    /*
+     * Keep face away from the extreme edges.
+     */
+    minX: 25,
+
+    maxX: 75,
+
+    minY: 10,
+
+    maxY: 45
+
+};
+
+
+/* ==========================================
+   SAFE NUMBER
+========================================== */
+
+function smartCropClamp(value, min, max) {
+
+    return Math.max(
+        min,
+        Math.min(max, value)
+    );
+
+}
+
+
+/* ==========================================
+   APPLY FALLBACK POSITION
+========================================== */
+
+function applySmartCropFallback(img) {
+
+    if (!img) {
+        return;
+    }
+
+    const config =
+        window.ProfilePhotoSmartCropConfig;
+
+    img.style.objectPosition =
+        config.fallbackX +
+        "% " +
+        config.fallbackY +
+        "%";
+
+}
+
+
+/* ==========================================
+   NATIVE FACE DETECTION
+========================================== */
+
+async function detectNativeFacePosition(img) {
+
+    /*
+     * FaceDetector is not available in
+     * every browser.
+     *
+     * Safari may fall through to fallback.
+     */
+    if (
+        typeof window.FaceDetector !==
+        "function"
+    ) {
+
+        return null;
+
+    }
+
+
+    try {
+
+        const detector =
+            new window.FaceDetector({
+
+                fastMode: true,
+
+                maxDetectedFaces: 1
+
+            });
+
+
+        const faces =
+            await detector.detect(img);
+
+
+        if (
+            !faces ||
+            !faces.length
+        ) {
+
+            return null;
+
+        }
+
+
+        const face =
+            faces[0];
+
+
+        const box =
+            face.boundingBox;
+
+
+        if (!box) {
+
+            return null;
+
+        }
+
+
+        const imageWidth =
+            img.naturalWidth ||
+            img.width;
+
+
+        const imageHeight =
+            img.naturalHeight ||
+            img.height;
+
+
+        if (
+            !imageWidth ||
+            !imageHeight
+        ) {
+
+            return null;
+
+        }
+
+
+        /*
+         * Calculate face center
+         * as percentage of original image.
+         */
+
+        const faceCenterX =
+            (
+                box.left +
+                (box.width / 2)
+            ) /
+            imageWidth *
+            100;
+
+
+        const faceCenterY =
+            (
+                box.top +
+                (box.height / 2)
+            ) /
+            imageHeight *
+            100;
+
+
+        return {
+
+            x: faceCenterX,
+
+            y: faceCenterY
+
+        };
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "[SmartCrop] Face detection unavailable:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+/* ==========================================
+   APPLY FACE POSITION
+========================================== */
+
+function applyDetectedFacePosition(
+
+    img,
+
+    position
+
+) {
+
+    if (
+        !img ||
+        !position
+    ) {
+
+        return false;
+
+    }
+
+
+    const config =
+        window.ProfilePhotoSmartCropConfig;
+
+
+    /*
+     * Keep crop position within safe bounds.
+     */
+
+    const x =
+        smartCropClamp(
+
+            position.x,
+
+            config.minX,
+
+            config.maxX
+
+        );
+
+
+    const y =
+        smartCropClamp(
+
+            position.y,
+
+            config.minY,
+
+            config.maxY
+
+        );
+
+
+    img.style.objectPosition =
+        x +
+        "% " +
+        y +
+        "%";
+
+
+    img.dataset.smartCrop =
+        "face-detected";
+
+
+    return true;
+
+}
+
+
+/* ==========================================
+   PROCESS ONE IMAGE
+========================================== */
+
+async function processSmartProfilePhoto(img) {
+
+    if (!img) {
+        return;
+    }
+
+
+    if (
+        img.dataset.smartCropProcessed ===
+        "true"
+    ) {
+
+        return;
+
+    }
+
+
+    img.dataset.smartCropProcessed =
+        "true";
+
+
+    /*
+     * Always apply safe fallback first.
+     *
+     * Therefore photo never remains
+     * unpositioned while detection runs.
+     */
+
+    applySmartCropFallback(img);
+
+
+    /*
+     * Wait until image has dimensions.
+     */
+
+    if (
+        !img.complete ||
+        !img.naturalWidth
+    ) {
+
+        await new Promise(function(resolve) {
+
+            const timeout =
+                setTimeout(
+                    resolve,
+                    3000
+                );
+
+
+            img.addEventListener(
+
+                "load",
+
+                function() {
+
+                    clearTimeout(timeout);
+
+                    resolve();
+
+                },
+
+                {
+                    once: true
+                }
+
+            );
+
+        });
+
+    }
+
+
+    if (
+        !img.naturalWidth ||
+        !img.naturalHeight
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Try native face detection.
+     */
+
+    const facePosition =
+        await detectNativeFacePosition(
+            img
+        );
+
+
+    if (facePosition) {
+
+        applyDetectedFacePosition(
+
+            img,
+
+            facePosition
+
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * Browser does not support
+     * native face detection.
+     *
+     * Keep safe identity-style
+     * upper-center crop.
+     */
+
+    img.dataset.smartCrop =
+        "fallback";
+
+}
+
+
+/* ==========================================
+   FIND ALL PROFILE PHOTOS
+========================================== */
+
+function processAllSmartProfilePhotos() {
+
+    const images =
+        document.querySelectorAll(
+            ".profile-photo-container .profile-photo"
+        );
+
+
+    images.forEach(function(img) {
+
+        processSmartProfilePhoto(img);
+
+    });
+
+}
+
+
+/* ==========================================
+   OBSERVE DYNAMIC PROFILE CARDS
+========================================== */
+
+function startSmartProfilePhotoObserver() {
+
+    /*
+     * Initial scan.
+     */
+
+    processAllSmartProfilePhotos();
+
+
+    if (
+        typeof MutationObserver !==
+        "function"
+    ) {
+
+        return;
+
+    }
+
+
+    const observer =
+        new MutationObserver(
+
+            function(mutations) {
+
+                let shouldScan = false;
+
+
+                mutations.forEach(
+
+                    function(mutation) {
+
+                        if (
+                            mutation.addedNodes &&
+                            mutation.addedNodes.length
+                        ) {
+
+                            shouldScan =
+                                true;
+
+                        }
+
+                    }
+
+                );
+
+
+                if (shouldScan) {
+
+                    processAllSmartProfilePhotos();
+
+                }
+
+            }
+
+        );
+
+
+    observer.observe(
+
+        document.body,
+
+        {
+
+            childList: true,
+
+            subtree: true
+
+        }
+
+    );
+
+
+    window.profilePhotoSmartCropObserver =
+        observer;
+
+}
+
+
+/* ==========================================
+   START AFTER DOM
+========================================== */
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+
+        "DOMContentLoaded",
+
+        startSmartProfilePhotoObserver
+
+    );
+
+}
+
+else {
+
+    startSmartProfilePhotoObserver();
+
+}
+
+
+/* ==========================================
+   MANUAL TEST FUNCTION
+========================================== */
+
+window.testSmartProfilePhotoCrop =
+    function() {
+
+        processAllSmartProfilePhotos();
+
+        console.log(
+            "[SmartCrop] Profile photos processed."
+        );
+
+    };
+
+
+console.log(
+    "[SmartCrop] ProfilePhotoSmartCrop loaded."
+);
+
+</script>
