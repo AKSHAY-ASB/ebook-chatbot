@@ -594,6 +594,16 @@ function showMenu() {
         🔔 Notifications
       </button>
 
+
+      <button
+        type="button"
+        class="option-btn"
+        onclick="openMyProfileEdit()"
+      >
+        ✏️ Update Profile
+      </button>
+
+
       <button
         class="option-btn"
         onclick="showLikedProfiles()"
@@ -658,6 +668,233 @@ function showMenu() {
         
 
 }
+
+
+
+// ==========================================
+// FETCH MY PROFILE EDIT URL
+// CALLED ONLY AFTER MOBILE VERIFICATION
+// ==========================================
+
+function fetchMyProfileEditUrl() {
+
+  if (
+    typeof authUISessionId === "undefined" ||
+    !authUISessionId
+  ) {
+
+    botMessage(
+      "⚠️ तुमचे login session उपलब्ध नाही. कृपया पुन्हा login करा."
+    );
+
+    return;
+  }
+
+
+  showTyping();
+
+
+  google.script.run
+
+    .withSuccessHandler(function(result) {
+
+      hideTyping();
+
+      console.log(
+        "MY PROFILE EDIT URL RESULT:",
+        result
+      );
+
+      if (
+        !result ||
+        result.success !== true ||
+        !result.editUrl
+      ) {
+
+        botMessage(`
+          ⚠️ <b>Update Profile उपलब्ध नाही.</b>
+
+          <br><br>
+
+          ${
+            result && result.message
+              ? escapeHtml(result.message)
+              : "तुमची profile edit link सापडली नाही."
+          }
+        `);
+
+        return;
+      }
+
+
+      // ==========================================
+      // SAFE URL
+      // ==========================================
+
+      const editUrl =
+        escapeHtml(result.editUrl);
+
+
+      // ==========================================
+      // SHOW CLICKABLE UPDATE PROFILE LINK
+      // ==========================================
+
+      botMessage(`
+
+        <div
+          style="
+            background:#f1f1f1;
+            padding:15px;
+            border-radius:10px;
+            margin-top:10px;
+          "
+        >
+
+          ✏️ <b>Update Profile</b>
+
+          <br><br>
+
+          तुमची Profile Update करण्यासाठी
+          खालील button वर क्लिक करा.
+
+          <br><br>
+
+          <a
+            href="${editUrl}"
+            target="_top"
+            rel="noopener noreferrer"
+            style="
+              display:block;
+              text-align:center;
+              background:#0b57d0;
+              color:#ffffff;
+              text-decoration:none;
+              padding:12px 15px;
+              border-radius:8px;
+              font-weight:bold;
+              font-size:16px;
+            "
+          >
+            ✏️ Update Profile Form उघडा
+          </a>
+
+          <br>
+
+          📱 Form उघडल्यानंतर तुमची माहिती Update करा
+          आणि <b>Submit</b> करा.
+
+          <br><br>
+
+          Submit केल्यानंतर Confirmation page वरून
+          <b>Devang Chatbot</b> वर परत या.
+
+        </div>
+
+      `);
+
+    })
+
+    .withFailureHandler(function(error) {
+
+      hideTyping();
+
+      console.error(
+        "MY PROFILE EDIT URL ERROR:",
+        error
+      );
+
+      botMessage(
+        "⚠️ Update Profile link उघडता आली नाही. कृपया पुन्हा प्रयत्न करा."
+      );
+
+    })
+
+    .getMyProfileEditUrl(
+      authUISessionId
+    );
+}
+
+
+
+function openMyProfileEdit() {
+
+  console.log("UPDATE PROFILE CLICKED");
+
+  if (!profileAccessVerified || !profileUserMobile) {
+    pendingProfileCategory = "update_profile";
+
+    botMessage(
+      "प्रोफाइल अपडेट करण्यासाठी तुमचा Registered Mobile Number verify करा."
+    );
+
+    chatbotState = "profile_mobile_verification";
+
+    const input = document.getElementById("message");
+
+    if (input) {
+      input.placeholder = "Enter registered mobile number...";
+      input.focus();
+    }
+
+    return;
+  }
+
+  let mainSessionId = "";
+
+  try {
+    if (typeof authGetStoredSession === "function") {
+      mainSessionId = authGetStoredSession() || "";
+    }
+  } catch (error) {
+    console.error("Auth session read error:", error);
+  }
+
+  if (!mainSessionId) {
+    try {
+      mainSessionId =
+        localStorage.getItem("DEVANG_PUSTIKA_AUTH_SESSION") || "";
+    } catch (error) {
+      console.error("LocalStorage error:", error);
+    }
+  }
+
+  if (!mainSessionId) {
+    botMessage("तुमचे login session उपलब्ध नाही. कृपया पुन्हा login करा.");
+    return;
+  }
+
+  botMessage("तुमची Profile Edit Link तयार करत आहे...");
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+
+      console.log("MY PROFILE EDIT URL RESULT:", result);
+
+      if (!result || !result.success || !result.editUrl) {
+        botMessage(
+          result?.message ||
+          "तुमची Profile Edit Link मिळाली नाही."
+        );
+        return;
+      }
+
+      console.log("Opening Response Edit URL:", result.editUrl);
+
+      window.open(result.editUrl, "_blank");
+
+    })
+    .withFailureHandler(function(error) {
+
+      console.error("getMyProfileEditUrl ERROR:", error);
+
+      botMessage(
+        "Profile Edit Link उघडताना समस्या आली."
+      );
+
+    })
+    .getMyProfileEditUrl(mainSessionId);
+}
+
 
 
     /* =========================================
@@ -1639,6 +1876,30 @@ function verifyProfileMobile(mobile) {
             .trim();
 
 
+
+          // ==========================================
+          // UPDATE PROFILE → CONTINUE AFTER VERIFICATION
+          // ==========================================
+
+          if (
+            pendingProfileCategory === "update_profile"
+          ) {
+
+            console.log(
+              "Mobile verified → opening Update Profile"
+            );
+
+            pendingProfileCategory = "";
+
+            setTimeout(function() {
+
+              openMyProfileEdit();
+
+            }, 100);
+
+            return;
+          }
+
           // ==========================================
           // DEBUG VERIFIED USER
           // ==========================================
@@ -1823,6 +2084,11 @@ function verifyProfileMobile(mobile) {
           }
 
 
+
+
+     
+
+
           // ==========================================
           // USER CAME FROM LIKED PROFILES
           // ==========================================
@@ -1839,6 +2105,27 @@ function verifyProfileMobile(mobile) {
 
             return;
 
+          }
+
+
+
+          // ==========================================
+          // UPDATE PROFILE AFTER VERIFICATION
+          // ==========================================
+
+          if (
+            pendingProfileCategory === "updateProfile"
+          ) {
+
+            pendingProfileCategory = "";
+
+            console.log(
+              "Mobile verified → opening Update Profile"
+            );
+
+            fetchMyProfileEditUrl();
+
+            return;
           }
 
 

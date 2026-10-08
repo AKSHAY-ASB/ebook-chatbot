@@ -2300,6 +2300,189 @@ function getFullProfile(
 }
 
 
+
+// ==========================================
+// GET AUTHENTICATED USER'S OWN PROFILE
+// ==========================================
+
+function getMyProfile(sessionId) {
+
+  try {
+
+    // ------------------------------------------
+    // 1. Validate authenticated session
+    // ------------------------------------------
+
+    const auth =
+      validateAuthSession(sessionId);
+
+
+    if (
+      !auth ||
+      auth.success !== true ||
+      auth.authenticated !== true ||
+      !auth.user
+    ) {
+
+      return {
+
+        success: false,
+
+        authenticated: false,
+
+        code:
+          "UNAUTHORIZED",
+
+        message:
+          "कृपया पुन्हा login करा."
+
+      };
+
+    }
+
+
+    // ------------------------------------------
+    // 2. Get identity ONLY from server session
+    // ------------------------------------------
+
+    const profileId =
+      String(
+        auth.user.profileId || ""
+      ).trim();
+
+
+    const profileType =
+      String(
+        auth.user.profileType || ""
+      ).trim()
+      .toLowerCase();
+
+
+    const mobile =
+      String(
+        auth.user.mobile || ""
+      ).trim();
+
+
+    const registeredSheet =
+      String(
+        auth.user.registeredSheet || ""
+      ).trim();
+
+
+    if (
+      !profileId ||
+      !mobile
+    ) {
+
+      return {
+
+        success: false,
+
+        authenticated: true,
+
+        code:
+          "INVALID_PROFILE_IDENTITY",
+
+        message:
+          "Profile identity उपलब्ध नाही."
+
+      };
+
+    }
+
+
+    // ------------------------------------------
+    // 3. Get profile using authenticated ID
+    // ------------------------------------------
+
+    const profileResult =
+      getFullProfile(
+        profileType,
+        profileId
+      );
+
+
+    if (
+      !profileResult ||
+      profileResult.success !== true ||
+      !profileResult.profile
+    ) {
+
+      return {
+
+        success: false,
+
+        authenticated: true,
+
+        code:
+          "PROFILE_NOT_FOUND",
+
+        message:
+          "तुमची profile सापडली नाही."
+
+      };
+
+    }
+
+
+    // ------------------------------------------
+    // 4. SUCCESS
+    // ------------------------------------------
+
+    return {
+
+      success: true,
+
+      authenticated: true,
+
+      sessionId:
+        sessionId,
+
+      profile: {
+
+        ...profileResult.profile,
+
+        ownerMobile:
+          mobile,
+
+        registeredSheet:
+          registeredSheet
+
+      }
+
+    };
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "getMyProfile Error:",
+      error
+    );
+
+
+    return {
+
+      success: false,
+
+      authenticated: false,
+
+      code:
+        "MY_PROFILE_EXCEPTION",
+
+      message:
+        "तुमची profile load करता आली नाही."
+
+    };
+
+  }
+
+}
+
+
+
 function testGetFullProfile() {
 
   const result = getFullProfile(

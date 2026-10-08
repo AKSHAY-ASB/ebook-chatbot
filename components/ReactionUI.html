@@ -9,143 +9,82 @@
 // ==========================================
 
 function buildLikeButton(
-    profile,
-    relationship
+  profile,
+  relationship
 ) {
 
-    profile =
-        profile || {};
+  let className =
+    "profile-reaction-btn";
 
-    relationship =
-        relationship || {};
-
-
-    const profileType =
-        profile.viewerProfileType ||
-        profile.type ||
-        "";
+  let label =
+    "♡ Like";
 
 
-    const profileId =
-        profile.viewerProfileId ||
-        profile.id ||
-        "";
+  // ==========================================
+  // MUTUAL MATCH
+  // BOTH USERS LIKED EACH OTHER
+  // ==========================================
+
+  if (
+    relationship &&
+    relationship.status === "MUTUAL_LIKE"
+  ) {
+
+    className += " mutual";
+
+    label =
+      "❤️ Matched";
+
+  }
 
 
-    const profileName =
-        profile.viewerName ||
-        profile.name ||
-        "";
+  // ==========================================
+  // CURRENT USER LIKED
+  // ==========================================
+
+  else if (
+    relationship &&
+    relationship.status === "OUTGOING_LIKE"
+  ) {
+
+    className += " liked";
+
+    label =
+      "❤️ Liked";
+
+  }
 
 
-    const ownerMobile =
-        profile.viewerMobile ||
-        profile.ownerMobile ||
-        profile.mobile ||
-        "";
+  // ==========================================
+  // RETURN BUTTON
+  // ==========================================
+
+  const disabled =
+    relationship &&
+    relationship.canLike === false
+      ? "disabled"
+      : "";
 
 
-    const relationshipStatus =
-        String(
-            relationship.status ||
-            ""
-        )
-        .trim()
-        .toUpperCase();
+  return `
+    <button
+      type="button"
+      class="${className}"
+      ${disabled}
 
+      onclick="reactToProfile(
+        '${profile.viewerProfileType || profile.type}',
+        '${profile.viewerProfileId || profile.id}',
+        '${profile.viewerName || profile.name}',
+        '${profile.viewerMobile || profile.ownerMobile}',
+        'LIKE',
+        this
+      )">
 
-    // ==========================================
-    // LIKE STATE
-    //
-    // OUTGOING_LIKE = User has liked profile
-    // MUTUAL_LIKE   = Both users have liked
-    // ==========================================
+      ${label}
 
-    const isLiked =
-        relationshipStatus === "OUTGOING_LIKE" ||
-        relationshipStatus === "MUTUAL_LIKE";
-
-
-    let className =
-        "profile-reaction-btn";
-
-
-    if (
-        relationshipStatus ===
-        "MUTUAL_LIKE"
-    ) {
-
-        className +=
-            " mutual";
-
-    }
-
-    else if (
-        relationshipStatus ===
-        "OUTGOING_LIKE"
-    ) {
-
-        className +=
-            " liked";
-
-    }
-
-
-    // ==========================================
-    // BUTTON LABEL
-    // ==========================================
-
-    const likeLabel =
-        isLiked
-
-            ? "❤️ Liked"
-
-            : (
-                relationship.likeLabel ||
-                "♡ Like"
-            );
-
-
-    // ==========================================
-    // BUTTON DISABLED STATE
-    // ==========================================
-
-    const isDisabled =
-        relationship.canLike === false ||
-        isLiked;
-
-
-    return `
-
-        <button
-            type="button"
-
-            class="${className}"
-
-            ${isDisabled ? "disabled" : ""}
-
-            onclick="
-                ${
-                    isDisabled
-                        ? ""
-                        : `reactToProfile(
-                            '${escapeJsValue(profileType)}',
-                            '${escapeJsValue(profileId)}',
-                            '${escapeJsValue(profileName)}',
-                            '${escapeJsValue(ownerMobile)}',
-                            'LIKE',
-                            this
-                        )`
-                }
-            "
-
-        >
-
-            ${likeLabel}
-
-        </button>
-
-    `;
+    </button>
+  `;
 }
 
 

@@ -27,10 +27,30 @@ IMPORTANT
 
 let matchingRenderedProfiles = [];
 
+// ==========================================================
+// MATCHING PAGINATION STATE
+// ==========================================================
+
+let matchingAllRankedProfiles = [];
+
+let matchingCurrentPage = 1;
+
+const MATCHING_PAGE_SIZE = 10;
+
+let matchingViewMoreLoading = false;
+
 let matchingLastRankingResult = null;
 
 let matchingReactionState = {};
 
+let matchingTypewriterTimer = null;
+
+// ----------------------------------------------------------
+// MATCHING INITIAL LOAD SYNCHRONIZATION
+// ----------------------------------------------------------
+
+let matchingTypewriterDone = false;
+let matchingProfilesReady = false;
 
 // ==========================================================
 // MATCHING REACTION KEY
@@ -116,7 +136,70 @@ function getMatchingChat() {
 
 
 // ==========================================================
-// SHOW LOADING
+// MATCHING INITIAL RENDER GUARD
+//
+// Profiles render only when:
+// 1. Typewriter is complete
+// 2. Matching profile data + relationship states are ready
+//
+// Backend loading remains parallel.
+// ==========================================================
+
+function tryRenderMatchingProfilesWhenReady(
+    profiles,
+    rankingResult,
+    appendMode
+) {
+
+    // ------------------------------------------------------
+    // WAIT UNTIL TYPEWRITER IS COMPLETE
+    // ------------------------------------------------------
+
+    if (matchingTypewriterDone !== true) {
+
+        console.log(
+            "MATCHING RENDER WAITING FOR TYPEWRITER."
+        );
+
+        return;
+
+    }
+
+
+    // ------------------------------------------------------
+    // WAIT UNTIL PROFILES ARE READY
+    // ------------------------------------------------------
+
+    if (matchingProfilesReady !== true) {
+
+        console.log(
+            "MATCHING RENDER WAITING FOR PROFILE DATA."
+        );
+
+        return;
+
+    }
+
+
+    // ------------------------------------------------------
+    // BOTH ARE READY
+    // ------------------------------------------------------
+
+    console.log(
+        "MATCHING TYPEWRITER + PROFILES READY. RENDERING NOW."
+    );
+
+
+    renderMatchingProfilesInChat(
+        profiles,
+        rankingResult,
+        appendMode
+    );
+
+}
+
+// ==========================================================
+// MATCHING LOADING MESSAGE
 // ==========================================================
 
 function showMatchingLoadingInChat() {
@@ -131,28 +214,162 @@ function showMatchingLoadingInChat() {
         );
 
         return;
+    }
+
+
+    // ------------------------------------------------------
+    // CLEAR PREVIOUS TYPEWRITER
+    // ------------------------------------------------------
+
+    if (
+        matchingTypewriterTimer
+    ) {
+
+        clearInterval(
+            matchingTypewriterTimer
+        );
+
+        matchingTypewriterTimer = null;
 
     }
 
-    botMessage(`
 
-        <div class="matching-chat-loading">
+    // ------------------------------------------------------
+    // LOADING MESSAGE
+    // ------------------------------------------------------
+
+    botMessage(`
+        <div
+            class="matching-chat-loading"
+            id="matchingLoadingMessage"
+        >
 
             <div class="matching-chat-loading-icon">
-                ⏳
+                ❤️
             </div>
+
 
             <div class="matching-chat-loading-title">
-                Finding compatible profiles...
+                Finding your best matches...
             </div>
 
-            <div class="matching-chat-loading-message">
-                Please wait.
-            </div>
+
+            <div
+                class="matching-chat-loading-message"
+                id="matchingTypewriterText"
+            ></div>
 
         </div>
-
     `);
+
+
+    // ------------------------------------------------------
+    // TYPEWRITER TEXT
+    // ------------------------------------------------------
+
+    const textElement =
+        document.getElementById(
+            "matchingTypewriterText"
+        );
+
+
+    if (!textElement) {
+        return;
+    }
+
+
+    const message =
+    "आम्ही तुमच्यासाठी जुळणारे प्रोफाइल कसे शोधतो: " +
+
+    "आम्ही तुमच्या प्रोफाइलची इतर नोंदणीकृत प्रोफाइलसोबत मूलभूत सुसंगततेच्या आधारावर तुलना करतो, " +
+
+    "तुमच्या जोडीदाराच्या अपेक्षा, त्यांच्या तुमच्याकडून असलेल्या अपेक्षा आणि एकूण प्रोफाइल सुसंगतता तपासतो. " +
+
+    "त्यानंतर प्रत्येक सुसंगत प्रोफाइलला गुण दिले जातात आणि त्यांची क्रमवारी लावली जाते, " +
+
+    "जेणेकरून सर्वात योग्य जुळणारे प्रोफाइल प्रथम दिसतील. " +
+
+    "आम्ही तुमच्यासाठी सर्वात योग्य प्रोफाइल शोधत आहोत, कृपया प्रतीक्षा करा...";
+
+
+      let currentIndex = 0;
+
+
+      matchingTypewriterTimer =
+          setInterval(
+              function() {
+
+                
+                if (
+                      currentIndex >=
+                      message.length
+                  ) {
+
+                      clearInterval(
+                          matchingTypewriterTimer
+                      );
+
+                      matchingTypewriterTimer =
+                          null;
+
+
+                      // ------------------------------------------------------
+                      // TYPEWRITER COMPLETED
+                      // ------------------------------------------------------
+
+                      matchingTypewriterDone = true;
+
+                      console.log(
+                          "MATCHING TYPEWRITER COMPLETED."
+                      );
+
+
+                      // ------------------------------------------------------
+                      // CHECK WHETHER PROFILES ARE ALSO READY
+                      // ------------------------------------------------------
+
+                      tryRenderMatchingProfilesWhenReady(
+                          matchingRenderedProfiles,
+                          matchingLastRankingResult,
+                          false
+                      );
+
+
+                      return;
+                  }
+
+
+                  // ----------------------------------------------
+                  // TYPE NEXT CHARACTER
+                  // ----------------------------------------------
+
+                  textElement.textContent +=
+                      message.charAt(
+                          currentIndex
+                      );
+
+
+                  currentIndex++;
+
+
+                  // ----------------------------------------------
+                  // AUTO SCROLL WITH TYPEWRITER
+                  // ----------------------------------------------
+
+                  const chat =
+                      getMatchingChat();
+
+                  if (chat) {
+
+                      chat.scrollTop =
+                          chat.scrollHeight;
+
+                  }
+
+
+              },
+              70
+          );
 
 }
 
@@ -243,7 +460,9 @@ function showMatchingNoResultsInChat() {
 
 function showMatchingChatHeader(
     rankingResult,
-    profileCount
+    profileCount,
+    startRank,
+    endRank
 ) {
 
     const summary =
@@ -252,20 +471,43 @@ function showMatchingChatHeader(
             ? rankingResult.summary
             : {};
 
+
     const totalCandidates =
         Number(
             summary.totalCandidates
         ) || 0;
+
 
     const viewerName =
         matchingSafeString(
             summary.viewerName
         );
 
+
     const countText =
         String(
             profileCount
         );
+
+
+    // ------------------------------------------------------
+    // DYNAMIC RANK RANGE
+    // ------------------------------------------------------
+
+    const hasRankRange =
+        Number.isFinite(
+            Number(startRank)
+        ) &&
+        Number.isFinite(
+            Number(endRank)
+        );
+
+
+    const rankRangeText =
+        hasRankRange
+            ? `${Number(startRank)}–${Number(endRank)}`
+            : countText;
+
 
     botMessage(`
 
@@ -285,6 +527,7 @@ function showMatchingChatHeader(
 
             </div>
 
+
             <div class="matching-chat-summary">
 
                 ${
@@ -300,7 +543,9 @@ function showMatchingChatHeader(
 
                 Top
 
-                <b>${countText}</b>
+                <b>
+                    ${rankRangeText}
+                </b>
 
                 compatible profiles
 
@@ -308,7 +553,9 @@ function showMatchingChatHeader(
                     totalCandidates > 0
                         ? `
                             out of
-                            <b>${totalCandidates}</b>
+                            <b>
+                                ${totalCandidates}
+                            </b>
                             profiles
                         `
                         : ""
@@ -323,7 +570,6 @@ function showMatchingChatHeader(
     `);
 
 }
-
 
 // ==========================================================
 // SHOW MATCHING PROFILES
@@ -429,10 +675,16 @@ function showMatchingProfiles() {
 
     matchingRenderedProfiles = [];
 
+    matchingAllRankedProfiles = [];
+
+    matchingCurrentPage = 1;
+
     matchingLastRankingResult = null;
 
     matchingReactionState = {};
 
+    matchingTypewriterDone = false;
+    matchingProfilesReady = false;
 
     // ------------------------------------------------------
     // CHATBOT VISIBLE
@@ -543,32 +795,65 @@ function loadMatchingProfiles() {
                 matchingLastRankingResult =
                     result;
 
-                const topMatches =
-                    Array.isArray(
-                        result.top10
-                    )
-                        ? result.top10
-                        : [];
+                // ======================================================
+                // STORE COMPLETE RANKED RESULT
+                //
+                // Backend already returns:
+                // - top10
+                // - allResults
+                //
+                // We keep the complete ranked list locally.
+                // No ranking logic is changed here.
+                // ======================================================
+
+                const allRankedProfiles =
+                    Array.isArray(result.allResults)
+                        ? result.allResults
+                        : (
+                            Array.isArray(result.top10)
+                                ? result.top10
+                                : []
+                        );
+
 
                 if (
-                    topMatches.length === 0
+                    allRankedProfiles.length === 0
                 ) {
 
                     showMatchingNoResultsInChat();
 
                     return;
+
                 }
 
+
+                // ======================================================
+                // INITIAL PAGE
+                // ======================================================
+
+                matchingAllRankedProfiles =
+                    allRankedProfiles.slice();
+
+                matchingCurrentPage = 1;
+
+
+                const initialProfiles =
+                    matchingAllRankedProfiles.slice(
+                        0,
+                        MATCHING_PAGE_SIZE
+                    );
+
+
                 matchingRenderedProfiles =
-                    topMatches.slice();
+                    initialProfiles.slice();
 
 
-                // ==========================================
+                // ======================================================
                 // LOAD EXISTING REACTION STATES
-                // ==========================================
+                // ======================================================
 
                 loadMatchingReactionStates(
-                    topMatches,
+                    initialProfiles,
                     result
                 );
 
@@ -601,90 +886,602 @@ function loadMatchingProfiles() {
 }
 
 
-// ==========================================================
-// RENDER MATCHING PROFILES IN CHAT
-//
-// IMPORTANT:
-// This is the ONLY matching render function.
-//
-// DO NOT rename this to renderMatchingProfiles.
-// ==========================================================
+      // ==========================================================
+      // RENDER MATCHING PROFILES IN CHAT
+      //
+      // IMPORTANT:
+      // This is the ONLY matching render function.
+      //
+      // DO NOT rename this to renderMatchingProfiles.
+      // ==========================================================
 
-function renderMatchingProfilesInChat(
-    profiles,
-    rankingResult
-) {
+      function renderMatchingProfilesInChat(
+          profiles,
+          rankingResult,
+          appendMode
+      ) {
 
-    const safeProfiles =
-        Array.isArray(
-            profiles
-        )
-            ? profiles
-            : [];
+          const safeProfiles =
+              Array.isArray(
+                  profiles
+              )
+                  ? profiles
+                  : [];
 
 
-    if (
-        safeProfiles.length === 0
+              const loadingMessage =
+                  document.getElementById(
+                      "matchingLoadingMessage"
+                  );
+
+              if (loadingMessage) {
+
+                  loadingMessage.remove();
+
+              }
+
+
+          // ======================================================
+          // REMEMBER WHERE THIS NEW BATCH STARTS
+          // ======================================================
+
+          const chat =
+              getMatchingChat();
+
+          const matchingCardStartIndex =
+              chat
+                  ? chat.querySelectorAll(
+                      ".matching-profile-card"
+                    ).length
+                  : 0;
+
+
+          if (
+              safeProfiles.length === 0
+          ) {
+
+              showMatchingNoResultsInChat();
+
+              return;
+
+          }
+
+
+              // ======================================================
+              // DYNAMIC MATCHING BATCH HEADER
+              // ======================================================
+
+              const batchStartRank =
+                  matchingRenderedProfiles.length -
+                  safeProfiles.length +
+                  1;
+
+
+              const batchEndRank =
+                  matchingRenderedProfiles.length;
+
+
+              showMatchingChatHeader(
+                  rankingResult,
+                  safeProfiles.length,
+                  batchStartRank,
+                  batchEndRank
+              );
+
+
+            safeProfiles.forEach(
+                function(
+                    profile,
+                    index
+                ) {
+
+                    const cardHtml =
+                        buildMatchingProfileCard(
+                            profile,
+                            index
+                        );
+
+
+                    if (
+                        cardHtml
+                    ) {
+
+                        botMessage(
+                            cardHtml
+                        );
+
+                    }
+
+                }
+            );
+
+
+            console.log(
+                "MATCHING PROFILES RENDERED:",
+                {
+                    count:
+                        safeProfiles.length,
+
+                    totalCandidates:
+                        rankingResult &&
+                        rankingResult.summary
+                            ? rankingResult.summary.totalCandidates
+                            : 0
+                }
+            );
+
+            matchingViewMoreLoading = false;
+
+            // ======================================================
+            // MATCHING PAGINATION CONTROLS
+            // ======================================================
+
+            renderMatchingPaginationControls();
+
+
+            // ======================================================
+            // SCROLL TO FIRST PROFILE OF CURRENT BATCH
+            // ======================================================
+
+            scrollToMatchingBatchStart(
+                matchingCardStartIndex
+            );
+
+      }
+
+
+
+    // ==========================================================
+    // SCROLL TO FIRST PROFILE OF CURRENT MATCHING BATCH
+    // ==========================================================
+    //
+    // Initial batch:
+    // #1–#10  → scroll to #1
+    //
+    // View More:
+    // #11–#20 → scroll to #11
+    // #21–#30 → scroll to #21
+    // #31–#40 → scroll to #31
+    //
+    // Uses the first newly rendered matching card.
+    // ==========================================================
+
+    function scrollToMatchingBatchStart(
+        matchingCardStartIndex
     ) {
 
-        showMatchingNoResultsInChat();
+        setTimeout(
+            function() {
+
+                const chat =
+                    getMatchingChat();
+
+
+                if (!chat) {
+                    return;
+                }
+
+
+                const matchingCards =
+                    chat.querySelectorAll(
+                        ".matching-profile-card"
+                    );
+
+
+                const targetCard =
+                    matchingCards[
+                        matchingCardStartIndex
+                    ];
+
+
+                if (!targetCard) {
+
+                    console.warn(
+                        "MATCHING BATCH SCROLL TARGET NOT FOUND:",
+                        {
+                            matchingCardStartIndex:
+                                matchingCardStartIndex,
+
+                            totalMatchingCards:
+                                matchingCards.length
+                        }
+                    );
+
+                    return;
+                }
+
+
+                const chatRect =
+                    chat.getBoundingClientRect();
+
+
+                const cardRect =
+                    targetCard.getBoundingClientRect();
+
+
+                const targetTop =
+                    chat.scrollTop +
+                    cardRect.top -
+                    chatRect.top -
+                    10;
+
+
+                chat.scrollTo({
+
+                    top:
+                        Math.max(
+                            0,
+                            targetTop
+                        ),
+
+                    behavior:
+                        "smooth"
+
+                });
+
+
+                console.log(
+                    "MATCHING BATCH SCROLL:",
+                    {
+                        batchStartIndex:
+                            matchingCardStartIndex,
+
+                        targetProfile:
+                            targetCard
+                                .getAttribute(
+                                    "data-matching-profile-id"
+                                ),
+
+                        targetTop:
+                            targetTop
+                    }
+                );
+
+            },
+            100
+        );
+
+    }
+
+
+// ==========================================================
+// MATCHING PAGINATION CONTROLS
+// ==========================================================
+//
+// Purpose:
+// - Show View More (10) when more ranked profiles exist.
+// - Keep Main Menu available.
+// - Never modify ranking or reaction logic.
+// ==========================================================
+
+function renderMatchingPaginationControls() {
+
+    const chat =
+        getMatchingChat();
+
+
+    if (!chat) {
+
+        console.warn(
+            "MATCHING CHAT NOT FOUND FOR PAGINATION."
+        );
 
         return;
 
     }
 
 
-    showMatchingChatHeader(
-        rankingResult,
-        safeProfiles.length
+    // ------------------------------------------------------
+    // REMOVE OLD PAGINATION CONTROLS
+    // ------------------------------------------------------
+
+    const oldControls =
+        document.querySelectorAll(
+            ".matching-pagination-controls"
+        );
+
+
+    oldControls.forEach(
+        function(control) {
+
+            control.remove();
+
+        }
     );
 
 
-    safeProfiles.forEach(
-        function(
-            profile,
-            index
-        ) {
+    // ------------------------------------------------------
+    // CHECK REMAINING PROFILES
+    // ------------------------------------------------------
 
-            const cardHtml =
-                buildMatchingProfileCard(
-                    profile,
-                    index
-                );
+    const totalProfiles =
+        Array.isArray(
+            matchingAllRankedProfiles
+        )
+            ? matchingAllRankedProfiles.length
+            : 0;
 
 
-            if (
-                cardHtml
-            ) {
+    const displayedProfiles =
+        Array.isArray(
+            matchingRenderedProfiles
+        )
+            ? matchingRenderedProfiles.length
+            : 0;
 
-                botMessage(
-                    cardHtml
-                );
 
-            }
+    const hasMoreProfiles =
+        displayedProfiles < totalProfiles;
+
+
+    // ------------------------------------------------------
+    // BUTTONS
+    // ------------------------------------------------------
+
+    const viewMoreButton =
+        hasMoreProfiles
+            ? `
+                <button
+                    type="button"
+                    class="matching-view-more-btn"
+                    onclick="showMoreMatchingProfiles()"
+                >
+                    View More (10)
+                </button>
+            `
+            : "";
+
+
+    const controlsHtml = `
+
+        <div
+            class="matching-pagination-controls"
+            style="
+              text-align: center;
+            "
+        >
+
+            ${viewMoreButton}
+
+            <button
+                type="button"
+                class="matching-main-menu-btn"
+                onclick="showMenu()"
+            >
+                🏠 Main Menu
+            </button>
+
+        </div>
+
+    `;
+
+
+    botMessage(
+        controlsHtml
+    );
+
+
+    console.log(
+        "MATCHING PAGINATION:",
+        {
+            displayedProfiles:
+                displayedProfiles,
+
+            totalProfiles:
+                totalProfiles,
+
+            currentPage:
+                matchingCurrentPage,
+
+            hasMoreProfiles:
+                hasMoreProfiles
+        }
+    );
+
+}
+
+
+// ==========================================================
+// SHOW NEXT 10 MATCHING PROFILES
+// ==========================================================
+
+function showMoreMatchingProfiles() {
+
+
+        // ------------------------------------------------------
+    // PREVENT DOUBLE CLICK
+    // ------------------------------------------------------
+
+    if (
+        matchingViewMoreLoading === true
+    ) {
+
+        console.log(
+            "VIEW MORE ALREADY LOADING."
+        );
+
+        return;
+    }
+
+
+    // ------------------------------------------------------
+    // LOCK VIEW MORE
+    // ------------------------------------------------------
+
+    matchingViewMoreLoading = true;
+
+
+    // ------------------------------------------------------
+    // SHOW LOADING STATE
+    // ------------------------------------------------------
+
+    const viewMoreButtons =
+        document.querySelectorAll(
+            ".matching-view-more-btn"
+        );
+
+
+    viewMoreButtons.forEach(
+        function(button) {
+
+            button.disabled = true;
+
+            button.setAttribute(
+                "aria-disabled",
+                "true"
+            );
+
+            button.innerHTML =
+                "⏳ Loading next 10 profiles...";
+
+            button.classList.add(
+                "matching-view-more-loading"
+            );
 
         }
     );
 
 
     console.log(
-        "MATCHING PROFILES RENDERED:",
+        "VIEW MORE LOADING STARTED:",
         {
-            count:
-                safeProfiles.length,
-
-            totalCandidates:
-                rankingResult &&
-                rankingResult.summary
-                    ? rankingResult.summary.totalCandidates
-                    : 0
+            currentPage:
+                matchingCurrentPage
         }
     );
 
 
-    scrollChat();
+    const totalProfiles =
+        Array.isArray(
+            matchingAllRankedProfiles
+        )
+            ? matchingAllRankedProfiles.length
+            : 0;
+
+
+    const currentCount =
+        Array.isArray(
+            matchingRenderedProfiles
+        )
+            ? matchingRenderedProfiles.length
+            : 0;
+
+
+    if (
+        currentCount >= totalProfiles
+    ) {
+
+        console.log(
+            "NO MORE MATCHING PROFILES."
+        );
+
+        renderMatchingPaginationControls();
+
+        return;
+
+    }
+
+
+    // ------------------------------------------------------
+    // CALCULATE NEXT BATCH
+    // ------------------------------------------------------
+
+    const startIndex =
+        currentCount;
+
+
+    const endIndex =
+        Math.min(
+            startIndex +
+                MATCHING_PAGE_SIZE,
+
+            totalProfiles
+        );
+
+
+    const nextProfiles =
+        matchingAllRankedProfiles.slice(
+            startIndex,
+            endIndex
+        );
+
+
+        nextProfiles.forEach(
+            function(profile, index) {
+
+                if (!profile) {
+                    return;
+                }
+
+                profile._matchingDisplayIndex =
+                    startIndex + index;
+
+            }
+        );
+
+
+    if (
+        nextProfiles.length === 0
+    ) {
+
+        renderMatchingPaginationControls();
+
+        return;
+
+    }
+
+
+    // ------------------------------------------------------
+    // UPDATE PAGE STATE
+    // ------------------------------------------------------
+
+    matchingCurrentPage++;
+
+
+    matchingRenderedProfiles =
+        matchingRenderedProfiles.concat(
+            nextProfiles
+        );
+
+
+    console.log(
+        "MATCHING NEXT PAGE:",
+        {
+            page:
+                matchingCurrentPage,
+
+            startIndex:
+                startIndex,
+
+            endIndex:
+                endIndex,
+
+            added:
+                nextProfiles.length,
+
+            totalDisplayed:
+                matchingRenderedProfiles.length,
+
+            totalAvailable:
+                totalProfiles
+        }
+    );
+
+
+    // ------------------------------------------------------
+    // LOAD REACTION STATES FOR NEW PROFILES
+    // ------------------------------------------------------
+
+    loadMatchingReactionStates(
+        nextProfiles,
+        matchingLastRankingResult,
+        true
+    );
 
 }
+
+
+
 
 
 // ==========================================================
@@ -696,9 +1493,7 @@ function buildMatchingProfileCard(
     index
 ) {
 
-    profile =
-        profile || {};
-
+    profile = profile || {};
 
     const displayData =
         prepareProfileDisplayData(
@@ -706,14 +1501,11 @@ function buildMatchingProfileCard(
             profile.type || ""
         );
 
-
     const profileType =
         matchingSafeString(
             displayData.currentProfileType ||
             profile.type
-        )
-        .toLowerCase();
-
+        ).toLowerCase();
 
     const profileId =
         matchingSafeString(
@@ -721,13 +1513,11 @@ function buildMatchingProfileCard(
             profile.id
         );
 
-
     const profileName =
         matchingSafeString(
             displayData.currentProfileName ||
             profile.name
         );
-
 
     const ownerMobile =
         matchingSafeString(
@@ -736,29 +1526,17 @@ function buildMatchingProfileCard(
             ""
         );
 
-
     const safeType =
-        matchingEscapeJs(
-            profileType
-        );
-
+        matchingEscapeJs(profileType);
 
     const safeId =
-        matchingEscapeJs(
-            profileId
-        );
-
+        matchingEscapeJs(profileId);
 
     const safeName =
-        matchingEscapeJs(
-            profileName
-        );
-
+        matchingEscapeJs(profileName);
 
     const safeOwnerMobile =
-        matchingEscapeJs(
-            ownerMobile
-        );
+        matchingEscapeJs(ownerMobile);
 
 
     // ======================================================
@@ -773,20 +1551,13 @@ function buildMatchingProfileCard(
             ""
         );
 
-
     const photoHtml =
         buildProfilePhoto({
-
-            photo:
-                photo,
-
-            profileType:
-                profileType,
-
+            photo: photo,
+            profileType: profileType,
             markerId:
                 "matching-profile-photo-" +
                 index
-
         });
 
 
@@ -796,20 +1567,20 @@ function buildMatchingProfileCard(
 
     const headerHtml =
         buildProfileHeader({
-
-            icon:
-                displayData.profileIcon,
-
-            profileNumber:
-                " #" +
-                (Number(index) + 1),
-
-            title:
-                "Matching Profile",
-
-            name:
-                displayData.name
-
+            icon: displayData.profileIcon,
+          profileNumber:
+              " #" +
+              (
+                  Number(
+                      profile._matchingDisplayIndex
+                  ) >= 0
+                      ? Number(
+                          profile._matchingDisplayIndex
+                      ) + 1
+                      : Number(index) + 1
+              ),
+            title: "Matching Profile",
+            name: displayData.name
         });
 
 
@@ -819,22 +1590,11 @@ function buildMatchingProfileCard(
 
     const viewProfileHtml =
         buildViewProfileButton({
-
-            type:
-                profileType,
-
-            id:
-                profileId,
-
-            name:
-                profileName,
-
-            viewerProfileType:
-                profileType,
-
-            viewerProfileId:
-                profileId
-
+            type: profileType,
+            id: profileId,
+            name: profileName,
+            viewerProfileType: profileType,
+            viewerProfileId: profileId
         });
 
 
@@ -843,9 +1603,10 @@ function buildMatchingProfileCard(
     // ======================================================
 
     const rankingHtml =
-        buildMatchingRankingDetails(
-            profile
-        );
+        buildMatchingRankingDetails(profile);
+
+    const whyMatchHtml =
+        buildMatchingWhyThisMatch(profile);
 
 
     // ======================================================
@@ -858,29 +1619,26 @@ function buildMatchingProfileCard(
             profileId
         );
 
-
     const currentReaction =
         matchingReactionState[
             reactionKey
         ] || "";
 
+    const relationship =
+        profile.relationship ||
+        profile.relationshipStatus ||
+        null;
 
     const reactionHtml =
         buildMatchingReactionButtons(
             profile,
-            currentReaction
+            currentReaction,
+            relationship
         );
 
 
     // ======================================================
     // ACTION CONTAINER
-    //
-    // IMPORTANT:
-    // data-actions is kept because existing reaction
-    // functionality depends on it.
-    //
-    // Matching UI itself is updated by
-    // updateMatchingReactionUI().
     // ======================================================
 
     const actionHtml = `
@@ -897,9 +1655,7 @@ function buildMatchingProfileCard(
 
             </div>
 
-
             ${reactionHtml}
-
 
             <div class="matching-interest-action">
 
@@ -940,6 +1696,8 @@ function buildMatchingProfileCard(
 
             ${rankingHtml}
 
+            ${whyMatchHtml}
+
             ${actionHtml}
 
         </div>
@@ -947,6 +1705,300 @@ function buildMatchingProfileCard(
     `;
 
 }
+
+
+// ==========================================================
+// WHY THIS MATCH
+//
+// PURPOSE:
+// Show a short explanation of why this profile is ranked
+// as a compatible match.
+//
+// IMPORTANT:
+// - Uses existing matching/ranking data only.
+// - No backend call.
+// - No score recalculation.
+// - No ranking changes.
+// ==========================================================
+
+function buildMatchingWhyThisMatch(
+    profile
+) {
+
+    profile =
+        profile || {};
+
+    // ======================================================
+    // SAFE VALUES
+    // ======================================================
+
+    const hardMatch =
+        profile.hardMatch === true;
+
+    const hardScoreNumber =
+        Number(
+            profile.hardScore
+        );
+
+    const hardScore =
+        isNaN(hardScoreNumber)
+            ? 0
+            : hardScoreNumber;
+
+
+    const expectationPercentageNumber =
+        Number(
+            profile.expectationCompatibilityPercentage
+        );
+
+    const expectationPercentage =
+        isNaN(expectationPercentageNumber)
+            ? 0
+            : expectationPercentageNumber;
+
+
+    const profilePercentageNumber =
+        Number(
+            profile.profileCompatibilityPercentage
+        );
+
+    const profilePercentage =
+        isNaN(profilePercentageNumber)
+            ? 0
+            : profilePercentageNumber;
+
+
+    // ======================================================
+    // EXPECTATION APPLICABILITY
+    //
+    // IMPORTANT:
+    // This must be determined BEFORE calculating the weighted
+    // expectation contribution.
+    // ======================================================
+
+    const expectationApplicable =
+        profile.expectationCompatibilityApplicable === true ||
+        expectationPercentage > 0;
+
+
+    // ======================================================
+    // EXPLICIT SCORE VALUES
+    // ======================================================
+
+    const expectationScoreNumber =
+        Number(
+            profile.expectationScore
+        );
+
+    const profileScoreNumber =
+        Number(
+            profile.profileScore
+        );
+
+
+    // ======================================================
+    // DERIVE WEIGHTED CONTRIBUTIONS WHEN EXPLICIT SCORE
+    // FIELDS ARE NOT AVAILABLE
+    //
+    // Expectations = 30 points
+    // Profile      = 20 points
+    // ======================================================
+
+    const calculatedExpectationScore =
+        expectationApplicable &&
+        !isNaN(expectationPercentageNumber)
+            ? (
+                expectationPercentageNumber *
+                30 /
+                100
+              )
+            : 0;
+
+
+    const calculatedProfileScore =
+        !isNaN(profilePercentageNumber)
+            ? (
+                profilePercentageNumber *
+                20 /
+                100
+              )
+            : 0;
+
+
+    const expectationScore =
+        !isNaN(expectationScoreNumber) &&
+        expectationScoreNumber > 0
+            ? expectationScoreNumber
+            : calculatedExpectationScore;
+
+
+    const profileScore =
+        !isNaN(profileScoreNumber) &&
+        profileScoreNumber > 0
+            ? profileScoreNumber
+            : calculatedProfileScore;
+
+
+    // ======================================================
+    // FINAL SCORE
+    // ======================================================
+
+    const finalScoreNumber =
+        Number(
+            profile.finalScore
+        );
+
+    const finalScore =
+        isNaN(finalScoreNumber)
+            ? 0
+            : finalScoreNumber;
+
+
+    // ======================================================
+    // MATCHED EXPECTATIONS
+    // ======================================================
+
+    const matchedKeywords =
+        Array.isArray(
+            profile.matchedExpectationKeywords
+        )
+            ? profile.matchedExpectationKeywords
+            : [];
+
+
+    const keywordText =
+        matchedKeywords.length > 0
+            ? matchedKeywords
+                .map(
+                    function(keyword) {
+
+                        return escapeHtml(
+                            String(
+                                keyword || ""
+                            )
+                        );
+
+                    }
+                )
+                .join(", ")
+            : "No specific expectation data";
+
+
+    // ======================================================
+    // HARD MATCH TEXT
+    // ======================================================
+
+    const hardMatchText =
+        hardMatch
+            ? "✓ Basic compatibility matched"
+            : "✕ Basic compatibility not matched";
+
+
+    // ======================================================
+    // HTML
+    // ======================================================
+
+    return `
+        <details class="matching-why-match">
+
+            <summary class="matching-why-match-summary">
+                🔎 Why this Match?
+            </summary>
+
+
+            <div class="matching-why-match-content">
+
+                <div class="matching-why-match-title">
+                    How this profile matches with you
+                </div>
+
+
+                <div class="matching-why-match-row">
+                    <span>
+                        🔴 Hard Match
+                    </span>
+
+                    <strong>
+                        ${hardMatchText}
+                        — ${hardScore.toFixed(0)}/50
+                    </strong>
+                </div>
+
+
+                <div class="matching-why-match-row">
+                    <span>
+                        ⭐ Expectations
+                    </span>
+
+                    <strong>
+                        ${expectationApplicable
+                            ? expectationPercentage + "% — " +
+                              expectationScore.toFixed(2) + "/30"
+                            : "N/A"
+                        }
+                    </strong>
+                </div>
+
+
+                <div class="matching-why-match-row">
+                    <span>
+                        🧩 Profile
+                    </span>
+
+                    <strong>
+                        ${profilePercentage}%
+                        — ${profileScore.toFixed(2)}/20
+                    </strong>
+                </div>
+
+
+                <div class="matching-why-match-keywords">
+
+                    <span class="matching-why-match-label">
+                        Matched Expectations:
+                    </span>
+
+                    <span>
+                        ${keywordText}
+                    </span>
+
+                </div>
+
+
+                <div class="matching-why-match-formula">
+
+                    <span class="matching-why-match-label">
+                        Compatibility Score:
+                    </span>
+
+                    <span>
+                        ${hardScore.toFixed(2)}
+                        +
+                        ${expectationScore.toFixed(2)}
+                        +
+                        ${profileScore.toFixed(2)}
+                        =
+                        <strong>
+                            ${finalScore.toFixed(2)}/100
+                        </strong>
+                    </span>
+
+                </div>
+
+
+                <div class="matching-why-match-note">
+
+                    Score is based on Hard Match 50,
+                    Expectations 30, and Profile Compatibility 20.
+
+                </div>
+
+            </div>
+
+        </details>
+    `;
+}
+
 
 
 // ==========================================================
@@ -990,15 +2042,41 @@ function buildMatchingRankingDetails(
 
 
     const expectationScore =
-        Number(
-            profile.expectationScore
-        );
-
+    Number(
+        profile.expectationScore
+    );
 
     const profileScore =
         Number(
             profile.profileScore
         );
+
+
+    // ==========================================================
+    // DERIVE WEIGHTED CONTRIBUTIONS WHEN EXPLICIT SCORE FIELDS
+    // ARE NOT AVAILABLE
+    //
+    // Expectations = 30 points
+    // Profile      = 20 points
+    // ==========================================================
+
+    const calculatedExpectationScore =
+        !isNaN(expectationPercentage)
+            ? (
+                expectationPercentage *
+                30 /
+                100
+              )
+            : 0;
+
+    const calculatedProfileScore =
+        !isNaN(profilePercentage)
+            ? (
+                profilePercentage *
+                20 /
+                100
+              )
+            : 0;
 
 
     const safeHardScore =
@@ -1030,19 +2108,16 @@ function buildMatchingRankingDetails(
 
 
     const safeExpectationScore =
-        isNaN(
-            expectationScore
-        )
-            ? 0
-            : expectationScore;
-
+    !isNaN(expectationScore) &&
+    expectationScore > 0
+        ? expectationScore
+        : calculatedExpectationScore;
 
     const safeProfileScore =
-        isNaN(
-            profileScore
-        )
-            ? 0
-            : profileScore;
+        !isNaN(profileScore) &&
+        profileScore > 0
+            ? profileScore
+            : calculatedProfileScore;
 
 
     // ==========================================================
@@ -1107,7 +2182,7 @@ function buildMatchingRankingDetails(
     const expectationDisplay =
         expectationApplicable
             ? `${safeExpectationPercentage}%`
-            : "अनुरूप";
+            : "N/A";
 
 
     const expectationContribution =
@@ -1214,17 +2289,6 @@ function buildMatchingRankingDetails(
 
             </div>
 
-
-              <div class="matching-keywords">
-
-                <span class="matching-keywords-label">
-                    Overall Compatibility:
-                </span>
-
-                <span>
-                    Your Compatibility Score is calculated out of 100 points: 🔴 Hard Match 50, ⭐ Expectations 30, and 🧩 Profile Compatibility 20.
-                </span>
-
             </div>
 
          
@@ -1242,23 +2306,6 @@ function buildMatchingRankingDetails(
                 <strong>
                     ${finalDisplay} / 100
                 </strong>
-
-            </div>
-
-
-            <!-- ==================================================
-                 MATCHED EXPECTATIONS
-            ================================================== -->
-
-            <div class="matching-keywords">
-
-                <span class="matching-keywords-label">
-                    Matched Expectations:
-                </span>
-
-                <span>
-                    ${keywordText}
-                </span>
 
             </div>
 
@@ -1282,10 +2329,21 @@ function buildMatchingRankingDetails(
 
 function loadMatchingReactionStates(
     profiles,
-    rankingResult
+    rankingResult,
+    preserveExistingState
 ) {
 
-    matchingReactionState = {};
+    // ------------------------------------------------------
+    // RESET ONLY FOR INITIAL MATCHING LOAD
+    // ------------------------------------------------------
+
+    if (
+        preserveExistingState !== true
+    ) {
+
+        matchingReactionState = {};
+
+    }
 
 
     const safeProfiles =
@@ -1302,7 +2360,8 @@ function loadMatchingReactionStates(
 
         renderMatchingProfilesInChat(
             safeProfiles,
-            rankingResult
+            rankingResult,
+            preserveExistingState === true
         );
 
         return;
@@ -1415,7 +2474,8 @@ function loadMatchingReactionStates(
 
 function loadMatchingDislikedStates(
     profiles,
-    rankingResult
+    rankingResult,
+    preserveExistingState
 ) {
 
     google.script.run
@@ -1478,15 +2538,10 @@ function loadMatchingDislikedStates(
                 }
 
 
-                // ==================================================
-                // CORRECT FUNCTION NAME
-                //
-                // NOT renderMatchingProfiles()
-                // ==================================================
-
-                renderMatchingProfilesInChat(
+                loadMatchingRelationshipStates(
                     profiles,
-                    rankingResult
+                    rankingResult,
+                    preserveExistingState
                 );
 
             }
@@ -1505,9 +2560,10 @@ function loadMatchingDislikedStates(
                 // Reaction-state failure must NOT
                 // prevent Matching Profiles from opening.
 
-                renderMatchingProfilesInChat(
+                loadMatchingRelationshipStates(
                     profiles,
-                    rankingResult
+                    rankingResult,
+                    preserveExistingState
                 );
 
             }
@@ -1522,24 +2578,188 @@ function loadMatchingDislikedStates(
 
 
 // ==========================================================
+// LOAD MATCHING RELATIONSHIP STATES
+//
+// Purpose:
+// - Load the real relationship status for each Matching Profile.
+// - Show "❤️ Matched" immediately when both users have LIKED.
+// - Keep existing Like / Dislike state loading unchanged.
+// ==========================================================
+
+function loadMatchingRelationshipStates(
+    profiles,
+    rankingResult,
+    preserveExistingState
+) {
+
+    const safeProfiles =
+        Array.isArray(profiles)
+            ? profiles
+            : [];
+
+    const viewerMobile =
+        matchingSafeString(
+            typeof profileUserMobile !== "undefined"
+                ? profileUserMobile
+                : ""
+        );
+
+    if (
+        safeProfiles.length === 0 ||
+        !viewerMobile
+    ) {
+
+        matchingProfilesReady = true;
+
+        console.log(
+            "MATCHING PROFILE DATA READY."
+        );
+
+        tryRenderMatchingProfilesWhenReady(
+            safeProfiles,
+            rankingResult,
+            preserveExistingState === true
+        );
+
+        return;
+
+    }
+
+
+    let pendingRequests = 0;
+    let rendered = false;
+
+
+    function renderWhenComplete() {
+
+        if (
+            rendered ||
+            pendingRequests > 0
+        ) {
+            return;
+        }
+
+
+        rendered = true;
+
+
+        // ------------------------------------------------------
+        // PROFILE DATA + RELATIONSHIP STATES READY
+        // ------------------------------------------------------
+
+        matchingProfilesReady = true;
+
+        console.log(
+            "MATCHING PROFILE DATA READY."
+        );
+
+
+        // ------------------------------------------------------
+        // WAIT FOR TYPEWRITER IF NECESSARY
+        // ------------------------------------------------------
+
+        tryRenderMatchingProfilesWhenReady(
+            safeProfiles,
+            rankingResult,
+            preserveExistingState === true
+        );
+
+    }
+
+
+    safeProfiles.forEach(
+        function(profile) {
+
+            if (!profile) {
+                return;
+            }
+
+            const targetMobile =
+                matchingSafeString(
+                    profile.ownerMobile ||
+                    profile.mobile ||
+                    ""
+                );
+
+            if (!targetMobile) {
+                return;
+            }
+
+            pendingRequests++;
+
+
+            google.script.run
+
+                .withSuccessHandler(
+                    function(relationship) {
+
+                        profile.relationship =
+                            relationship || null;
+
+                        pendingRequests--;
+
+                        renderWhenComplete();
+
+                    }
+                )
+
+                .withFailureHandler(
+                    function(error) {
+
+                        console.warn(
+                            "Matching relationship load failed:",
+                            {
+                                targetMobile,
+                                error
+                            }
+                        );
+
+                        profile.relationship = null;
+
+                        pendingRequests--;
+
+                        renderWhenComplete();
+
+                    }
+                )
+
+                .getRelationshipStatus(
+                    viewerMobile,
+                    targetMobile
+                );
+
+        }
+    );
+
+
+    renderWhenComplete();
+
+}
+
+
+
+// ==========================================================
 // BUILD MATCHING REACTION BUTTONS
 // ==========================================================
 
 function buildMatchingReactionButtons(
     profile,
-    currentReaction
+    currentReaction,
+    relationship
 ) {
 
-    profile =
-        profile || {};
-
+    profile = profile || {};
 
     currentReaction =
-        String(
-            currentReaction || ""
-        )
-        .trim()
-        .toUpperCase();
+        String(currentReaction || "")
+            .trim()
+            .toUpperCase();
+
+    relationship =
+        relationship ||
+        profile.relationship ||
+        profile.relationshipStatus ||
+        null;
 
 
     const displayData =
@@ -1548,14 +2768,11 @@ function buildMatchingReactionButtons(
             profile.type || ""
         );
 
-
     const profileType =
         matchingSafeString(
             displayData.currentProfileType ||
             profile.type
-        )
-        .toLowerCase();
-
+        ).toLowerCase();
 
     const profileId =
         matchingSafeString(
@@ -1563,13 +2780,11 @@ function buildMatchingReactionButtons(
             profile.id
         );
 
-
     const profileName =
         matchingSafeString(
             displayData.currentProfileName ||
             profile.name
         );
-
 
     const ownerMobile =
         matchingSafeString(
@@ -1578,33 +2793,28 @@ function buildMatchingReactionButtons(
             ""
         );
 
-
     const safeType =
-        matchingEscapeJs(
-            profileType
-        );
-
+        matchingEscapeJs(profileType);
 
     const safeId =
-        matchingEscapeJs(
-            profileId
-        );
-
+        matchingEscapeJs(profileId);
 
     const safeName =
-        matchingEscapeJs(
-            profileName
-        );
-
+        matchingEscapeJs(profileName);
 
     const safeOwnerMobile =
-        matchingEscapeJs(
-            ownerMobile
+        matchingEscapeJs(ownerMobile);
+
+
+    const isMutual =
+        relationship &&
+        (
+            relationship.status === "MUTUAL_LIKE" ||
+            relationship.isMutual === true
         );
 
 
     let likeButton = "";
-
     let dislikeButton = "";
 
 
@@ -1612,10 +2822,24 @@ function buildMatchingReactionButtons(
     // LIKE
     // ======================================================
 
-    if (
-        currentReaction ===
-        "LIKE"
-    ) {
+    if (isMutual) {
+
+        likeButton = `
+
+            <button
+                type="button"
+                class="profile-reaction-btn mutual"
+                disabled
+            >
+
+                ❤️ Matched
+
+            </button>
+
+        `;
+
+    }
+    else if (currentReaction === "LIKE") {
 
         likeButton = `
 
@@ -1632,7 +2856,6 @@ function buildMatchingReactionButtons(
         `;
 
     }
-
     else {
 
         likeButton = `
@@ -1665,10 +2888,7 @@ function buildMatchingReactionButtons(
     // DISLIKE
     // ======================================================
 
-    if (
-        currentReaction ===
-        "DISLIKE"
-    ) {
+    if (currentReaction === "DISLIKE") {
 
         dislikeButton = `
 
@@ -1685,7 +2905,6 @@ function buildMatchingReactionButtons(
         `;
 
     }
-
     else {
 
         dislikeButton = `
@@ -1730,6 +2949,7 @@ function buildMatchingReactionButtons(
     `;
 
 }
+
 
 
 // ==========================================================
@@ -1902,38 +3122,23 @@ function reactToMatchingProfile(
 function updateMatchingReactionUI(
     type,
     profileId,
-    reaction
+    reaction,
+    relationship
 ) {
 
-    // ==========================================
-    // NORMALIZE
-    // ==========================================
-
     type =
-        matchingSafeString(
-            type
-        )
-        .toLowerCase();
-
+        matchingSafeString(type)
+            .toLowerCase();
 
     profileId =
-        matchingSafeString(
-            profileId
-        );
-
+        matchingSafeString(profileId);
 
     reaction =
-        matchingSafeString(
-            reaction
-        )
-        .toUpperCase();
+        matchingSafeString(reaction)
+            .toUpperCase();
 
 
-    if (
-        !type ||
-        !profileId ||
-        !reaction
-    ) {
+    if (!type || !profileId || !reaction) {
 
         console.warn(
             "Invalid matching reaction UI data:",
@@ -1949,10 +3154,6 @@ function updateMatchingReactionUI(
     }
 
 
-    // ==========================================
-    // KEY
-    // ==========================================
-
     const key =
         getMatchingReactionKey(
             type,
@@ -1960,13 +3161,7 @@ function updateMatchingReactionUI(
         );
 
 
-    // ==========================================
-    // SAVE LOCAL STATE FIRST
-    // ==========================================
-
-    matchingReactionState[
-        key
-    ] =
+    matchingReactionState[key] =
         reaction;
 
 
@@ -1979,83 +3174,50 @@ function updateMatchingReactionUI(
     );
 
 
-    // ==========================================
-    // FIND ALL MATCHING CONTAINERS
-    //
-    // IMPORTANT:
-    // Use querySelectorAll because the same profile
-    // can appear more than once in chatbot DOM.
-    // ==========================================
-
     const containers =
         document.querySelectorAll(
             `[data-matching-reaction="${key}"]`
         );
 
 
-    if (
-        !containers.length
-    ) {
+    if (!containers.length) {
 
         console.log(
             "Matching container not currently visible:",
             key
         );
 
-        // IMPORTANT:
-        // Do NOT return with error.
-        //
-        // State is already saved.
-        // When Matching is rendered again,
-        // buildMatchingReactionButtons() will use
-        // matchingReactionState[key].
-
         return;
 
     }
 
 
-    // ==========================================
-    // FIND MATCHING PROFILE
-    // ==========================================
-
-    let profile =
-        null;
-
-
-    if (
-        Array.isArray(
-            matchingRenderedProfiles
-        )
-    ) {
-
-        profile =
-            matchingRenderedProfiles.find(
+    const profile =
+        Array.isArray(matchingRenderedProfiles)
+            ? matchingRenderedProfiles.find(
                 function(item) {
 
                     if (!item) {
-
                         return false;
-
                     }
-
 
                     const itemType =
                         matchingSafeString(
                             item.viewerProfileType ||
+                            item.currentProfileType ||
+                            item.profileType ||
                             item.type ||
                             ""
-                        )
-                        .toLowerCase();
-
+                        ).toLowerCase();
 
                     const itemId =
                         matchingSafeString(
                             item.viewerProfileId ||
+                            item.currentProfileId ||
+                            item.profileId ||
                             item.id ||
                             ""
                         );
-
 
                     return (
                         itemType === type &&
@@ -2063,17 +3225,9 @@ function updateMatchingReactionUI(
                     );
 
                 }
-            );
+            )
+            : null;
 
-    }
-
-
-    // ==========================================
-    // PROFILE NOT FOUND
-    //
-    // State is already updated.
-    // Do not break the whole reaction flow.
-    // ==========================================
 
     if (!profile) {
 
@@ -2091,20 +3245,33 @@ function updateMatchingReactionUI(
     }
 
 
-    // ==========================================
-    // BUILD UPDATED REACTION HTML
-    // ==========================================
+    /*
+     * Keep the latest relationship on the profile.
+     * If the existing reactToProfile() flow supplies
+     * relationship, it will be used immediately.
+     */
+    if (relationship) {
+
+        profile.relationship =
+            relationship;
+
+    }
+
+
+    const effectiveRelationship =
+        relationship ||
+        profile.relationship ||
+        profile.relationshipStatus ||
+        null;
+
 
     const html =
         buildMatchingReactionButtons(
             profile,
-            reaction
+            reaction,
+            effectiveRelationship
         );
 
-
-    // ==========================================
-    // UPDATE ALL MATCHING INSTANCES
-    // ==========================================
 
     containers.forEach(
         function(container) {
@@ -2121,12 +3288,15 @@ function updateMatchingReactionUI(
         {
             key,
             reaction,
+            relationship:
+                effectiveRelationship,
             containersUpdated:
                 containers.length
         }
     );
 
 }
+
 
 
 // ==========================================================
@@ -2353,13 +3523,15 @@ function isMatchingProfileCard(
 function handleMatchingReactionSuccess(
     type,
     profileId,
-    reaction
+    reaction,
+    relationship
 ) {
 
     updateMatchingReactionUI(
         type,
         profileId,
-        reaction
+        reaction,
+        relationship
     );
 
 }
@@ -2374,4 +3546,3 @@ console.log(
 );
 
 </script>
-

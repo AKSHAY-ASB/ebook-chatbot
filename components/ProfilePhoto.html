@@ -5,17 +5,97 @@
 // MODULE : Profile Components
 // PURPOSE : Build reusable profile photo
 //
+// SAFARI / CHROME SAFE PHOTO RENDERING
+//
 // RESPONSIBILITY
 //  - Render profile photo
 //  - Render photo placeholder
 //  - Handle image load failure
+//  - Improve dynamic image loading compatibility
 //
 // DEPENDS ON
 //  - getProfileIcon()
 //
 // USED BY
 //  - displayProfileResults()
+//  - Matching profiles
+//  - AI Search profiles
 // ==========================================
+
+
+// ==========================================
+// NORMALIZE PROFILE PHOTO URL
+// ==========================================
+
+function normalizeProfilePhotoUrl(photoUrl) {
+
+    if (!photoUrl) {
+        return "";
+    }
+
+    let url =
+        String(photoUrl)
+            .trim();
+
+    if (!url) {
+        return "";
+    }
+
+    /*
+     * Google Drive thumbnail URL
+     * is already browser-displayable.
+     */
+    if (
+        url.indexOf(
+            "drive.google.com/thumbnail"
+        ) !== -1
+    ) {
+
+        return url;
+
+    }
+
+    /*
+     * Google Drive file URL
+     *
+     * Convert supported Drive URLs
+     * to thumbnail URL.
+     */
+    let match =
+        url.match(
+            /[?&]id=([^&#]+)/i
+        );
+
+    if (!match) {
+
+        match =
+            url.match(
+                /\/d\/([^\/?#]+)/i
+            );
+
+    }
+
+    if (match && match[1]) {
+
+        const fileId =
+            match[1];
+
+        return (
+            "https://drive.google.com/thumbnail" +
+            "?id=" +
+            encodeURIComponent(fileId) +
+            "&sz=w1000"
+        );
+
+    }
+
+    /*
+     * If the URL is already a normal
+     * image URL, keep it unchanged.
+     */
+    return url;
+
+}
 
 
 // ==========================================
@@ -30,7 +110,10 @@ function createProfilePhotoPlaceholder(
 
     return `
 
-        <div class="profile-photo-placeholder">
+        <div
+            class="profile-photo-placeholder"
+            style="display:flex;"
+        >
 
             ${profileIcon}
 
@@ -45,6 +128,10 @@ function createProfilePhotoPlaceholder(
 // CREATE PROFILE IMAGE
 // ==========================================
 
+/* ==========================================
+   IDENTITY PHOTO IMAGE RENDERER
+========================================== */
+
 function createProfileImage(
 
     photoUrl,
@@ -53,23 +140,88 @@ function createProfileImage(
 
 ) {
 
+    const safePhotoUrl =
+        normalizeProfilePhotoUrl(
+            photoUrl
+        );
+
+
+    if (!safePhotoUrl) {
+
+        return createProfilePhotoPlaceholder(
+            profileIcon
+        );
+
+    }
+
+
+    /*
+     * Escape URL safely for HTML attribute.
+     */
+
+    const escapedPhotoUrl =
+        String(safePhotoUrl)
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+
     return `
 
         <img
 
-            src="${photoUrl}"
+            src="${escapedPhotoUrl}"
 
-            class="profile-photo"
+            class="profile-photo identity-profile-photo"
 
             alt="Profile Photo"
 
-            loading="lazy"
+            loading="eager"
+
+            decoding="async"
+
+            referrerpolicy="no-referrer"
+
+            data-identity-photo="true"
+
+            onload="
+
+                try {
+
+                    applyIdentityPhotoCrop(this);
+
+                } catch (error) {
+
+                    console.warn(
+                        '[IdentityPhoto] Crop error:',
+                        error
+                    );
+
+                    this.style.objectPosition =
+                        'center 20%';
+
+                }
+
+                this.style.display='block';
+
+                if (this.nextElementSibling) {
+
+                    this.nextElementSibling.style.display='none';
+
+                }
+
+            "
 
             onerror="
 
                 this.style.display='none';
 
-                this.nextElementSibling.style.display='flex';
+                if (this.nextElementSibling) {
+
+                    this.nextElementSibling.style.display='flex';
+
+                }
 
             "
 
@@ -92,6 +244,159 @@ function createProfileImage(
 }
 
 
+/* ==========================================
+   IDENTITY PHOTO CROP LOGIC
+========================================== */
+
+function applyIdentityPhotoCrop(img) {
+
+    if (!img) {
+
+        return;
+
+    }
+
+
+    const width =
+        Number(img.naturalWidth || 0);
+
+
+    const height =
+        Number(img.naturalHeight || 0);
+
+
+    if (
+        !width ||
+        !height
+    ) {
+
+        img.style.objectPosition =
+            "center 20%";
+
+        return;
+
+    }
+
+
+    const ratio =
+        width / height;
+
+
+    /*
+     * PORTRAIT PHOTO
+     *
+     * Usually already close to
+     * identity/profile format.
+     */
+
+    if (ratio < 0.80) {
+
+        img.style.objectFit =
+            "cover";
+
+        img.style.objectPosition =
+            "center 18%";
+
+        img.dataset.identityCrop =
+            "portrait";
+
+        return;
+
+    }
+
+
+    /*
+     * NORMAL PORTRAIT / SQUARE
+     */
+
+    if (
+        ratio >= 0.80 &&
+        ratio <= 1.20
+    ) {
+
+        img.style.objectFit =
+            "cover";
+
+        img.style.objectPosition =
+            "center 22%";
+
+        img.dataset.identityCrop =
+            "square";
+
+        return;
+
+    }
+
+
+    /*
+     * LANDSCAPE PHOTO
+     *
+     * Move crop slightly upward
+     * so the person's upper body
+     * remains visible.
+     */
+
+    if (ratio > 1.20) {
+
+        img.style.objectFit =
+            "cover";
+
+        img.style.objectPosition =
+            "center 30%";
+
+        img.dataset.identityCrop =
+            "landscape";
+
+        return;
+
+    }
+
+
+    /*
+     * SAFE FALLBACK
+     */
+
+    img.style.objectFit =
+        "cover";
+
+    img.style.objectPosition =
+        "center 20%";
+
+    img.dataset.identityCrop =
+        "fallback";
+
+}
+
+
+/* ==========================================
+   PROCESS DYNAMIC PROFILE PHOTOS
+========================================== */
+
+function refreshIdentityProfilePhotos() {
+
+    const images =
+        document.querySelectorAll(
+            ".identity-profile-photo"
+        );
+
+
+    images.forEach(function(img) {
+
+        if (
+            img.complete &&
+            img.naturalWidth
+        ) {
+
+            applyIdentityPhotoCrop(img);
+
+        }
+
+    });
+
+}
+
+
+
 // ==========================================
 // BUILD PROFILE PHOTO
 // ==========================================
@@ -102,7 +407,8 @@ function buildProfilePhoto(
 
 ) {
 
-    options = options || {};
+    options =
+        options || {};
 
     const photo =
         options.photo || "";
