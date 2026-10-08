@@ -52,6 +52,11 @@ function getRelationshipStatus(
       targetMobile
     );
 
+
+  // ==========================================
+  // VALIDATION
+  // ==========================================
+
   if (
 
     !viewerMobile ||
@@ -71,295 +76,385 @@ function getRelationshipStatus(
 
   }
 
-      // ==========================================
-      // PROFILE REACTIONS SHEET
-      // ==========================================
 
-      const sheet =
-          SpreadsheetApp
-              .getActiveSpreadsheet()
-              .getSheetByName(
-                  "Profile Reactions"
-              );
+  // ==========================================
+  // PROFILE REACTIONS SHEET
+  // ==========================================
 
-      if (!sheet) {
+  const sheet =
+    SpreadsheetApp
+      .getActiveSpreadsheet()
+      .getSheetByName(
+        "Profile Reactions"
+      );
 
-          return {
 
-              success: true,
+  if (!sheet) {
 
-              status:
-                  RELATIONSHIP_STATUS.NONE
+    return {
 
-          };
+      success: true,
 
-      }
+      status:
+        RELATIONSHIP_STATUS.NONE
 
-      const data =
-          sheet
-              .getDataRange()
-              .getDisplayValues();
+    };
 
-      if (data.length <= 1) {
+  }
 
-          return {
 
-              success: true,
+  // ==========================================
+  // GET DATA
+  // ==========================================
 
-              status:
-                  RELATIONSHIP_STATUS.NONE
+  const data =
+    sheet
+      .getDataRange()
+      .getDisplayValues();
 
-          };
 
-      }
+  if (data.length <= 1) {
 
-        const headers =
-        data[0].map(function(header){
+    return {
 
-            return String(header).trim();
+      success: true,
 
-        });
+      status:
+        RELATIONSHIP_STATUS.NONE
 
-          const viewerMobileIndex =
-              headers.indexOf("Viewer Mobile");
+    };
 
-          const targetMobileIndex =
-              headers.indexOf("Target Mobile");
+  }
 
-          const reactionIndex =
-              headers.indexOf("Reaction");
 
+  // ==========================================
+  // FIND REQUIRED COLUMNS
+  // ==========================================
 
-              if (
+  const headers =
+    data[0].map(function(header) {
 
-                  viewerMobileIndex === -1 ||
+      return String(
+        header
+      ).trim();
 
-                  targetMobileIndex === -1 ||
+    });
 
-                  reactionIndex === -1
 
-              ){
+  const viewerMobileIndex =
+    headers.indexOf(
+      "Viewer Mobile"
+    );
 
-                  return {
 
-                      success:false,
+  const targetMobileIndex =
+    headers.indexOf(
+      "Target Mobile"
+    );
 
-                      status:
-                          RELATIONSHIP_STATUS.NONE,
 
-                      message:
-                          "Required columns not found."
+  const reactionIndex =
+    headers.indexOf(
+      "Reaction"
+    );
 
-                  };
 
-              }
+  // ==========================================
+  // REQUIRED COLUMNS VALIDATION
+  // ==========================================
 
-              let outgoingReaction = "";
+  if (
 
-              let incomingReaction = "";
+    viewerMobileIndex === -1 ||
 
+    targetMobileIndex === -1 ||
 
-                              for (
+    reactionIndex === -1
 
-                    let i = 1;
+  ) {
 
-                    i < data.length;
+    return {
 
-                    i++
+      success: false,
 
-                ){
+      status:
+        RELATIONSHIP_STATUS.NONE,
 
-                    const row = data[i];
+      message:
+        "Required columns not found."
 
-                    const rowViewer =
-                        normalizeMobile(
-                            row[
-                                viewerMobileIndex
-                            ]
-                        );
+    };
 
-                    const rowTarget =
-                        normalizeMobile(
-                            row[
-                                targetMobileIndex
-                            ]
-                        );
+  }
 
-                    const reaction =
-                        String(
-                            row[
-                                reactionIndex
-                            ] || ""
-                        )
-                        .trim()
-                        .toUpperCase();
 
-                    // Logged-in user → Target
+  // ==========================================
+  // REACTION STATES
+  // ==========================================
 
-                    if (
+  let outgoingReaction =
+    "";
 
-                        rowViewer === viewerMobile &&
+  let incomingReaction =
+    "";
 
-                        rowTarget === targetMobile
 
-                    ){
+  // ==========================================
+  // READ BOTH DIRECTIONS
+  // ==========================================
 
-                        outgoingReaction =
-                            reaction;
+  for (
 
-                    }
+    let i = 1;
 
-                    // Target → Logged-in user
+    i < data.length;
 
-                    if (
+    i++
 
-                        rowViewer === targetMobile &&
+  ) {
 
-                        rowTarget === viewerMobile
+    const row =
+      data[i];
 
-                    ){
 
-                        incomingReaction =
-                            reaction;
+    const rowViewer =
+      normalizeMobile(
+        row[
+          viewerMobileIndex
+        ]
+      );
 
-                    }
 
-                }
+    const rowTarget =
+      normalizeMobile(
+        row[
+          targetMobileIndex
+        ]
+      );
 
-                // ==========================================
-                // DETERMINE RELATIONSHIP
-                // ==========================================
 
-                let relationshipStatus =
-                    RELATIONSHIP_STATUS.NONE;
+    const reaction =
+      String(
+        row[
+          reactionIndex
+        ] || ""
+      )
+      .trim()
+      .toUpperCase();
 
 
-                // ------------------------------------------
-                // BOTH LIKED EACH OTHER
-                // ------------------------------------------
+    // ----------------------------------------
+    // LOGGED-IN USER → TARGET
+    // ----------------------------------------
 
-                if (
+    if (
 
-                    outgoingReaction === "LIKE" &&
+      rowViewer ===
+        viewerMobile &&
 
-                    incomingReaction === "LIKE"
+      rowTarget ===
+        targetMobile
 
-                ){
+    ) {
 
-                    relationshipStatus =
-                        RELATIONSHIP_STATUS.MUTUAL_LIKE;
+      outgoingReaction =
+        reaction;
 
-                }
+    }
 
 
-                // ------------------------------------------
-                // LOGGED-IN USER ALREADY LIKED
-                // ------------------------------------------
+    // ----------------------------------------
+    // TARGET → LOGGED-IN USER
+    // ----------------------------------------
 
-                else if (
+    if (
 
-                    outgoingReaction === "LIKE"
+      rowViewer ===
+        targetMobile &&
 
-                ){
+      rowTarget ===
+        viewerMobile
 
-                    relationshipStatus =
-                        RELATIONSHIP_STATUS.OUTGOING_LIKE;
+    ) {
 
-                }
+      incomingReaction =
+        reaction;
 
+    }
 
-                // ------------------------------------------
-                // OTHER USER LIKED ME
-                // ------------------------------------------
+  }
 
-               // 1
-                if (
 
-                    outgoingReaction === "LIKE" &&
+  // ==========================================
+  // DETERMINE RELATIONSHIP
+  //
+  // SINGLE SOURCE OF TRUTH
+  //
+  // A → LIKE → B
+  // B → LIKE → A
+  //        ↓
+  //   MUTUAL_LIKE
+  // ==========================================
 
-                    incomingReaction === "LIKE"
+  let relationshipStatus =
+    RELATIONSHIP_STATUS.NONE;
 
-                ){
 
-                    relationshipStatus =
-                        RELATIONSHIP_STATUS.MUTUAL_LIKE;
+  // ------------------------------------------
+  // 1. BOTH USERS LIKED EACH OTHER
+  // ------------------------------------------
 
-                }
+  if (
 
-                // 2
-                else if (
+    outgoingReaction === "LIKE" &&
 
-                    outgoingReaction === "DISLIKE"
+    incomingReaction === "LIKE"
 
-                ){
+  ) {
 
-                    relationshipStatus =
-                        RELATIONSHIP_STATUS.DISLIKED;
+    relationshipStatus =
+      RELATIONSHIP_STATUS.MUTUAL_LIKE;
 
-                }
+  }
 
-                // 3
-                else if (
 
-                    outgoingReaction === "LIKE"
+  // ------------------------------------------
+  // 2. LOGGED-IN USER DISLIKED TARGET
+  // ------------------------------------------
 
-                ){
+  else if (
 
-                    relationshipStatus =
-                        RELATIONSHIP_STATUS.OUTGOING_LIKE;
+    outgoingReaction === "DISLIKE"
 
-                }
+  ) {
 
-                // 4
-                else if (
+    relationshipStatus =
+      RELATIONSHIP_STATUS.DISLIKED;
 
-                    incomingReaction === "LIKE"
+  }
 
-                ){
 
-                    relationshipStatus =
-                        RELATIONSHIP_STATUS.INCOMING_LIKE;
+  // ------------------------------------------
+  // 3. LOGGED-IN USER LIKED TARGET
+  // ------------------------------------------
 
-                }
+  else if (
 
-                // 5
-                else{
+    outgoingReaction === "LIKE"
 
-                    relationshipStatus =
-                        RELATIONSHIP_STATUS.NONE;
+  ) {
 
-                }
+    relationshipStatus =
+      RELATIONSHIP_STATUS.OUTGOING_LIKE;
 
-                return {
+  }
 
-                  success: true,
 
-                  status: relationshipStatus,
+  // ------------------------------------------
+  // 4. TARGET LIKED LOGGED-IN USER
+  // ------------------------------------------
 
-                  isMutual:
-                      relationshipStatus === RELATIONSHIP_STATUS.MUTUAL_LIKE,
+  else if (
 
-                  canLike:
-                      
-                      relationshipStatus === RELATIONSHIP_STATUS.NONE ||
+    incomingReaction === "LIKE"
 
-                      relationshipStatus === RELATIONSHIP_STATUS.INCOMING_LIKE ||
+  ) {
 
-                      relationshipStatus === RELATIONSHIP_STATUS.DISLIKED,
+    relationshipStatus =
+      RELATIONSHIP_STATUS.INCOMING_LIKE;
 
-                  canDislike:
-                      relationshipStatus !== RELATIONSHIP_STATUS.DISLIKED,
+  }
 
-                  canSendInterest:
-                      relationshipStatus === RELATIONSHIP_STATUS.MUTUAL_LIKE,
 
-                  likeLabel:
-                      getLikeLabel(relationshipStatus),
+  // ------------------------------------------
+  // 5. NO ACTIVE RELATIONSHIP
+  // ------------------------------------------
 
-                  dislikeLabel:
-                      getDislikeLabel(relationshipStatus)
+  else {
 
-              };
+    relationshipStatus =
+      RELATIONSHIP_STATUS.NONE;
+
+  }
+
+
+  // ==========================================
+  // RETURN RELATIONSHIP
+  // ==========================================
+
+  return {
+
+    success: true,
+
+    status:
+      relationshipStatus,
+
+
+    // ========================================
+    // MUTUAL MATCH
+    // ========================================
+
+    isMutual:
+      relationshipStatus ===
+        RELATIONSHIP_STATUS.MUTUAL_LIKE,
+
+
+    // ========================================
+    // CAN LIKE
+    //
+    // Existing behavior preserved
+    // ========================================
+
+    canLike:
+
+      relationshipStatus ===
+        RELATIONSHIP_STATUS.NONE ||
+
+      relationshipStatus ===
+        RELATIONSHIP_STATUS.INCOMING_LIKE ||
+
+      relationshipStatus ===
+        RELATIONSHIP_STATUS.DISLIKED,
+
+
+    // ========================================
+    // CAN DISLIKE
+    //
+    // Existing behavior preserved
+    // ========================================
+
+    canDislike:
+      relationshipStatus !==
+        RELATIONSHIP_STATUS.DISLIKED,
+
+
+    // ========================================
+    // SEND INTEREST
+    //
+    // Existing behavior preserved
+    // ========================================
+
+    canSendInterest:
+      relationshipStatus ===
+        RELATIONSHIP_STATUS.MUTUAL_LIKE,
+
+
+    // ========================================
+    // LABELS
+    // ========================================
+
+    likeLabel:
+      getLikeLabel(
+        relationshipStatus
+      ),
+
+
+    dislikeLabel:
+      getDislikeLabel(
+        relationshipStatus
+      )
+
+  };
 
 }
 

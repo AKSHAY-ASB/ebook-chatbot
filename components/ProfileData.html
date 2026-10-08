@@ -246,7 +246,58 @@ function prepareProfileDisplayData(
     // JOB / PROFESSION
     // ----------------------------------------
 
+    // const job =
+    //     profile.professionRaw ||
+    //     (
+    //         profile.profession &&
+    //         typeof profile.profession === "object"
+
+    //             ? (
+    //                 profile.profession.raw ||
+    //                 profile.profession.normalized ||
+    //                 "-"
+    //               )
+
+    //             : profile.profession
+    //     ) ||
+    //     "-";
+
+
+    // ----------------------------------------
+    // JOB / PROFESSION
+    // ----------------------------------------
+    //
+    // IMPORTANT:
+    // Existing searchProfiles() returns the actual
+    // job value as profile.job.
+    //
+    // AI Search may also use profession / professionRaw.
+    //
+    // Priority:
+    // 1. jobRaw
+    // 2. job
+    // 3. professionRaw
+    // 4. profession object
+    // 5. profession
+    // ----------------------------------------
+
     const job =
+        profile.jobRaw ||
+        (
+            profile.job &&
+            typeof profile.job === "object"
+
+                ? (
+                    profile.job.raw ||
+                    profile.job.display ||
+                    profile.job.formatted ||
+                    profile.job.value ||
+                    profile.job.normalized ||
+                    "-"
+                  )
+
+                : profile.job
+        ) ||
         profile.professionRaw ||
         (
             profile.profession &&
@@ -254,6 +305,9 @@ function prepareProfileDisplayData(
 
                 ? (
                     profile.profession.raw ||
+                    profile.profession.display ||
+                    profile.profession.formatted ||
+                    profile.profession.value ||
                     profile.profession.normalized ||
                     "-"
                   )

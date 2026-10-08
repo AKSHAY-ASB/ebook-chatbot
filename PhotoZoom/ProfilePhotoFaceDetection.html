@@ -1,0 +1,1673 @@
+<!--
+========================================================
+FILE : ProfilePhotoFaceDetection.html
+MODULE : Profile Components
+PURPOSE : Face Detection + Identity Style Smart Crop
+
+VERSION : 1.0.0
+
+RESPONSIBILITY
+- Detect face inside profile photo
+- Calculate face-centered crop
+- Render 3:4 identity-style positioning
+- Work with dynamically inserted profile cards
+- Chrome + Safari support
+- Safe fallback when detection is unavailable
+- Does NOT modify original photo
+- Does NOT modify backend/search data
+
+IMPORTANT
+- This module changes only DISPLAY POSITION.
+- Original Google Drive photo URL remains unchanged.
+- Full profile photos are excluded.
+========================================================
+-->
+
+
+<style>
+
+/* ======================================================
+   IDENTITY PHOTO FRAME
+====================================================== */
+
+.profile-photo-container {
+
+    width: 100%;
+
+    max-width: 220px;
+
+    aspect-ratio: 3 / 4;
+
+    height: auto;
+
+    margin: 0 auto 15px auto;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    border: 1px solid #e5e7eb;
+
+    background: #f8f9fa;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    position: relative;
+
+}
+
+
+/* ======================================================
+   PROFILE IMAGE
+====================================================== */
+
+.profile-photo-container
+.profile-photo {
+
+    width: 100%;
+
+    height: 100%;
+
+    max-width: none;
+
+    max-height: none;
+
+    min-width: 100%;
+
+    min-height: 100%;
+
+    display: block;
+
+    object-fit: cover;
+
+    object-position: 50% 20%;
+
+    /*
+     * Safari rendering stability
+     */
+
+    -webkit-transform:
+        translateZ(0);
+
+    transform:
+        translateZ(0);
+
+    -webkit-backface-visibility:
+        hidden;
+
+    backface-visibility:
+        hidden;
+
+}
+
+
+/* ======================================================
+   SMART FACE CROPPED PHOTO
+====================================================== */
+
+.profile-photo-container
+.profile-photo.face-detected {
+
+    object-fit: cover;
+
+}
+
+
+/* ======================================================
+   FALLBACK PHOTO
+====================================================== */
+
+.profile-photo-container
+.profile-photo.face-fallback {
+
+    object-fit: cover;
+
+    object-position:
+        50% 20%;
+
+}
+
+
+/* ======================================================
+   PLACEHOLDER
+====================================================== */
+
+.profile-photo-container
+.profile-photo-placeholder {
+
+    width: 100%;
+
+    height: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 45px;
+
+    background: #f3f4f6;
+
+}
+
+
+/* ======================================================
+   FULL PROFILE MUST NOT BE CROPPED
+====================================================== */
+
+.full-profile-photo img {
+
+    width: 100%;
+
+    height: auto;
+
+    max-width: 350px;
+
+    max-height: 500px;
+
+    object-fit: contain !important;
+
+    object-position: center !important;
+
+}
+
+
+/* ======================================================
+   MOBILE
+====================================================== */
+
+@media (max-width: 480px) {
+
+    .profile-photo-container {
+
+        max-width: 190px;
+
+        aspect-ratio: 3 / 4;
+
+    }
+
+}
+
+</style>
+
+
+<script>
+
+/* ======================================================
+   CONFIGURATION
+====================================================== */
+
+window.ProfilePhotoFaceDetectionConfig = {
+
+    enabled: true,
+
+    /*
+     * 3:4 identity photo.
+     */
+
+    targetAspectRatio: 3 / 4,
+
+    /*
+     * Face detection confidence.
+     */
+
+    minDetectionConfidence: 0.45,
+
+    /*
+     * Face should not touch the top edge.
+     */
+
+    topMargin: 0.12,
+
+    /*
+     * Extra area below face
+     * to include neck / shoulders.
+     */
+
+    shoulderPadding: 2.2,
+
+    /*
+     * Maximum number of faces.
+     */
+
+    maxFaces: 5,
+
+    /*
+     * Fallback position.
+     */
+
+    fallbackX: 50,
+
+    fallbackY: 20
+
+};
+
+
+/* ======================================================
+   GLOBAL STATE
+====================================================== */
+
+window.ProfilePhotoFaceDetectionState = {
+
+    detector: null,
+
+    initializing: null,
+
+    ready: false,
+
+    failed: false,
+
+    processed: new WeakSet(),
+
+    running: new WeakSet()
+
+};
+
+
+/* ======================================================
+   LOAD MEDIAPIPE
+====================================================== */
+
+async function loadProfileFaceDetector() {
+
+    const state =
+        window.ProfilePhotoFaceDetectionState;
+
+
+    if (state.ready && state.detector) {
+
+        return state.detector;
+
+    }
+
+
+    if (state.initializing) {
+
+        return state.initializing;
+
+    }
+
+
+    state.initializing =
+        (async function() {
+
+            try {
+
+                console.log(
+                    "[FaceDetection] Loading MediaPipe..."
+                );
+
+
+                /*
+                 * Current MediaPipe Tasks Vision
+                 * web package.
+                 */
+
+                const visionModule =
+                    await import(
+                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/vision_bundle.mjs"
+                    );
+
+
+                const FilesetResolver =
+                    visionModule.FilesetResolver;
+
+                const FaceDetector =
+                    visionModule.FaceDetector;
+
+
+                if (
+                    !FilesetResolver ||
+                    !FaceDetector
+                ) {
+
+                    throw new Error(
+                        "MediaPipe FaceDetector exports unavailable."
+                    );
+
+                }
+
+
+                /*
+                 * Load WASM runtime.
+                 */
+
+                const vision =
+                    await FilesetResolver.forVisionTasks(
+
+                        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm"
+
+                    );
+
+
+                /*
+                 * Google MediaPipe BlazeFace model.
+                 *
+                 * Short-range model is used first.
+                 */
+
+                const detector =
+                    await FaceDetector.createFromOptions(
+
+                        vision,
+
+                        {
+
+                            baseOptions: {
+
+                                modelAssetPath:
+                                    "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
+
+                                delegate:
+                                    "CPU"
+
+                            },
+
+                            runningMode:
+                                "IMAGE",
+
+                            minDetectionConfidence:
+                                window
+                                    .ProfilePhotoFaceDetectionConfig
+                                    .minDetectionConfidence,
+
+                            minSuppressionThreshold:
+                                0.30
+
+                        }
+
+                    );
+
+
+                state.detector =
+                    detector;
+
+                state.ready =
+                    true;
+
+                state.failed =
+                    false;
+
+
+                console.log(
+                    "[FaceDetection] MediaPipe ready."
+                );
+
+
+                return detector;
+
+            }
+
+            catch (error) {
+
+                state.failed =
+                    true;
+
+                console.error(
+                    "[FaceDetection] Initialization failed:",
+                    error
+                );
+
+
+                /*
+                 * Important:
+                 *
+                 * Never break profile rendering
+                 * if face detection fails.
+                 */
+
+                return null;
+
+            }
+
+        })();
+
+
+    const result =
+        await state.initializing;
+
+
+    state.initializing =
+        null;
+
+
+    return result;
+
+}
+
+
+/* ======================================================
+   APPLY SAFE FALLBACK
+====================================================== */
+
+function applyProfilePhotoFallback(img) {
+
+    if (!img) {
+
+        return;
+
+    }
+
+
+    img.style.objectFit =
+        "cover";
+
+
+    img.style.objectPosition =
+        "50% 20%";
+
+
+    img.classList.remove(
+        "face-detected"
+    );
+
+
+    img.classList.add(
+        "face-fallback"
+    );
+
+
+    img.dataset.faceDetection =
+        "fallback";
+
+}
+
+
+/* ======================================================
+   NORMALIZE BOUNDING BOX
+====================================================== */
+
+function getProfileFaceBox(detection) {
+
+    if (
+        !detection ||
+        !detection.boundingBox
+    ) {
+
+        return null;
+
+    }
+
+
+    const box =
+        detection.boundingBox;
+
+
+    /*
+     * MediaPipe returns origin_x,
+     * origin_y, width, height.
+     */
+
+    let x =
+        Number(
+            box.originX ??
+            box.origin_x ??
+            0
+        );
+
+
+    let y =
+        Number(
+            box.originY ??
+            box.origin_y ??
+            0
+        );
+
+
+    let width =
+        Number(
+            box.width ??
+            0
+        );
+
+
+    let height =
+        Number(
+            box.height ??
+            0
+        );
+
+
+    if (
+        !isFinite(x) ||
+        !isFinite(y) ||
+        !isFinite(width) ||
+        !isFinite(height)
+    ) {
+
+        return null;
+
+    }
+
+
+    if (
+        width <= 0 ||
+        height <= 0
+    ) {
+
+        return null;
+
+    }
+
+
+    return {
+
+        x: x,
+
+        y: y,
+
+        width: width,
+
+        height: height,
+
+        centerX:
+            x +
+            (width / 2),
+
+        centerY:
+            y +
+            (height / 2)
+
+    };
+
+}
+
+
+/* ======================================================
+   SELECT BEST FACE
+====================================================== */
+
+function selectBestProfileFace(
+
+    detections,
+
+    imageWidth,
+
+    imageHeight
+
+) {
+
+    if (
+        !detections ||
+        !detections.length
+    ) {
+
+        return null;
+
+    }
+
+
+    const imageArea =
+        imageWidth *
+        imageHeight;
+
+
+    let bestFace =
+        null;
+
+    let bestScore =
+        -Infinity;
+
+
+    detections.forEach(
+
+        function(detection) {
+
+            const box =
+                getProfileFaceBox(
+                    detection
+                );
+
+
+            if (!box) {
+
+                return;
+
+            }
+
+
+            /*
+             * Face area.
+             */
+
+            const faceArea =
+                box.width *
+                box.height;
+
+
+            const areaRatio =
+                faceArea /
+                imageArea;
+
+
+            /*
+             * Center preference.
+             */
+
+            const centerDistance =
+                Math.sqrt(
+
+                    Math.pow(
+                        (
+                            box.centerX /
+                            imageWidth
+                        ) - 0.5,
+
+                        2
+
+                    ) +
+
+                    Math.pow(
+                        (
+                            box.centerY /
+                            imageHeight
+                        ) - 0.45,
+
+                        2
+
+                    )
+
+                );
+
+
+            /*
+             * Prefer reasonably large faces.
+             *
+             * Also prefer faces closer
+             * to the visual center.
+             */
+
+            const score =
+
+                (areaRatio * 1000)
+
+                -
+
+                (centerDistance * 10);
+
+
+            if (
+                score >
+                bestScore
+            ) {
+
+                bestScore =
+                    score;
+
+                bestFace =
+                    box;
+
+            }
+
+        }
+
+    );
+
+
+    return bestFace;
+
+}
+
+
+/* ======================================================
+   CALCULATE IDENTITY CROP
+====================================================== */
+
+function calculateIdentityCrop(
+
+    face,
+
+    imageWidth,
+
+    imageHeight
+
+) {
+
+    /*
+     * Target frame:
+     *
+     * 3 : 4
+     */
+
+    const targetRatio =
+        window
+            .ProfilePhotoFaceDetectionConfig
+            .targetAspectRatio;
+
+
+    /*
+     * We want:
+     *
+     * face
+     * +
+     * headroom
+     * +
+     * shoulders
+     */
+
+    let cropHeight =
+        face.height *
+        window
+            .ProfilePhotoFaceDetectionConfig
+            .shoulderPadding;
+
+
+    /*
+     * Minimum crop height.
+     *
+     * This prevents extreme
+     * face-only zoom.
+     */
+
+    cropHeight =
+        Math.max(
+
+            cropHeight,
+
+            imageHeight *
+            0.38
+
+        );
+
+
+    /*
+     * Calculate corresponding
+     * crop width for 3:4.
+     */
+
+    let cropWidth =
+        cropHeight *
+        targetRatio;
+
+
+    /*
+     * Never exceed image.
+     */
+
+    if (
+        cropWidth >
+        imageWidth
+    ) {
+
+        cropWidth =
+            imageWidth;
+
+        cropHeight =
+            cropWidth /
+            targetRatio;
+
+    }
+
+
+    if (
+        cropHeight >
+        imageHeight
+    ) {
+
+        cropHeight =
+            imageHeight;
+
+        cropWidth =
+            cropHeight *
+            targetRatio;
+
+    }
+
+
+    /*
+     * Desired crop center.
+     *
+     * Move center slightly below
+     * the face so shoulders are included.
+     */
+
+    let centerX =
+        face.centerX;
+
+
+    let centerY =
+        face.y +
+        (
+            face.height *
+            1.25
+        );
+
+
+    /*
+     * Clamp crop horizontally.
+     */
+
+    let left =
+        centerX -
+        (
+            cropWidth /
+            2
+        );
+
+
+    left =
+        Math.max(
+
+            0,
+
+            Math.min(
+
+                left,
+
+                imageWidth -
+                cropWidth
+
+            )
+
+        );
+
+
+    /*
+     * Clamp crop vertically.
+     */
+
+    let top =
+        centerY -
+        (
+            cropHeight *
+            0.42
+        );
+
+
+    top =
+        Math.max(
+
+            0,
+
+            Math.min(
+
+                top,
+
+                imageHeight -
+                cropHeight
+
+            )
+
+        );
+
+
+    /*
+     * Final center.
+     */
+
+    const finalCenterX =
+        left +
+        (
+            cropWidth /
+            2
+        );
+
+
+    const finalCenterY =
+        top +
+        (
+            cropHeight /
+            2
+        );
+
+
+    return {
+
+        left: left,
+
+        top: top,
+
+        width: cropWidth,
+
+        height: cropHeight,
+
+        centerX:
+            finalCenterX,
+
+        centerY:
+            finalCenterY
+
+    };
+
+}
+
+
+/* ======================================================
+   CONVERT CROP TO CSS OBJECT POSITION
+====================================================== */
+
+function cropToObjectPosition(
+
+    crop,
+
+    imageWidth,
+
+    imageHeight
+
+) {
+
+    /*
+     * object-position percentage
+     *
+     * 50% means center.
+     */
+
+    let xPercent =
+        (
+            crop.centerX /
+            imageWidth
+        ) *
+        100;
+
+
+    let yPercent =
+        (
+            crop.centerY /
+            imageHeight
+        ) *
+        100;
+
+
+    /*
+     * Safe range.
+     */
+
+    xPercent =
+        Math.max(
+
+            0,
+
+            Math.min(
+                100,
+                xPercent
+            )
+
+        );
+
+
+    yPercent =
+        Math.max(
+
+            0,
+
+            Math.min(
+                100,
+                yPercent
+            )
+
+        );
+
+
+    return {
+
+        x:
+            xPercent,
+
+        y:
+            yPercent
+
+    };
+
+}
+
+
+/* ======================================================
+   DETECT FACE
+====================================================== */
+
+async function detectProfileFace(img) {
+
+    const detector =
+        await loadProfileFaceDetector();
+
+
+    if (!detector) {
+
+        return null;
+
+    }
+
+
+    if (
+        !img ||
+        !img.naturalWidth ||
+        !img.naturalHeight
+    ) {
+
+        return null;
+
+    }
+
+
+    try {
+
+        /*
+         * MediaPipe FaceDetector.detect()
+         * accepts an ImageSource.
+         */
+
+        const result =
+            detector.detect(
+                img
+            );
+
+
+        if (
+            !result ||
+            !result.detections ||
+            !result.detections.length
+        ) {
+
+            return null;
+
+        }
+
+
+        return selectBestProfileFace(
+
+            result.detections,
+
+            img.naturalWidth,
+
+            img.naturalHeight
+
+        );
+
+    }
+
+    catch (error) {
+
+        console.warn(
+            "[FaceDetection] Image detection failed:",
+            error
+        );
+
+
+        return null;
+
+    }
+
+}
+
+
+/* ======================================================
+   PROCESS ONE PROFILE PHOTO
+====================================================== */
+
+async function processProfilePhotoFaceDetection(img) {
+
+    if (!img) {
+
+        return;
+
+    }
+
+
+    /*
+     * Never process full profile images.
+     */
+
+    if (
+        img.closest(
+            ".full-profile-photo"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    const state =
+        window.ProfilePhotoFaceDetectionState;
+
+
+    if (
+        state.running.has(img)
+    ) {
+
+        return;
+
+    }
+
+
+    state.running.add(img);
+
+
+    try {
+
+        /*
+         * Always start with safe fallback.
+         *
+         * This guarantees that the photo
+         * is never blank while detection runs.
+         */
+
+        applyProfilePhotoFallback(
+            img
+        );
+
+
+        /*
+         * Wait for image load.
+         */
+
+        if (
+            !img.complete ||
+            !img.naturalWidth
+        ) {
+
+            await new Promise(
+
+                function(resolve) {
+
+                    let finished =
+                        false;
+
+
+                    const done =
+                        function() {
+
+                            if (
+                                finished
+                            ) {
+
+                                return;
+
+                            }
+
+
+                            finished =
+                                true;
+
+
+                            resolve();
+
+                        };
+
+
+                    img.addEventListener(
+                        "load",
+                        done,
+                        {
+                            once: true
+                        }
+                    );
+
+
+                    img.addEventListener(
+                        "error",
+                        done,
+                        {
+                            once: true
+                        }
+                    );
+
+
+                    setTimeout(
+                        done,
+                        4000
+                    );
+
+                }
+
+            );
+
+        }
+
+
+        if (
+            !img.naturalWidth ||
+            !img.naturalHeight
+        ) {
+
+            return;
+
+        }
+
+
+        /*
+         * Face detection.
+         */
+
+        const face =
+            await detectProfileFace(
+                img
+            );
+
+
+        if (!face) {
+
+            console.log(
+                "[FaceDetection] No face detected. Using fallback."
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * Calculate actual identity crop.
+         */
+
+        const crop =
+            calculateIdentityCrop(
+
+                face,
+
+                img.naturalWidth,
+
+                img.naturalHeight
+
+            );
+
+
+        /*
+         * Convert crop to CSS positioning.
+         */
+
+        const position =
+            cropToObjectPosition(
+
+                crop,
+
+                img.naturalWidth,
+
+                img.naturalHeight
+
+            );
+
+
+        /*
+         * Apply.
+         */
+
+        img.style.objectFit =
+            "cover";
+
+
+        img.style.objectPosition =
+            position.x +
+            "% " +
+            position.y +
+            "%";
+
+
+        img.classList.remove(
+            "face-fallback"
+        );
+
+
+        img.classList.add(
+            "face-detected"
+        );
+
+
+        img.dataset.faceDetection =
+            "detected";
+
+
+        img.dataset.faceX =
+            String(
+                Math.round(
+                    face.centerX
+                )
+            );
+
+
+        img.dataset.faceY =
+            String(
+                Math.round(
+                    face.centerY
+                )
+            );
+
+
+        console.log(
+            "[FaceDetection] Identity crop applied:",
+            {
+                width:
+                    img.naturalWidth,
+
+                height:
+                    img.naturalHeight,
+
+                faceX:
+                    Math.round(
+                        face.centerX
+                    ),
+
+                faceY:
+                    Math.round(
+                        face.centerY
+                    ),
+
+                objectPosition:
+                    img.style.objectPosition
+            }
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "[FaceDetection] Processing failed:",
+            error
+        );
+
+
+        /*
+         * Never allow detection failure
+         * to break the profile card.
+         */
+
+        applyProfilePhotoFallback(
+            img
+        );
+
+    }
+
+    finally {
+
+        state.running.delete(
+            img
+        );
+
+        state.processed.add(
+            img
+        );
+
+    }
+
+}
+
+
+/* ======================================================
+   PROCESS ALL PROFILE PHOTOS
+====================================================== */
+
+function processAllProfileFacePhotos() {
+
+    const images =
+        document.querySelectorAll(
+
+            ".profile-photo-container " +
+            ".profile-photo"
+
+        );
+
+
+    images.forEach(
+
+        function(img) {
+
+            processProfilePhotoFaceDetection(
+                img
+            );
+
+        }
+
+    );
+
+}
+
+
+/* ======================================================
+   OBSERVE DYNAMIC PROFILE CARDS
+====================================================== */
+
+function startProfilePhotoFaceDetection() {
+
+    /*
+     * Initial profiles.
+     */
+
+    processAllProfileFacePhotos();
+
+
+    /*
+     * Watch for:
+     *
+     * Search results
+     * AI Search results
+     * Matching results
+     * Pagination
+     * dynamically inserted cards
+     */
+
+    if (
+        typeof MutationObserver !==
+        "function"
+    ) {
+
+        return;
+
+    }
+
+
+    const observer =
+        new MutationObserver(
+
+            function(mutations) {
+
+                let foundNewPhoto =
+                    false;
+
+
+                mutations.forEach(
+
+                    function(mutation) {
+
+                        if (
+                            mutation.addedNodes &&
+                            mutation.addedNodes.length
+                        ) {
+
+                            foundNewPhoto =
+                                true;
+
+                        }
+
+                    }
+
+                );
+
+
+                if (
+                    foundNewPhoto
+                ) {
+
+                    /*
+                     * Small delay allows
+                     * profile HTML to finish
+                     * rendering.
+                     */
+
+                    setTimeout(
+
+                        processAllProfileFacePhotos,
+
+                        50
+
+                    );
+
+                }
+
+            }
+
+        );
+
+
+    observer.observe(
+
+        document.body,
+
+        {
+
+            childList: true,
+
+            subtree: true
+
+        }
+
+    );
+
+
+    window.profilePhotoFaceDetectionObserver =
+        observer;
+
+}
+
+
+/* ======================================================
+   MANUAL TEST
+====================================================== */
+
+window.testProfilePhotoFaceDetection =
+    async function() {
+
+        console.log(
+            "======================================"
+        );
+
+        console.log(
+            "[FaceDetection] TEST START"
+        );
+
+        console.log(
+            "======================================"
+        );
+
+
+        const detector =
+            await loadProfileFaceDetector();
+
+
+        console.log(
+            "[FaceDetection] Detector:",
+            detector
+                ? "READY"
+                : "FALLBACK"
+        );
+
+
+        processAllProfileFacePhotos();
+
+
+        console.log(
+            "[FaceDetection] TEST COMPLETE"
+        );
+
+    };
+
+
+/* ======================================================
+   DIAGNOSTIC
+====================================================== */
+
+window.debugProfilePhotoFaceDetection =
+    function() {
+
+        const images =
+            document.querySelectorAll(
+
+                ".profile-photo-container " +
+                ".profile-photo"
+
+            );
+
+
+        console.log(
+            "[FaceDetection] Photos found:",
+            images.length
+        );
+
+
+        images.forEach(
+
+            function(img, index) {
+
+                console.log(
+                    "PHOTO #" +
+                    (index + 1),
+
+                    {
+
+                        src:
+                            img.src,
+
+                        width:
+                            img.naturalWidth,
+
+                        height:
+                            img.naturalHeight,
+
+                        detection:
+                            img.dataset
+                                .faceDetection,
+
+                        faceX:
+                            img.dataset
+                                .faceX,
+
+                        faceY:
+                            img.dataset
+                                .faceY,
+
+                        objectPosition:
+                            img.style
+                                .objectPosition
+
+                    }
+
+                );
+
+            }
+
+        );
+
+    };
+
+
+/* ======================================================
+   START
+====================================================== */
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+
+        "DOMContentLoaded",
+
+        function() {
+
+            startProfilePhotoFaceDetection();
+
+        }
+
+    );
+
+}
+
+else {
+
+    startProfilePhotoFaceDetection();
+
+}
+
+
+console.log(
+    "[FaceDetection] ProfilePhotoFaceDetection loaded."
+);
+
+</script>
